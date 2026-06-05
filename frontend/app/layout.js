@@ -14,9 +14,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata = {
-  title: "Cartivo — Commerce, beautifully simple",
+  title: "Cartivo — Sell online without the busywork",
   description:
-    "Cartivo is the modern commerce platform that helps you launch, sell, and grow with a storefront your customers will love.",
+    "Cartivo gives independent brands a fast storefront, one inbox for every order, and clear numbers to act on. Now in early access.",
 };
 
 export default function RootLayout({ children }) {

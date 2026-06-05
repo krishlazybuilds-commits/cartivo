@@ -763,3 +763,208 @@ section {
     max-width: none;
   }
 }
+
+
+/* ============================================================
+   Senior pass: a11y, motion, icon alignment, new sections
+   ============================================================ */
+
+/* Accessible focus ring */
+a:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(-150%);
+  top: 10px;
+  z-index: 100;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+.skip-link:focus {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Subtle grain instead of plain gradient blobs */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Icon alignment helpers */
+.btn svg,
+.hero-trust svg,
+.pc-sub svg {
+  flex: none;
+}
+.hero-trust svg {
+  color: var(--accent-deep);
+}
+.dot-sep {
+  color: var(--line);
+  font-weight: 700;
+}
+.pc-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pc-sub svg {
+  color: #7ee2a8;
+}
+
+/* Stars (SVG) */
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 0;
+}
+
+/* Feature icon now holds an SVG */
+.feature-card .ficon svg {
+  stroke-width: 1.75;
+}
+
+/* Checklist tick with SVG */
+.checklist .tick {
+  color: var(--accent-deep);
+}
+.checklist .tick svg {
+  stroke-width: 2.25;
+}
+
+/* Pricing list items with SVG check */
+.price-card li {
+  align-items: center;
+}
+.price-card li::before {
+  content: none;
+}
+.price-card li svg {
+  flex: none;
+  color: var(--accent-deep);
+}
+.price-card.featured li svg {
+  color: var(--accent);
+}
+
+/* Split section headings (replaces inline styles) */
+.split-title {
+  font-size: 2.6rem;
+  margin: 16px 0 18px;
+}
+.split-lead {
+  color: var(--slate);
+  font-size: 1.1rem;
+}
+
+/* ---------- Why Cartivo (honest founder note) ---------- */
+.why-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+.why-copy h2 {
+  font-size: clamp(2rem, 3.4vw, 2.7rem);
+  margin: 16px 0 16px;
+}
+.why-copy p {
+  color: var(--slate);
+  font-size: 1.08rem;
+  margin-bottom: 14px;
+}
+.why-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+.why-link:hover {
+  text-decoration: underline;
+}
+.why-card {
+  background: linear-gradient(160deg, var(--ink), var(--ink-soft));
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: var(--shadow-md);
+}
+.why-quote {
+  font-family: var(--font-serif), serif;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin-bottom: 28px;
+}
+.why-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.why-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.why-author b {
+  display: block;
+}
+.why-author span {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .why-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}
