@@ -79,6 +79,16 @@ export default async function ProductsPage({ searchParams }) {
             <div className="feature-grid">
               {products.map((p) => (
                 <Link className="feature-card product-card" key={p.id} href={`/products/${p.slug}`}>
+                  <div className="product-image">
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image} alt={p.name} />
+                    ) : (
+                      <span className="product-image-ph" aria-hidden="true">
+                        {p.name?.[0] ?? "?"}
+                      </span>
+                    )}
+                  </div>
                   <span className="product-cat">{p.category_name ?? "Product"}</span>
                   <h3>{p.name}</h3>
                   <p>{p.description}</p>

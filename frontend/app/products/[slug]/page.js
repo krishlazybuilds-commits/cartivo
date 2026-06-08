@@ -48,6 +48,16 @@ export default async function ProductDetailPage({ params }) {
             </p>
 
             <article className="product-detail">
+              <div className="product-detail-image">
+                {product.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={product.image} alt={product.name} />
+                ) : (
+                  <span className="product-image-ph large" aria-hidden="true">
+                    {product.name?.[0] ?? "?"}
+                  </span>
+                )}
+              </div>
               <span className="product-cat">{product.category_name ?? "Product"}</span>
               <h1>{product.name}</h1>
               <div className="product-meta">
