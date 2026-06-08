@@ -33,11 +33,15 @@ class CartItemSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        product = attrs.get("product")
-        quantity = attrs.get("quantity", 1)
+        # On a partial update (e.g. changing quantity via the +/- buttons),
+        # `product` isn't in the payload, so fall back to the existing item.
+        product = attrs.get("product") or getattr(self.instance, "product", None)
+        quantity = attrs.get("quantity")
+        if quantity is None:
+            quantity = getattr(self.instance, "quantity", 1)
         if product and quantity > product.stock:
             raise serializers.ValidationError(
-                f"Only {product.stock} unit(s) of '{product.name}' in stock."
+                {"detail": f"Only {product.stock} unit(s) of '{product.name}' in stock."}
             )
         return attrs
 

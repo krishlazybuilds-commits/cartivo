@@ -9,6 +9,21 @@ const REFRESH_KEY = "cartivo_refresh";
 
 const AuthContext = createContext(null);
 
+/**
+ * Extract a human-readable message from any DRF error body:
+ *   "msg" | ["msg"] | {detail: "msg"} | {detail: ["msg"]} |
+ *   {non_field_errors: ["msg"]} | {field: ["msg"]}
+ */
+export function extractError(data, fallback = "Something went wrong.") {
+  if (!data) return fallback;
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) return data[0] ?? fallback;
+  if (typeof data.detail === "string") return data.detail;
+  if (Array.isArray(data.detail)) return data.detail[0] ?? fallback;
+  const first = Object.values(data).flat()[0];
+  return typeof first === "string" ? first : fallback;
+}
+
 function getToken(key) {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(key);
@@ -53,7 +68,7 @@ export async function authFetch(path, options = {}) {
     } catch {
       detail = { detail: res.statusText };
     }
-    const err = new Error(detail.detail || `API ${res.status}`);
+    const err = new Error(extractError(detail, `Request failed (${res.status})`));
     err.status = res.status;
     err.data = detail;
     throw err;

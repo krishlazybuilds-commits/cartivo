@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import AddToCart from "../../components/AddToCart";
 import { apiFetch } from "../../lib/api";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +60,9 @@ export default async function ProductDetailPage({ params }) {
               </div>
               <p className="product-desc">{product.description}</p>
               <p className="product-sku">SKU: {product.sku}</p>
+              <div style={{ marginTop: "1.5rem" }}>
+                <AddToCart productId={product.id} inStock={product.in_stock} />
+              </div>
             </article>
           </div>
         </section>

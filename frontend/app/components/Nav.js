@@ -3,9 +3,11 @@
 import Link from "next/link";
 
 import { useAuth } from "../lib/auth";
+import { useCart } from "../lib/cart";
 
 export default function Nav() {
   const { user, logout, loading } = useAuth();
+  const { itemCount } = useCart();
 
   return (
     <nav className="nav">
@@ -24,6 +26,10 @@ export default function Nav() {
         <div className="nav-cta">
           {loading ? null : user ? (
             <>
+              <Link href="/cart" className="nav-cart" aria-label="Cart">
+                Cart
+                {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
+              </Link>
               <span className="nav-user">Hi, {user.username}</span>
               <button className="btn btn-ghost" onClick={logout} type="button">
                 Sign out

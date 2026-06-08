@@ -1,5 +1,6 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -50,7 +51,12 @@ class CartItemViewSet(
         # If the product is already in the cart, increment instead of duplicating.
         item = cart.items.filter(product=product).first()
         if item:
-            item.quantity += quantity
+            new_quantity = item.quantity + quantity
+            if new_quantity > product.stock:
+                raise ValidationError(
+                    {"detail": f"Only {product.stock} unit(s) of '{product.name}' in stock."}
+                )
+            item.quantity = new_quantity
             item.save()
             serializer.instance = item
         else:
