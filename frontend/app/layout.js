@@ -1,5 +1,6 @@
 import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "./lib/auth";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${jakarta.variable} ${fraunces.variable}`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
