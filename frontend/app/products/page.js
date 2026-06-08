@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { apiFetch } from "../lib/api";
@@ -52,7 +53,7 @@ export default async function ProductsPage() {
 
             <div className="feature-grid">
               {products.map((p) => (
-                <article className="feature-card" key={p.id}>
+                <Link className="feature-card product-card" key={p.id} href={`/products/${p.slug}`}>
                   <span className="product-cat">{p.category_name ?? "Product"}</span>
                   <h3>{p.name}</h3>
                   <p>{p.description}</p>
@@ -62,7 +63,7 @@ export default async function ProductsPage() {
                       {p.in_stock ? "In stock" : "Out of stock"}
                     </span>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </div>

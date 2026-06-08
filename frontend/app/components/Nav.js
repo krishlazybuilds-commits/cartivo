@@ -11,6 +11,7 @@ export default function Nav() {
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
           <a href="#why">Why Cartivo</a>
+          <a href="/products">Shop</a>
         </div>
         <div className="nav-cta">
           <a href="#" className="btn btn-ghost">

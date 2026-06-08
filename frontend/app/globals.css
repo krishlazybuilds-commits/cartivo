@@ -1010,3 +1010,39 @@ body::after {
 .product-stock.out {
   color: #b91c1c;
 }
+
+
+/* --- Product card (clickable) & detail page -------------------------------- */
+.product-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+.product-back {
+  margin-bottom: 1.5rem;
+}
+.product-back a {
+  text-decoration: none;
+  color: var(--muted, #6b7280);
+  font-weight: 600;
+}
+.product-detail {
+  max-width: 640px;
+}
+.product-detail h1 {
+  margin: 0.5rem 0;
+}
+.product-desc {
+  margin-top: 1.5rem;
+  line-height: 1.7;
+}
+.product-sku {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--muted, #6b7280);
+}
