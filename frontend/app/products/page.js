@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ShopFilters from "../components/ShopFilters";
 import { apiFetch } from "../lib/api";
 
 export const metadata = {
@@ -18,13 +19,27 @@ function formatPrice(value) {
   }).format(Number(value));
 }
 
-export default async function ProductsPage() {
+export default async function ProductsPage({ searchParams }) {
+  const category = searchParams?.category ?? "";
+  const search = searchParams?.search ?? "";
+
   let products = [];
+  let categories = [];
   let error = null;
 
+  // Build the filtered query string for the products endpoint.
+  const query = new URLSearchParams();
+  if (category) query.set("category", category);
+  if (search) query.set("search", search);
+  const qs = query.toString();
+
   try {
-    const data = await apiFetch("/products/");
-    products = data.results ?? data; // handle paginated or plain list
+    const [productData, categoryData] = await Promise.all([
+      apiFetch(`/products/${qs ? `?${qs}` : ""}`),
+      apiFetch("/categories/"),
+    ]);
+    products = productData.results ?? productData;
+    categories = categoryData.results ?? categoryData;
   } catch (e) {
     error = e.message;
   }
@@ -41,6 +56,12 @@ export default async function ProductsPage() {
               <p>Live products served from the Cartivo API.</p>
             </div>
 
+            <ShopFilters
+              categories={categories}
+              activeCategory={category}
+              activeSearch={search}
+            />
+
             {error && (
               <p className="center" role="alert">
                 Couldn&apos;t load products: {error}
@@ -48,7 +69,11 @@ export default async function ProductsPage() {
             )}
 
             {!error && products.length === 0 && (
-              <p className="center">No products yet.</p>
+              <p className="center">
+                {search || category
+                  ? "No products match your filters."
+                  : "No products yet."}
+              </p>
             )}
 
             <div className="feature-grid">
