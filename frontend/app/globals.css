@@ -1199,3 +1199,95 @@ body::after {
   justify-content: flex-end;
   gap: 1rem;
 }
+
+
+/* --- Checkout & orders ----------------------------------------------------- */
+.checkout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2.5rem;
+  align-items: start;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.checkout-form {
+  margin-top: 0;
+}
+.checkout-summary {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+.checkout-summary h3 {
+  margin: 0 0 1rem;
+}
+.checkout-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.checkout-summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
+@media (max-width: 720px) {
+  .checkout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.order-placed {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+.orders {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.order-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+.order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.order-status {
+  text-transform: capitalize;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+}
+.status-paid { background: #dcfce7; color: #15803d; }
+.status-shipped { background: #dbeafe; color: #1d4ed8; }
+.status-delivered { background: #dcfce7; color: #166534; }
+.status-cancelled { background: #fee2e2; color: #b91c1c; }
+.order-items {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+.order-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  font-size: 0.9rem;
+}

@@ -30,6 +30,9 @@ export default function Nav() {
                 Cart
                 {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
               </Link>
+              <Link href="/orders" className="nav-cart">
+                Orders
+              </Link>
               <span className="nav-user">Hi, {user.username}</span>
               <button className="btn btn-ghost" onClick={logout} type="button">
                 Sign out
