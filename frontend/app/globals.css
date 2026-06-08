@@ -984,3 +984,29 @@ body::after {
     gap: 36px;
   }
 }
+
+/* --- Product cards --------------------------------------------------------- */
+.product-cat {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted, #6b7280);
+  font-weight: 600;
+}
+.product-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+.product-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.product-stock {
+  font-size: 0.8rem;
+  color: #15803d;
+}
+.product-stock.out {
+  color: #b91c1c;
+}
