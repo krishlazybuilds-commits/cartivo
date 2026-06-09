@@ -7,6 +7,7 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
+import { CartSkeleton } from "../components/Skeleton";
 
 function formatPrice(value) {
   return new Intl.NumberFormat("en-US", {
@@ -48,7 +49,7 @@ export default function CartPage() {
                 Please <Link href="/login">sign in</Link> to view your cart.
               </p>
             ) : loading && !cart ? (
-              <p className="center">Loading cart…</p>
+              <CartSkeleton />
             ) : !cart || cart.items.length === 0 ? (
               <p className="center">
                 Your cart is empty. <Link href="/products">Browse the shop</Link>.

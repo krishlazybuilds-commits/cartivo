@@ -6,8 +6,8 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
-import { useAuth } from "../lib/auth";
-import { authFetch } from "../lib/auth";
+import { useAuth, authFetch } from "../lib/auth";
+import { OrdersListSkeleton } from "../components/Skeleton";
 
 function formatPrice(value) {
   return new Intl.NumberFormat("en-US", {
@@ -72,7 +72,7 @@ function OrdersContent() {
                 Please <Link href="/login">sign in</Link> to view your orders.
               </p>
             ) : loading ? (
-              <p className="center">Loading orders…</p>
+              <OrdersListSkeleton />
             ) : error ? (
               <p className="center auth-error">{error}</p>
             ) : orders.length === 0 ? (

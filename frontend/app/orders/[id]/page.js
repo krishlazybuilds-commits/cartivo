@@ -6,8 +6,8 @@ import Link from "next/link";
 
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
-import { useAuth } from "../../lib/auth";
-import { authFetch } from "../../lib/auth";
+import { useAuth, authFetch } from "../../lib/auth";
+import { OrderDetailSkeleton } from "../../components/Skeleton";
 
 function formatPrice(v) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(v));
@@ -54,7 +54,7 @@ export default function OrderDetailPage() {
             {!user && !authLoading ? (
               <p className="center">Please <Link href="/login">sign in</Link> to view this order.</p>
             ) : loading ? (
-              <p className="center">Loading order…</p>
+              <OrderDetailSkeleton />
             ) : error ? (
               <p className="center auth-error">{error}</p>
             ) : order && (

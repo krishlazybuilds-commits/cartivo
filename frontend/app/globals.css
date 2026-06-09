@@ -1101,6 +1101,17 @@ body::after {
   border-radius: 8px;
   font-size: 0.85rem;
 }
+
+/* --- Skeleton loader ------------------------------------------------------- */
+@keyframes shimmer {
+  0% { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--cloud) 25%, #eef0f4 50%, var(--cloud) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
 .auth-alt {
   text-align: center;
   font-size: 0.85rem;
