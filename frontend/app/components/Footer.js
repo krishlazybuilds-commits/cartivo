@@ -1,15 +1,30 @@
+import Link from "next/link";
+
 const columns = [
   {
     title: "Product",
-    links: ["Features", "Pricing", "Themes", "Roadmap"],
+    links: [
+      { label: "Features", href: "/#features" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "Themes", href: "#" },
+      { label: "Roadmap", href: "#" },
+    ],
   },
   {
     title: "Company",
-    links: ["About", "Blog", "Contact"],
+    links: [
+      { label: "About", href: "#" },
+      { label: "Blog", href: "#" },
+      { label: "Contact", href: "#" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Privacy", "Terms", "Security"],
+    links: [
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Security", href: "#" },
+    ],
   },
 ];
 
@@ -33,8 +48,8 @@ export default function Footer() {
               <h4>{col.title}</h4>
               <ul>
                 {col.links.map((l) => (
-                  <li key={l}>
-                    <a href="#">{l}</a>
+                  <li key={l.label}>
+                    <Link href={l.href}>{l.label}</Link>
                   </li>
                 ))}
               </ul>

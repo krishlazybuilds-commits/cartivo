@@ -1102,6 +1102,21 @@ body::after {
   font-size: 0.85rem;
 }
 
+/* --- Legal pages ----------------------------------------------------------- */
+.legal-body {
+  display: grid;
+  gap: 1.5rem;
+  padding-bottom: 3rem;
+}
+.legal-body h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+.legal-body p {
+  color: var(--slate);
+  line-height: 1.75;
+}
+
 /* --- Skeleton loader ------------------------------------------------------- */
 @keyframes shimmer {
   0% { background-position: -600px 0; }
