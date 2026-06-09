@@ -33,7 +33,7 @@ export default function Nav() {
               <Link href="/orders" className="nav-cart">
                 Orders
               </Link>
-              <span className="nav-user">Hi, {user.username}</span>
+              <Link href="/profile" className="nav-user">Hi, {user.username}</Link>
               <button className="btn btn-ghost" onClick={logout} type="button">
                 Sign out
               </button>
