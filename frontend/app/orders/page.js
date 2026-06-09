@@ -85,7 +85,7 @@ function OrdersContent() {
                   <article className="order-card" key={order.id}>
                     <header className="order-head">
                       <div>
-                        <strong>Order #{order.id}</strong>
+                        <Link href={`/orders/${order.id}`}><strong>Order #{order.id}</strong></Link>
                         <span className="product-cat"> {formatDate(order.created_at)}</span>
                       </div>
                       <span className={`order-status status-${order.status}`}>
