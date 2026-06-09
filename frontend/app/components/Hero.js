@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Icon from "./Icon";
 import Reveal from "./Reveal";
 
@@ -18,10 +19,10 @@ export default function Hero() {
             tools together.
           </Reveal>
           <Reveal className="hero-actions" delay={180}>
-            <a href="#pricing" className="btn btn-primary">
-              Get early access
+            <Link href="/products" className="btn btn-primary">
+              Shop now
               <Icon name="arrowRight" size={18} />
-            </a>
+            </Link>
             <a href="#how" className="btn btn-ghost">
               <Icon name="play" size={16} />
               See how it works

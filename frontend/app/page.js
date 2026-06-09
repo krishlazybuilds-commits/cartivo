@@ -1,5 +1,6 @@
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
+import FeaturedProducts from "./components/FeaturedProducts";
 import Features from "./components/Features";
 import HowItWorks from "./components/HowItWorks";
 import WhyCartivo from "./components/WhyCartivo";
@@ -16,6 +17,7 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
+        <FeaturedProducts />
         <Features />
         <HowItWorks />
         <WhyCartivo />
