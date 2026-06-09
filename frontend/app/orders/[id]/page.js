@@ -23,6 +23,21 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+
+  async function handleCancel() {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const updated = await authFetch(`/orders/${id}/cancel/`, { method: "POST" });
+      setOrder(updated);
+    } catch (err) {
+      setCancelError(err.message);
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -90,6 +105,20 @@ export default function OrderDetailPage() {
                     {order.shipping_country}
                   </p>
                 </div>
+
+                {order.status === "pending" && (
+                  <div style={{ marginTop: "1.5rem" }}>
+                    {cancelError && <p className="auth-error" role="alert">{cancelError}</p>}
+                    <button
+                      className="btn btn-ghost"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      style={{ color: "var(--error, #dc2626)" }}
+                    >
+                      {cancelling ? "Cancelling…" : "Cancel order"}
+                    </button>
+                  </div>
+                )}
               </article>
             )}
           </div>

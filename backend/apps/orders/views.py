@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -74,3 +75,19 @@ class OrderViewSet(
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        order = self.get_object()
+        if order.status != Order.Status.PENDING:
+            return Response(
+                {"detail": "Only pending orders can be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            for item in order.items.select_related("product"):
+                item.product.stock += item.quantity
+                item.product.save(update_fields=["stock"])
+            order.status = Order.Status.CANCELLED
+            order.save(update_fields=["status"])
+        return Response(self.get_serializer(order).data)
