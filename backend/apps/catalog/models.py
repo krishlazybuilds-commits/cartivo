@@ -61,6 +61,11 @@ class Product(models.Model):
         indexes = [
             models.Index(fields=["slug"]),
             models.Index(fields=["is_active"]),
+            # Storefront browse: filter by category and/or active flag, ordered
+            # by newest first (the model's default ordering). The leading
+            # column also serves category-only / active-only filters.
+            models.Index(fields=["category", "-created_at"]),
+            models.Index(fields=["is_active", "-created_at"]),
         ]
 
     def save(self, *args, **kwargs):
