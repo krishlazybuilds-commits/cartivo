@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -130,6 +130,7 @@ class OrderViewSet(
 
 @csrf_exempt
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def stripe_webhook(request):
     payload = request.body
