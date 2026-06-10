@@ -128,13 +128,30 @@ class OrderViewSet(
 
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):
+        # Ownership is enforced by get_queryset (filtered to request.user).
         order = self.get_object()
-        if order.status != Order.Status.PENDING:
-            return Response(
-                {"detail": "Only pending orders can be cancelled."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+
         with transaction.atomic():
+            # Lock the order row and re-check status inside the transaction so
+            # concurrent cancels (or a cancel racing the Stripe webhook that
+            # marks the order PAID) can't double-restock or overwrite a paid
+            # order with CANCELLED.
+            order = (
+                Order.objects.select_for_update()
+                .filter(pk=order.pk)
+                .first()
+            )
+            if order is None:
+                return Response(
+                    {"detail": "Order not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            if order.status != Order.Status.PENDING:
+                return Response(
+                    {"detail": "Only pending orders can be cancelled."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             for item in order.items.select_related("product"):
                 # Atomic restock; F() avoids a read-then-write race.
                 Product.objects.filter(pk=item.product_id).update(
