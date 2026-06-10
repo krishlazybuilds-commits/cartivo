@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from apps.cart.models import Cart
 
+from .emails import send_order_confirmation, send_payment_confirmed
 from .models import Order, OrderItem
 from .serializers import CheckoutSerializer, OrderSerializer
 
@@ -76,6 +77,7 @@ class OrderViewSet(
             cart.items.all().delete()
 
         serializer = self.get_serializer(order)
+        send_order_confirmation(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="pay")
@@ -147,9 +149,11 @@ def stripe_webhook(request):
 
     if event["type"] == "checkout.session.completed":
         order_id = event["data"]["object"]["metadata"].get("order_id")
-        Order.objects.filter(pk=order_id, status=Order.Status.PENDING).update(
-            status=Order.Status.PAID
-        )
+        updated = Order.objects.filter(pk=order_id, status=Order.Status.PENDING)
+        updated.update(status=Order.Status.PAID)
+        order = Order.objects.filter(pk=order_id).prefetch_related("items__product").select_related("user").first()
+        if order:
+            send_payment_confirmed(order)
 
     from django.http import JsonResponse
     return JsonResponse({"received": True})
