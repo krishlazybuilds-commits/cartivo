@@ -99,7 +99,7 @@ export default async function ProductDetailPage({ params }) {
               <p className="product-desc">{product.description}</p>
               <p className="product-sku">SKU: {product.sku}</p>
               <div style={{ marginTop: "1.5rem" }}>
-                <AddToCart productId={product.id} inStock={product.in_stock} />
+                <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} />
               </div>
             </article>
           </div>

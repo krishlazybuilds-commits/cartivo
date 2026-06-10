@@ -21,4 +21,26 @@ export async function apiFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/**
+ * Fetch a shipping + tax estimate from the backend.
+ * Works for both guests and authenticated users.
+ * @param {string} country
+ * @param {number|string} subtotal
+ */
+export async function fetchShippingEstimate(country, subtotal) {
+  if (!country || !subtotal) return null;
+  try {
+    const res = await fetch(`${API_URL}/shipping-estimate/`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country, subtotal }),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export { API_URL };

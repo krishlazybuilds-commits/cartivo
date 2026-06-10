@@ -8,15 +8,22 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
 from config.throttling import OrderWriteThrottle, PaymentThrottle
 
 from .models import Order, OrderItem, StripeEvent
-from .serializers import CheckoutSerializer, OrderSerializer
+from .serializers import (
+    CheckoutSerializer,
+    GuestCartItemSerializer,
+    OrderSerializer,
+    ShippingEstimateSerializer,
+    calculate_estimate,
+)
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
 
 logger = logging.getLogger(__name__)
@@ -32,22 +39,45 @@ def _restock_order(order):
         )
 
 
+class ShippingEstimateView(APIView):
+    """Return a flat-rate shipping + tax estimate for a given country/subtotal.
+
+    Open to all (guests and authenticated users alike). Used to show an
+    estimated total on the cart and product pages before checkout.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = []  # public read; no auth throttle needed
+
+    def post(self, request):
+        ser = ShippingEstimateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        result = calculate_estimate(
+            ser.validated_data["country"],
+            float(ser.validated_data["subtotal"]),
+        )
+        return Response(result)
+
+
 class OrderViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        # Guests may create orders; browsing order history requires auth.
+        if self.action == "create":
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_throttles(self):
-        # Payment-session creation hits Stripe, so rate-limit it tighter than
-        # other order writes. Reads (list/retrieve) are not throttled.
         if self.action == "pay":
             return [PaymentThrottle()]
         return [OrderWriteThrottle()]
 
     def get_queryset(self):
+        # list/retrieve require auth (enforced by get_permissions).
         return (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items__product")
@@ -55,60 +85,118 @@ class OrderViewSet(
         )
 
     def create(self, request, *args, **kwargs):
-        checkout = CheckoutSerializer(data=request.data)
+        is_guest = not (request.user and request.user.is_authenticated)
+        checkout = CheckoutSerializer(data=request.data, context={"request": request})
         checkout.is_valid(raise_exception=True)
+        data = checkout.validated_data
 
-        cart = Cart.objects.filter(user=request.user).first()
-        if not cart or not cart.items.exists():
-            return Response(
-                {"detail": "Your cart is empty."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if is_guest:
+            # --- Guest checkout: cart lines come in the request body ----------
+            raw_items = data.get("items", [])
+            item_sers = [GuestCartItemSerializer(data=it) for it in raw_items]
+            errors = {}
+            for i, s in enumerate(item_sers):
+                if not s.is_valid():
+                    errors[i] = s.errors
+            if errors:
+                return Response({"items": errors}, status=status.HTTP_400_BAD_REQUEST)
+            cart_lines = [s.validated_data for s in item_sers]
 
-        with transaction.atomic():
-            cart_items = list(cart.items.select_related("product"))
-
-            # Lock the product rows for the duration of the transaction so two
-            # concurrent checkouts can't both pass the stock check and oversell.
-            locked_products = {
-                p.id: p
-                for p in Product.objects.select_for_update().filter(
-                    id__in=[item.product_id for item in cart_items]
-                )
-            }
-
-            for item in cart_items:
-                product = locked_products[item.product_id]
-                if item.quantity > product.stock:
+            with transaction.atomic():
+                product_ids = [l["product_id"] for l in cart_lines]
+                locked_products = {
+                    p.id: p
+                    for p in Product.objects.select_for_update().filter(id__in=product_ids)
+                }
+                missing = set(product_ids) - locked_products.keys()
+                if missing:
                     return Response(
-                        {
-                            "detail": (
-                                f"Insufficient stock for '{product.name}'. "
-                                f"Available: {product.stock}."
-                            )
-                        },
+                        {"detail": f"Product(s) not found: {sorted(missing)}."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
-            order = Order.objects.create(user=request.user, **checkout.validated_data)
-            order_items = []
-            for item in cart_items:
-                product = locked_products[item.product_id]
-                # Atomic decrement at the DB level (no read-then-write gap).
-                product.stock = F("stock") - item.quantity
-                product.save(update_fields=["stock"])
-                order_items.append(
-                    OrderItem(
+                for line in cart_lines:
+                    product = locked_products[line["product_id"]]
+                    if line["quantity"] > product.stock:
+                        return Response(
+                            {"detail": (
+                                f"Insufficient stock for '{product.name}'. "
+                                f"Available: {product.stock}."
+                            )},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                order = Order.objects.create(
+                    user=None,
+                    guest_email=data["guest_email"],
+                    shipping_full_name=data["shipping_full_name"],
+                    shipping_address=data["shipping_address"],
+                    shipping_city=data["shipping_city"],
+                    shipping_postal_code=data["shipping_postal_code"],
+                    shipping_country=data["shipping_country"],
+                )
+                order_items = []
+                for line in cart_lines:
+                    product = locked_products[line["product_id"]]
+                    Product.objects.filter(pk=product.pk).update(
+                        stock=F("stock") - line["quantity"]
+                    )
+                    order_items.append(OrderItem(
+                        order=order,
+                        product=product,
+                        unit_price=product.price,
+                        quantity=line["quantity"],
+                    ))
+                OrderItem.objects.bulk_create(order_items)
+                order.recalculate_total()
+                order.save(update_fields=["total"])
+        else:
+            # --- Authenticated checkout: use the server-side cart -------------
+            cart = Cart.objects.filter(user=request.user).first()
+            if not cart or not cart.items.exists():
+                return Response(
+                    {"detail": "Your cart is empty."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            with transaction.atomic():
+                cart_items = list(cart.items.select_related("product"))
+                locked_products = {
+                    p.id: p
+                    for p in Product.objects.select_for_update().filter(
+                        id__in=[item.product_id for item in cart_items]
+                    )
+                }
+                for item in cart_items:
+                    product = locked_products[item.product_id]
+                    if item.quantity > product.stock:
+                        return Response(
+                            {"detail": (
+                                f"Insufficient stock for '{product.name}'. "
+                                f"Available: {product.stock}."
+                            )},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                order = Order.objects.create(
+                    user=request.user,
+                    shipping_full_name=data["shipping_full_name"],
+                    shipping_address=data["shipping_address"],
+                    shipping_city=data["shipping_city"],
+                    shipping_postal_code=data["shipping_postal_code"],
+                    shipping_country=data["shipping_country"],
+                )
+                order_items = []
+                for item in cart_items:
+                    product = locked_products[item.product_id]
+                    product.stock = F("stock") - item.quantity
+                    product.save(update_fields=["stock"])
+                    order_items.append(OrderItem(
                         order=order,
                         product=product,
                         unit_price=product.price,
                         quantity=item.quantity,
-                    )
-                )
-            OrderItem.objects.bulk_create(order_items)
-            order.recalculate_total()
-            order.save(update_fields=["total"])
-            cart.items.all().delete()
+                    ))
+                OrderItem.objects.bulk_create(order_items)
+                order.recalculate_total()
+                order.save(update_fields=["total"])
+                cart.items.all().delete()
 
         serializer = self.get_serializer(order)
         send_order_confirmation_task.delay(order.id)

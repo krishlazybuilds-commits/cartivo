@@ -1,24 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
 import { formatPrice } from "../lib/format";
+import { fetchShippingEstimate } from "../lib/api";
 
 export default function CartPage() {
-  const { user, loading: authLoading } = useAuth();
   const { cart, loading, updateItem, removeItem, clear } = useCart();
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState(null); // { type, item } | null
+  const [country, setCountry] = useState("US");
+  const [estimate, setEstimate] = useState(null);
+  const [estimating, setEstimating] = useState(false);
 
-  // Wrap a cart action so any error (e.g. exceeding stock) surfaces to the user.
+  const loadEstimate = useCallback(async (c, subtotal) => {
+    if (!c || !subtotal) return;
+    setEstimating(true);
+    const result = await fetchShippingEstimate(c, subtotal);
+    setEstimate(result);
+    setEstimating(false);
+  }, []);
+
+  // Refresh estimate whenever cart total or country changes.
+  useEffect(() => {
+    if (cart?.total > 0) {
+      loadEstimate(country, cart.total);
+    } else {
+      setEstimate(null);
+    }
+  }, [cart?.total, country, loadEstimate]);
+
   async function run(action) {
     setError(null);
     try {
@@ -37,8 +55,6 @@ export default function CartPage() {
     run(action);
   }
 
-  if (authLoading) return null;
-
   return (
     <>
       <Nav />
@@ -52,11 +68,7 @@ export default function CartPage() {
               </div>
             </Reveal>
 
-            {!user ? (
-              <p className="center">
-                Please <Link href="/login">sign in</Link> to view your cart.
-              </p>
-            ) : loading && !cart ? (
+            {loading && !cart ? (
               <CartSkeleton />
             ) : !cart || cart.items.length === 0 ? (
               <p className="center">
@@ -118,10 +130,52 @@ export default function CartPage() {
 
                 <div className="cart-summary">
                   <div className="cart-total">
-                    <span>Total</span>
+                    <span>Subtotal</span>
                     <strong>{formatPrice(cart.total)}</strong>
                   </div>
-                  <div className="cart-actions">
+
+                  {/* Shipping & tax estimate */}
+                  <div className="shipping-estimate" style={{ marginTop: "1rem" }}>
+                    <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.9rem" }}>
+                      <span>Estimate for</span>
+                      <select
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        style={{ padding: "0.2rem 0.4rem", borderRadius: 4, border: "1px solid var(--border, #ddd)" }}
+                        aria-label="Select country for shipping estimate"
+                      >
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="AU">Australia</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </label>
+                    {estimating && <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Calculating…</p>}
+                    {!estimating && estimate && (
+                      <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.25rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Shipping</span>
+                          <span>{estimate.shipping === 0 ? "Free" : formatPrice(estimate.shipping)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Tax (est.)</span>
+                          <span>{formatPrice(estimate.tax)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid var(--border, #ddd)", paddingTop: "0.25rem", marginTop: "0.25rem" }}>
+                          <span>Est. total</span>
+                          <span>{formatPrice(estimate.total)}</span>
+                        </div>
+                        <p style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                          {estimate.note}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="cart-actions" style={{ marginTop: "1rem" }}>
                     <button
                       className="btn btn-ghost"
                       type="button"

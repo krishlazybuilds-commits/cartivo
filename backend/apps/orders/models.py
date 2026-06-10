@@ -17,7 +17,12 @@ class Order(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="orders",
+        null=True,
+        blank=True,
     )
+    # For guest orders (user is null). Captured at checkout so we can send
+    # order confirmation without an account.
+    guest_email = models.EmailField(blank=True, default="")
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -53,7 +58,8 @@ class Order(models.Model):
         return self.total
 
     def __str__(self) -> str:
-        return f"Order #{self.pk} ({self.user})"
+        who = str(self.user) if self.user_id else (self.guest_email or "guest")
+        return f"Order #{self.pk} ({who})"
 
 
 class StripeEvent(models.Model):

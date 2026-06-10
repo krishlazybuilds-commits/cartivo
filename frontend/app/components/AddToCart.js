@@ -1,17 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { useToast } from "../lib/toast";
 
-export default function AddToCart({ productId, inStock }) {
-  const { user } = useAuth();
+export default function AddToCart({ productId, productName, productPrice, inStock }) {
   const { addItem } = useCart();
   const toast = useToast();
-  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState("idle"); // idle | adding | added | error
 
@@ -24,13 +20,10 @@ export default function AddToCart({ productId, inStock }) {
   }
 
   async function handleAdd() {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
     setStatus("adding");
     try {
-      await addItem(productId, quantity);
+      // Pass product metadata so the guest cart can display name + price.
+      await addItem(productId, quantity, { name: productName, price: productPrice });
       setStatus("added");
       toast(`Added ${quantity} to cart`, "success");
       setTimeout(() => setStatus("idle"), 2000);

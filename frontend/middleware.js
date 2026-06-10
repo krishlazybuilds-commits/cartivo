@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 /**
- * Routes that require authentication. If a user visits these without a
- * refresh_token cookie, they're redirected to /login.
+ * Routes that require authentication. Guests may view the cart and check out;
+ * order history and profile still require a logged-in account.
  */
-const PROTECTED_ROUTES = ["/cart", "/checkout", "/orders", "/profile", "/admin"];
+const PROTECTED_ROUTES = ["/orders", "/profile", "/admin"];
 
 /**
  * Routes only for guests. If a user visits these while already authenticated,
@@ -42,8 +42,6 @@ export function middleware(request) {
 
 export const config = {
   matcher: [
-    "/cart/:path*",
-    "/checkout/:path*",
     "/orders/:path*",
     "/profile/:path*",
     "/admin/:path*",
