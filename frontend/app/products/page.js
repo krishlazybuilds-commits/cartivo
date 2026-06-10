@@ -19,6 +19,7 @@ export default async function ProductsPage({ searchParams }) {
   const category = searchParams?.category ?? "";
   const search = searchParams?.search ?? "";
   const page = searchParams?.page ?? "";
+  const ordering = searchParams?.ordering ?? "";
 
   let products = [];
   let categories = [];
@@ -29,6 +30,7 @@ export default async function ProductsPage({ searchParams }) {
   const query = new URLSearchParams();
   if (category) query.set("category", category);
   if (search) query.set("search", search);
+  if (ordering) query.set("ordering", ordering);
   if (page) query.set("page", page);
   const qs = query.toString();
 
@@ -52,6 +54,7 @@ export default async function ProductsPage({ searchParams }) {
     const q = new URLSearchParams();
     if (category) q.set("category", category);
     if (search) q.set("search", search);
+    if (ordering) q.set("ordering", ordering);
     if (p > 1) q.set("page", p);
     const qs = q.toString();
     return qs ? `/products?${qs}` : "/products";
@@ -75,6 +78,7 @@ export default async function ProductsPage({ searchParams }) {
               categories={categories}
               activeCategory={category}
               activeSearch={search}
+              activeSort={ordering}
             />
 
             {error && (

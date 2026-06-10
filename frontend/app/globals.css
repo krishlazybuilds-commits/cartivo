@@ -1499,6 +1499,37 @@ body::after {
   color: #fff;
   border-color: var(--accent, #4f46e5);
 }
+.shop-filters-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.shop-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.shop-sort-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--slate, #475569);
+  white-space: nowrap;
+}
+.shop-sort-select {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: #fff;
+  cursor: pointer;
+}
+.shop-sort-select:focus {
+  outline: 2px solid var(--accent, #4f46e5);
+  outline-offset: 1px;
+}
 
 
 /* --- Product images -------------------------------------------------------- */

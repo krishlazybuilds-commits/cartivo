@@ -3,7 +3,17 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export default function ShopFilters({ categories, activeCategory, activeSearch }) {
+const SORT_OPTIONS = [
+  { value: "", label: "Default" },
+  { value: "-created_at", label: "Newest first" },
+  { value: "created_at", label: "Oldest first" },
+  { value: "price", label: "Price: low → high" },
+  { value: "-price", label: "Price: high → low" },
+  { value: "name", label: "Name: A → Z" },
+  { value: "-name", label: "Name: Z → A" },
+];
+
+export default function ShopFilters({ categories, activeCategory, activeSearch, activeSort }) {
   const router = useRouter();
   const params = useSearchParams();
   const [search, setSearch] = useState(activeSearch || "");
@@ -20,6 +30,10 @@ export default function ShopFilters({ categories, activeCategory, activeSearch }
 
   function selectCategory(id) {
     router.push(buildQuery({ category: id || "", page: "" }));
+  }
+
+  function changeSort(e) {
+    router.push(buildQuery({ ordering: e.target.value || "", page: "" }));
   }
 
   function submitSearch(e) {
@@ -42,24 +56,42 @@ export default function ShopFilters({ categories, activeCategory, activeSearch }
         </button>
       </form>
 
-      <div className="shop-cats">
-        <button
-          type="button"
-          className={`shop-cat${!activeCategory ? " active" : ""}`}
-          onClick={() => selectCategory("")}
-        >
-          All
-        </button>
-        {categories.map((c) => (
+      <div className="shop-filters-row">
+        <div className="shop-cats">
           <button
             type="button"
-            key={c.id}
-            className={`shop-cat${String(activeCategory) === String(c.id) ? " active" : ""}`}
-            onClick={() => selectCategory(c.id)}
+            className={`shop-cat${!activeCategory ? " active" : ""}`}
+            onClick={() => selectCategory("")}
           >
-            {c.name}
+            All
           </button>
-        ))}
+          {categories.map((c) => (
+            <button
+              type="button"
+              key={c.id}
+              className={`shop-cat${String(activeCategory) === String(c.id) ? " active" : ""}`}
+              onClick={() => selectCategory(c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="shop-sort">
+          <label htmlFor="sort-select" className="shop-sort-label">Sort by</label>
+          <select
+            id="sort-select"
+            value={activeSort || ""}
+            onChange={changeSort}
+            className="shop-sort-select"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );
