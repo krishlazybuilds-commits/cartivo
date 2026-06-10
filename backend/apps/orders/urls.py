@@ -8,6 +8,6 @@ app_name = "orders"
 router = DefaultRouter()
 router.register("orders", OrderViewSet, basename="order")
 
-urlpatterns = router.urls + [
+urlpatterns = [
     path("orders/webhook/", stripe_webhook, name="stripe-webhook"),
-]
+] + router.urls

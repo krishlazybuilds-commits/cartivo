@@ -3,8 +3,8 @@ from django.conf import settings
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.cart.models import Cart
@@ -129,10 +129,11 @@ class OrderViewSet(
 
 
 @csrf_exempt
-@api_view(["POST"])
-@authentication_classes([])
-@permission_classes([AllowAny])
 def stripe_webhook(request):
+    if request.method != "POST":
+        from django.http import HttpResponse
+        return HttpResponse(status=405)
+
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
 
@@ -141,7 +142,8 @@ def stripe_webhook(request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except (ValueError, stripe.error.SignatureVerificationError):
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        from django.http import HttpResponse
+        return HttpResponse(status=400)
 
     if event["type"] == "checkout.session.completed":
         order_id = event["data"]["object"]["metadata"].get("order_id")
@@ -149,4 +151,5 @@ def stripe_webhook(request):
             status=Order.Status.PAID
         )
 
-    return Response({"received": True})
+    from django.http import JsonResponse
+    return JsonResponse({"received": True})
