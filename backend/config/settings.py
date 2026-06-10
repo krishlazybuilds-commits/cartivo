@@ -9,6 +9,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -145,8 +146,18 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_THROTTLE_RATES": {
         "contact": "5/hour",
+        "login": "10/min",
+        "register": "5/hour",
+        "password_reset": "5/hour",
     },
 }
+
+# Disable throttling during the test suite so shared-IP rate limits don't cause
+# flaky failures when many requests run in one process.
+if "test" in sys.argv:
+    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+        key: None for key in REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
+    }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(

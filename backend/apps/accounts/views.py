@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -19,6 +20,21 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import PasswordChangeSerializer, RegisterSerializer, UserSerializer
 
 User = get_user_model()
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    """Throttle login attempts per client IP to slow brute-force attacks."""
+    scope = "login"
+
+
+class RegisterRateThrottle(AnonRateThrottle):
+    """Throttle account creation per client IP."""
+    scope = "register"
+
+
+class PasswordResetRateThrottle(AnonRateThrottle):
+    """Throttle password-reset request/confirm per client IP."""
+    scope = "password_reset"
 
 
 def _set_token_cookie(response, key, token, max_age):
@@ -56,6 +72,7 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [RegisterRateThrottle]
 
 
 class MeView(generics.RetrieveUpdateAPIView):
@@ -82,6 +99,7 @@ class LoginView(APIView):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         serializer = TokenObtainPairSerializer(data=request.data)
@@ -176,6 +194,7 @@ class PasswordResetRequestView(APIView):
     """Send a password reset link to the user's email."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         email = request.data.get("email", "").strip()
@@ -222,6 +241,7 @@ class PasswordResetConfirmView(APIView):
     """Validate the reset token and set a new password."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         uid = request.data.get("uid", "")
