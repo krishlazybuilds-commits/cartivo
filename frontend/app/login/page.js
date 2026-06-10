@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import Nav from "../components/Nav";
@@ -11,6 +11,7 @@ import { useAuth } from "../lib/auth";
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(username, password);
-      router.push("/products");
+      router.push(searchParams.get("next") || "/products");
     } catch (err) {
       setError(err.message);
     } finally {
