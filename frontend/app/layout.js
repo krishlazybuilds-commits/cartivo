@@ -27,9 +27,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${jakarta.variable} ${fraunces.variable}`}>
         <AuthProvider>
-          <CartProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </CartProvider>
+          <ToastProvider>
+            <CartProvider>{children}</CartProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
