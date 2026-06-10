@@ -67,6 +67,16 @@ class Product(models.Model):
             models.Index(fields=["category", "-created_at"]),
             models.Index(fields=["is_active", "-created_at"]),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(price__gte=0),
+                name="product_price_non_negative",
+            ),
+            models.CheckConstraint(
+                check=models.Q(stock__gte=0),
+                name="product_stock_non_negative",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.slug:

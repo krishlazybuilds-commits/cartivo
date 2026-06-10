@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -12,6 +14,10 @@ class Order(models.Model):
         DELIVERED = "delivered", "Delivered"
         CANCELLED = "cancelled", "Cancelled"
         REFUNDED = "refunded", "Refunded"
+
+    # Opaque, non-sequential identifier for external use (emails, URLs, APIs).
+    # Avoids leaking order volume or being enumerable like a sequential PK.
+    order_number = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -52,6 +58,12 @@ class Order(models.Model):
         indexes = [
             models.Index(fields=["user", "-created_at"]),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(total__gte=0),
+                name="order_total_non_negative",
+            ),
+        ]
 
     def recalculate_total(self):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)
@@ -59,7 +71,12 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         who = str(self.user) if self.user_id else (self.guest_email or "guest")
-        return f"Order #{self.pk} ({who})"
+        return f"Order {self.order_number_short} ({who})"
+
+    @property
+    def order_number_short(self):
+        """First 8 chars of the UUID — short enough for display, unique enough in practice."""
+        return str(self.order_number)[:8].upper()
 
 
 class StripeEvent(models.Model):
@@ -100,6 +117,12 @@ class OrderItem(models.Model):
 
     class Meta:
         unique_together = ("order", "product")
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity__gte=1),
+                name="orderitem_quantity_positive",
+            ),
+        ]
 
     @property
     def subtotal(self):
