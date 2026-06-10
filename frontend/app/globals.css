@@ -1127,6 +1127,46 @@ body::after {
   color: var(--muted, #6b7280);
 }
 
+/* --- Add to cart / Quantity selector --------------------------------------- */
+.add-to-cart {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.qty-selector {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.qty-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.qty-btn:hover:not(:disabled) {
+  background: var(--cloud, #f1f5f9);
+}
+.qty-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.qty-value {
+  min-width: 32px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 
 /* --- Auth forms ------------------------------------------------------------ */
 .auth-wrap {
