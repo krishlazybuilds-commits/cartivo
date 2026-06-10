@@ -8,6 +8,7 @@ exponential backoff; after the final attempt the error is logged.
 import logging
 
 from celery import shared_task
+from django.core.management import call_command
 
 from .emails import send_order_confirmation, send_payment_confirmed
 from .models import Order
@@ -49,3 +50,15 @@ def send_payment_confirmed_task(self, order_id):
         logger.warning("send_payment_confirmed_task: order %s not found", order_id)
         return
     send_payment_confirmed(order)
+
+
+@shared_task
+def expire_pending_orders_task(minutes=30):
+    """Cancel + restock unpaid PENDING orders older than ``minutes``.
+
+    Runs on a Celery Beat schedule so reserved stock from abandoned checkouts is
+    released automatically. Delegates to the existing management command, which
+    locks each order row and re-checks status to avoid racing the payment
+    webhook or a manual cancel.
+    """
+    call_command("expire_pending_orders", minutes=minutes)

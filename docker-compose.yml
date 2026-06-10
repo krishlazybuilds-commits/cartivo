@@ -85,6 +85,26 @@ services:
     volumes:
       - media:/app/media
 
+  # Celery beat: triggers periodic tasks (e.g. expiring unpaid pending orders
+  # to release reserved stock). Run a single instance to avoid duplicate ticks.
+  beat:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DB_ENGINE: django.db.backends.postgresql
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: ["celery", "-A", "config", "beat", "--loglevel=info"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   frontend:
     build:
       context: ./frontend

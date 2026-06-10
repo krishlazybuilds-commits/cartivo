@@ -182,6 +182,18 @@ CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "120"))
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "90"))
 CELERY_TIMEZONE = os.getenv("DJANGO_TIME_ZONE", "UTC")
 
+# Periodic tasks (Celery Beat). Releases stock held by unpaid PENDING orders by
+# cancelling + restocking those older than ORDER_EXPIRY_MINUTES, checked every
+# ORDER_EXPIRY_CHECK_SECONDS. Requires the beat scheduler to be running
+# (see the `beat` service in docker-compose.yml).
+CELERY_BEAT_SCHEDULE = {
+    "expire-pending-orders": {
+        "task": "apps.orders.tasks.expire_pending_orders_task",
+        "schedule": float(os.getenv("ORDER_EXPIRY_CHECK_SECONDS", "300")),
+        "kwargs": {"minutes": int(os.getenv("ORDER_EXPIRY_MINUTES", "30"))},
+    },
+}
+
 
 # --- Auth --------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
