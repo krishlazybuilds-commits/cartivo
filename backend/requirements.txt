@@ -10,3 +10,4 @@ stripe==11.4.1
 gunicorn==23.0.0
 whitenoise==6.8.2
 sentry-sdk==2.19.2
+redis==5.2.1

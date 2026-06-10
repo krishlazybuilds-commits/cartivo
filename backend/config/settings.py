@@ -119,6 +119,26 @@ else:
     }
 
 
+# --- Caching -----------------------------------------------------------------
+# Used by DRF throttling (and available for app-level caching). In production
+# with multiple Gunicorn workers, an in-memory cache would give each worker its
+# own throttle counters, so set REDIS_URL to share state across workers.
+REDIS_URL = os.getenv("REDIS_URL", "")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+
 # --- Auth --------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
 
