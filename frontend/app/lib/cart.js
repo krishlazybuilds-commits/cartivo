@@ -4,11 +4,13 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 
 import { authFetch } from "./auth";
 import { useAuth } from "./auth";
+import { useToast } from "./toast";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -59,14 +61,16 @@ export function CartProvider({ children }) {
     async (itemId) => {
       await authFetch(`/cart-items/${itemId}/`, { method: "DELETE" });
       await refresh();
+      toast("Item removed from cart", "info");
     },
-    [refresh]
+    [refresh, toast]
   );
 
   const clear = useCallback(async () => {
     await authFetch("/cart/clear/", { method: "POST" });
     await refresh();
-  }, [refresh]);
+    toast("Cart cleared", "info");
+  }, [refresh, toast]);
 
   const itemCount = cart?.item_count ?? 0;
 

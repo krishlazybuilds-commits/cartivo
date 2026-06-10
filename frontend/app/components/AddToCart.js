@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
+import { useToast } from "../lib/toast";
 
 export default function AddToCart({ productId, inStock }) {
   const { user } = useAuth();
   const { addItem } = useCart();
+  const toast = useToast();
   const router = useRouter();
   const [status, setStatus] = useState("idle"); // idle | adding | added | error
-  const [message, setMessage] = useState(null);
 
   async function handleAdd() {
     if (!user) {
@@ -19,14 +20,14 @@ export default function AddToCart({ productId, inStock }) {
       return;
     }
     setStatus("adding");
-    setMessage(null);
     try {
       await addItem(productId, 1);
       setStatus("added");
+      toast("Added to cart", "success");
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err) {
       setStatus("error");
-      setMessage(err.message);
+      toast(err.message || "Couldn't add to cart", "error");
     }
   }
 
@@ -39,24 +40,13 @@ export default function AddToCart({ productId, inStock }) {
   }
 
   return (
-    <div className="add-to-cart">
-      <button
-        className="btn btn-primary"
-        onClick={handleAdd}
-        disabled={status === "adding"}
-        type="button"
-      >
-        {status === "adding"
-          ? "Adding…"
-          : status === "added"
-          ? "Added ✓"
-          : "Add to cart"}
-      </button>
-      {message && (
-        <p className="auth-error" role="alert">
-          {message}
-        </p>
-      )}
-    </div>
+    <button
+      className="btn btn-primary"
+      onClick={handleAdd}
+      disabled={status === "adding"}
+      type="button"
+    >
+      {status === "adding" ? "Adding…" : status === "added" ? "Added ✓" : "Add to cart"}
+    </button>
   );
 }
