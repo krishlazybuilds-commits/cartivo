@@ -61,6 +61,9 @@ jobs:
       - name: Run tests
         run: python manage.py test
 
+      - name: Django deploy check
+        run: python manage.py check --deploy
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
@@ -81,6 +84,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
