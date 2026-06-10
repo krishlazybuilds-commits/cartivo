@@ -12,9 +12,6 @@ export const metadata = {
   description: "Browse the Cartivo catalog.",
 };
 
-// Always fetch fresh data from the API (no static caching).
-export const dynamic = "force-dynamic";
-
 export default async function ProductsPage({ searchParams }) {
   const category = searchParams?.category ?? "";
   const search = searchParams?.search ?? "";
@@ -36,8 +33,8 @@ export default async function ProductsPage({ searchParams }) {
 
   try {
     const [productData, categoryData] = await Promise.all([
-      apiFetch(`/products/${qs ? `?${qs}` : ""}`),
-      apiFetch("/categories/"),
+      apiFetch(`/products/${qs ? `?${qs}` : ""}`, { next: { tags: ["products"] } }),
+      apiFetch("/categories/", { next: { tags: ["categories"] } }),
     ]);
     products = productData.results ?? productData;
     categories = categoryData.results ?? categoryData;

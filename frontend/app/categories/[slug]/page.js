@@ -9,11 +9,11 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata({ params }) {
   try {
-    const category = await apiFetch(`/categories/${params.slug}/`);
+    const category = await apiFetch(`/categories/${params.slug}/`, {
+      next: { tags: ["categories", `category-${params.slug}`] },
+    });
     return {
       title: `${category.name} — Cartivo`,
       description: category.description?.slice(0, 150) || `Browse ${category.name} products on Cartivo.`,
@@ -26,7 +26,9 @@ export async function generateMetadata({ params }) {
 export default async function CategoryPage({ params }) {
   let category;
   try {
-    category = await apiFetch(`/categories/${params.slug}/`);
+    category = await apiFetch(`/categories/${params.slug}/`, {
+      next: { tags: ["categories", `category-${params.slug}`] },
+    });
   } catch (e) {
     if (String(e.message).includes("404")) notFound();
     throw e;
@@ -35,7 +37,9 @@ export default async function CategoryPage({ params }) {
   let products = [];
   let error = null;
   try {
-    const data = await apiFetch(`/products/?category=${category.id}`);
+    const data = await apiFetch(`/products/?category=${category.id}`, {
+      next: { tags: ["products", `category-${params.slug}`] },
+    });
     products = data.results ?? data;
   } catch (e) {
     error = e.message;

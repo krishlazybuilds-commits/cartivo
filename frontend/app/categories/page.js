@@ -10,13 +10,11 @@ export const metadata = {
   description: "Browse Cartivo product categories.",
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function CategoriesPage() {
   let categories = [];
   let error = null;
   try {
-    const data = await apiFetch("/categories/");
+    const data = await apiFetch("/categories/", { next: { tags: ["categories"] } });
     categories = data.results ?? data;
   } catch (e) {
     error = e.message;

@@ -9,8 +9,6 @@ import JsonLd from "../../components/JsonLd";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
-export const dynamic = "force-dynamic";
-
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 /**
@@ -41,7 +39,9 @@ function buildProductJsonLd(product) {
 
 export async function generateMetadata({ params }) {
   try {
-    const product = await apiFetch(`/products/${params.slug}/`);
+    const product = await apiFetch(`/products/${params.slug}/`, {
+      next: { tags: ["products", `product-${params.slug}`] },
+    });
     return {
       title: `${product.name} — Cartivo`,
       description: product.description?.slice(0, 150) || "Cartivo product",
@@ -54,7 +54,9 @@ export async function generateMetadata({ params }) {
 export default async function ProductDetailPage({ params }) {
   let product;
   try {
-    product = await apiFetch(`/products/${params.slug}/`);
+    product = await apiFetch(`/products/${params.slug}/`, {
+      next: { tags: ["products", `product-${params.slug}`] },
+    });
   } catch (e) {
     // A 404 from the API means the product doesn't exist.
     if (String(e.message).includes("404")) notFound();
