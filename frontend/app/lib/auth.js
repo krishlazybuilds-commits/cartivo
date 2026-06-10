@@ -4,9 +4,6 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 
 import { API_URL } from "./api";
 
-const ACCESS_KEY = "cartivo_access";
-const REFRESH_KEY = "cartivo_refresh";
-
 const AuthContext = createContext(null);
 
 /**
@@ -24,40 +21,51 @@ export function extractError(data, fallback = "Something went wrong.") {
   return typeof first === "string" ? first : fallback;
 }
 
-function getToken(key) {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(key);
-}
+const UNSAFE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 
-function setTokens(access, refresh) {
-  window.localStorage.setItem(ACCESS_KEY, access);
-  if (refresh) window.localStorage.setItem(REFRESH_KEY, refresh);
-}
-
-function clearTokens() {
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+function getCookie(name) {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[2]) : null;
 }
 
 /**
- * Authenticated fetch against the API. Attaches the JWT access token and, on a
- * 401, transparently tries to refresh it once before giving up.
+ * Ensure the csrftoken cookie is present. Hits the backend bootstrap endpoint
+ * (which sets the cookie) only when we don't already have one.
+ */
+async function ensureCsrfToken() {
+  if (getCookie("csrftoken")) return getCookie("csrftoken");
+  await fetch(`${API_URL}/auth/csrf/`, { credentials: "include" });
+  return getCookie("csrftoken");
+}
+
+/**
+ * Authenticated fetch. Auth travels via httpOnly cookies (sent automatically
+ * with `credentials: "include"`), so there are no tokens to attach. For unsafe
+ * methods we send the CSRF token header. On a 401 we transparently try a token
+ * refresh once before giving up.
  */
 export async function authFetch(path, options = {}) {
-  const access = getToken(ACCESS_KEY);
+  const method = (options.method || "GET").toUpperCase();
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
-  if (access) headers.Authorization = `Bearer ${access}`;
 
-  let res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (UNSAFE_METHODS.includes(method)) {
+    const csrf = await ensureCsrfToken();
+    if (csrf) headers["X-CSRFToken"] = csrf;
+  }
 
-  if (res.status === 401 && getToken(REFRESH_KEY)) {
+  const doFetch = () =>
+    fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
+
+  let res = await doFetch();
+
+  if (res.status === 401) {
     const refreshed = await tryRefresh();
     if (refreshed) {
-      headers.Authorization = `Bearer ${getToken(ACCESS_KEY)}`;
-      res = await fetch(`${API_URL}${path}`, { ...options, headers });
+      res = await doFetch();
     }
   }
 
@@ -78,20 +86,16 @@ export async function authFetch(path, options = {}) {
 }
 
 async function tryRefresh() {
-  const refresh = getToken(REFRESH_KEY);
-  if (!refresh) return false;
+  const csrf = await ensureCsrfToken();
   const res = await fetch(`${API_URL}/auth/token/refresh/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "X-CSRFToken": csrf } : {}),
+    },
+    credentials: "include",
   });
-  if (!res.ok) {
-    clearTokens();
-    return false;
-  }
-  const data = await res.json();
-  setTokens(data.access, data.refresh);
-  return true;
+  return res.ok;
 }
 
 export function AuthProvider({ children }) {
@@ -99,11 +103,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
-    if (!getToken(ACCESS_KEY)) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
     try {
       const me = await authFetch("/auth/me/");
       setUser(me);
@@ -120,17 +119,20 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     async (username, password) => {
+      const csrf = await ensureCsrfToken();
       const res = await fetch(`${API_URL}/auth/token/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "X-CSRFToken": csrf } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || "Invalid username or password.");
       }
-      const data = await res.json();
-      setTokens(data.access, data.refresh);
       await loadUser();
     },
     [loadUser]
@@ -138,9 +140,14 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(
     async (payload) => {
+      const csrf = await ensureCsrfToken();
       const res = await fetch(`${API_URL}/auth/register/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "X-CSRFToken": csrf } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -158,8 +165,12 @@ export function AuthProvider({ children }) {
     [login]
   );
 
-  const logout = useCallback(() => {
-    clearTokens();
+  const logout = useCallback(async () => {
+    try {
+      await authFetch("/auth/logout/", { method: "POST" });
+    } catch {
+      // Even if the server call fails, drop the local user state.
+    }
     setUser(null);
   }, []);
 

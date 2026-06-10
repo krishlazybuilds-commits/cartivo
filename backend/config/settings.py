@@ -48,6 +48,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
 ]
@@ -129,7 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # --- DRF ---------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
@@ -151,9 +152,23 @@ SIMPLE_JWT = {
         days=int(os.getenv("JWT_REFRESH_DAYS", "7"))
     ),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+
+# --- Auth cookies ------------------------------------------------------------
+# JWTs are delivered as httpOnly cookies (XSS-safe) instead of in the response
+# body. AUTH_COOKIE_SECURE must be True in production (HTTPS). For cross-origin
+# requests the cookie SameSite must be "Lax" (same parent domain) or "None"
+# (different domains, requires Secure=True). Set AUTH_COOKIE_DOMAIN to a shared
+# parent domain (e.g. ".example.com") when frontend and backend are on
+# different subdomains.
+AUTH_COOKIE = os.getenv("AUTH_COOKIE_NAME", "access_token")
+AUTH_REFRESH_COOKIE = os.getenv("AUTH_REFRESH_COOKIE_NAME", "refresh_token")
+AUTH_COOKIE_SECURE = env_bool("AUTH_COOKIE_SECURE", not DEBUG)
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
+AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN") or None
 
 
 # --- CORS --------------------------------------------------------------------
@@ -162,6 +177,21 @@ CORS_ALLOWED_ORIGINS = env_list(
     "http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS_ALLOW_CREDENTIALS = True
+
+
+# --- CSRF --------------------------------------------------------------------
+# The SPA reads the csrftoken cookie and echoes it back in the X-CSRFToken
+# header on unsafe requests. Trusted origins are required by Django for
+# cross-origin POSTs.
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+CSRF_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
+CSRF_COOKIE_SECURE = AUTH_COOKIE_SECURE
+CSRF_COOKIE_DOMAIN = AUTH_COOKIE_DOMAIN
+# Must stay readable by JavaScript so the SPA can send it back in a header.
+CSRF_COOKIE_HTTPONLY = False
 
 
 # --- Internationalization ----------------------------------------------------
