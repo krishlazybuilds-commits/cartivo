@@ -39,28 +39,37 @@ export default function ContactPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form" style={{ gap: "1rem" }}>
-              <input
-                type="text"
-                placeholder="Your name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-              <input
-                type="email"
-                placeholder="Your email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-              <textarea
-                placeholder="Your message"
-                value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
-                required
-                rows={6}
-                style={{ resize: "vertical", padding: "0.7rem 0.9rem", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, font: "inherit" }}
-              />
+              <label>
+                Name
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Message
+                <textarea
+                  placeholder="Your message"
+                  value={form.message}
+                  onChange={(e) => setForm({ ...form, message: e.target.value })}
+                  required
+                  rows={6}
+                  style={{ resize: "vertical", padding: "0.7rem 0.9rem", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, font: "inherit" }}
+                />
+              </label>
               <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
                 {status === "sending" ? "Sending…" : "Send message"}
               </button>
