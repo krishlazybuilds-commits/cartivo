@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
  * Routes that require authentication. If a user visits these without a
  * refresh_token cookie, they're redirected to /login.
  */
-const PROTECTED_ROUTES = ["/cart", "/checkout", "/orders", "/profile"];
+const PROTECTED_ROUTES = ["/cart", "/checkout", "/orders", "/profile", "/admin"];
 
 /**
  * Routes only for guests. If a user visits these while already authenticated,
@@ -46,6 +46,7 @@ export const config = {
     "/checkout/:path*",
     "/orders/:path*",
     "/profile/:path*",
+    "/admin/:path*",
     "/login",
     "/register",
     "/forgot-password",

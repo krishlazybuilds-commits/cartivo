@@ -9,8 +9,50 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "phone", "date_joined")
-        read_only_fields = ("id", "date_joined")
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "date_joined",
+            "is_staff",
+            "is_superuser",
+        )
+        read_only_fields = ("id", "date_joined", "is_staff", "is_superuser")
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """User representation for the admin account-management API.
+
+    Exposes the account-control flags (is_active, is_staff). username,
+    is_superuser, and timestamps are read-only: usernames are identity-bearing
+    and superuser status is managed only via the Django admin.
+    """
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "date_joined",
+            "last_login",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+        )
+        read_only_fields = (
+            "id",
+            "username",
+            "date_joined",
+            "last_login",
+            "is_superuser",
+        )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
