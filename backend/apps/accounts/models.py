@@ -11,3 +11,31 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
+
+
+class Address(models.Model):
+    """Saved shipping address for faster repeat checkout."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="addresses",
+    )
+    label = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Optional label, e.g. 'Home', 'Office'.",
+    )
+    full_name = models.CharField(max_length=200)
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=120)
+    postal_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=120)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "addresses"
+        ordering = ["-is_default", "-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.label or 'Address'} — {self.full_name}, {self.city}"

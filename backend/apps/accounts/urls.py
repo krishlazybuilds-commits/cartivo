@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AddressViewSet,
     AdminUserViewSet,
     ChangePasswordView,
     CSRFView,
@@ -18,6 +19,7 @@ app_name = "accounts"
 
 router = DefaultRouter()
 router.register("admin/users", AdminUserViewSet, basename="admin-user")
+router.register("addresses", AddressViewSet, basename="address")
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),

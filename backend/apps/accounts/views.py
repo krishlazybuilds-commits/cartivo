@@ -21,7 +21,9 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import Address
 from .serializers import (
+    AddressSerializer,
     AdminUserSerializer,
     PasswordChangeSerializer,
     RegisterSerializer,
@@ -402,3 +404,24 @@ class PasswordResetConfirmView(APIView):
         user.set_password(new_password)
         user.save(update_fields=["password"])
         return Response({"detail": "Password reset successful."})
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    """CRUD for the authenticated user's saved shipping addresses."""
+
+    serializer_class = AddressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # If this is the user's first address, make it default.
+        is_first = not Address.objects.filter(user=self.request.user).exists()
+        serializer.save(user=self.request.user, is_default=is_first or serializer.validated_data.get("is_default", False))
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        # If marked as default, unset other defaults.
+        if instance.is_default:
+            Address.objects.filter(user=self.request.user).exclude(pk=instance.pk).update(is_default=False)
