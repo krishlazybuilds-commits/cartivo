@@ -47,15 +47,18 @@ class AuthTokenTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="member", password="strongpass123")
 
-    def test_login_returns_tokens(self):
+    def test_login_sets_auth_cookies(self):
         res = self.client.post(
             "/api/auth/token/",
             {"username": "member", "password": "strongpass123"},
             format="json",
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn("access", res.data)
-        self.assertIn("refresh", res.data)
+        # Tokens are delivered as httpOnly cookies, not in the response body.
+        self.assertIn("access_token", res.cookies)
+        self.assertIn("refresh_token", res.cookies)
+        self.assertNotIn("access", res.data)
+        self.assertTrue(res.cookies["access_token"]["httponly"])
 
     def test_login_with_wrong_password_fails(self):
         res = self.client.post(
