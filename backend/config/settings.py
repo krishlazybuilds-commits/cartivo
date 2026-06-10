@@ -108,6 +108,11 @@ if os.getenv("DB_ENGINE"):
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
             "HOST": os.getenv("DB_HOST", "localhost"),
             "PORT": os.getenv("DB_PORT", "5432"),
+            # Reuse connections across requests (seconds). Avoids the overhead
+            # of opening a new Postgres connection per request in production.
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            # Validate a reused connection before using it (Django 4.1+).
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 else:
