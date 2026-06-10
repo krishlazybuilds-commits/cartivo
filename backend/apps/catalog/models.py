@@ -1,5 +1,8 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
+
+from .validators import validate_image_size
 
 
 class Category(models.Model):
@@ -40,7 +43,15 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=64, unique=True)
-    image = models.ImageField(upload_to="products/", blank=True, null=True)
+    image = models.ImageField(
+        upload_to="products/",
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(["jpg", "jpeg", "png", "webp"]),
+            validate_image_size,
+        ],
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
