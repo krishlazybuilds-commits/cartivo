@@ -5,10 +5,39 @@ import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import AddToCart from "../../components/AddToCart";
+import JsonLd from "../../components/JsonLd";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
 export const dynamic = "force-dynamic";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+/**
+ * Build a schema.org/Product object for JSON-LD structured data. Search
+ * engines use this to render product rich results (price, availability, etc.).
+ */
+function buildProductJsonLd(product) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    offers: {
+      "@type": "Offer",
+      url: `${SITE_URL}/products/${product.slug}`,
+      priceCurrency: "USD",
+      price: Number(product.price).toFixed(2),
+      availability: product.in_stock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
+  };
+  if (product.sku) data.sku = product.sku;
+  if (product.description) data.description = product.description;
+  if (product.image) data.image = product.image;
+  if (product.category_name) data.category = product.category_name;
+  return data;
+}
 
 export async function generateMetadata({ params }) {
   try {
@@ -35,6 +64,7 @@ export default async function ProductDetailPage({ params }) {
   return (
     <>
       <Nav />
+      <JsonLd data={buildProductJsonLd(product)} />
       <main>
         <section className="features">
           <div className="container">
