@@ -72,6 +72,9 @@ export default function LoginPage() {
               <p className="auth-alt">
                 No account? <Link href="/register">Create one</Link>
               </p>
+              <p className="auth-alt">
+                <Link href="/forgot-password">Forgot password?</Link>
+              </p>
             </form>
           </div>
         </section>
