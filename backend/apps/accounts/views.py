@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.decorators import method_decorator
@@ -178,12 +179,27 @@ class PasswordResetRequestView(APIView):
 
     def post(self, request):
         email = request.data.get("email", "").strip()
-        # Always return 200 to avoid leaking whether an email exists.
-        user = User.objects.filter(email=email).first()
-        if user:
+        # Always return the same 200 to avoid leaking whether an email exists.
+        generic_response = Response(
+            {"detail": "If that email exists, a reset link has been sent."}
+        )
+
+        # Skip blank input: email is optional on the User model, so a blank
+        # query would otherwise match every account with no email set.
+        if not email:
+            return generic_response
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            return generic_response
+
+        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+
+        # Email isn't unique, so send a link to every matching account (each
+        # tied to its own user/token) instead of an arbitrary first() match.
+        for user in User.objects.filter(email__iexact=email):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
             reset_url = f"{frontend_base}/reset-password?uid={uid}&token={token}"
             send_mail(
                 subject="Reset your Cartivo password",
@@ -199,7 +215,7 @@ class PasswordResetRequestView(APIView):
                 recipient_list=[user.email],
                 fail_silently=True,
             )
-        return Response({"detail": "If that email exists, a reset link has been sent."})
+        return generic_response
 
 
 class PasswordResetConfirmView(APIView):
