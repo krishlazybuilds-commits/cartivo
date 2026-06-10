@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import Nav from "../../components/Nav";
@@ -44,8 +45,7 @@ export default async function ProductDetailPage({ params }) {
             <article className="product-detail">
               <div className="product-detail-image">
                 {product.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.image} alt={product.name} />
+                  <Image src={product.image} alt={product.name} width={600} height={450} className="product-img" priority />
                 ) : (
                   <span className="product-image-ph large" aria-hidden="true">
                     {product.name?.[0] ?? "?"}

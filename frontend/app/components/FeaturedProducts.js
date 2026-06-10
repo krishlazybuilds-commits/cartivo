@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { apiFetch } from "../lib/api";
 import { formatPrice } from "../lib/format";
 
@@ -27,8 +28,7 @@ export default async function FeaturedProducts() {
             <Link className="feature-card product-card" key={p.id} href={`/products/${p.slug}`}>
               <div className="product-image">
                 {p.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.image} alt={p.name} />
+                  <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
                 ) : (
                   <span className="product-image-ph" aria-hidden="true">{p.name?.[0] ?? "?"}</span>
                 )}

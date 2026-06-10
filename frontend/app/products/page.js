@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import ShopFilters from "../components/ShopFilters";
@@ -96,8 +97,7 @@ export default async function ProductsPage({ searchParams }) {
                   <Link className="feature-card product-card" href={`/products/${p.slug}`}>
                     <div className="product-image">
                       {p.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} />
+                        <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
                       ) : (
                         <span className="product-image-ph" aria-hidden="true">
                           {p.name?.[0] ?? "?"}
