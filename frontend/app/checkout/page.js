@@ -36,18 +36,27 @@ export default function CheckoutPage() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+    let order;
     try {
-      const order = await authFetch("/orders/", {
+      order = await authFetch("/orders/", {
         method: "POST",
         body: JSON.stringify(form),
       });
       await refresh(); // cart is now empty
+    } catch (err) {
+      // Order wasn't created; cart is intact. Surface the error and stop.
+      setError(err.message);
+      setSubmitting(false);
+      return;
+    }
+
+    try {
       const { url } = await authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
       window.location.href = url;
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
+      // Order exists but payment couldn't start. Send the user to the order
+      // page where they can retry payment or cancel, instead of stranding them.
+      router.push(`/orders/${order.id}`);
     }
   }
 

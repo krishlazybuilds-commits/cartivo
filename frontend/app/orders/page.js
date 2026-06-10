@@ -105,6 +105,13 @@ function OrdersContent() {
                       <span>Total</span>
                       <strong>{formatPrice(order.total)}</strong>
                     </div>
+                    {order.status === "pending" && (
+                      <p style={{ marginTop: "0.75rem", textAlign: "right" }}>
+                        <Link href={`/orders/${order.id}`} className="btn btn-primary">
+                          Complete payment
+                        </Link>
+                      </p>
+                    )}
                   </article>
                   </Reveal>
                 ))}

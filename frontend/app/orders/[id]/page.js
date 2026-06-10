@@ -25,6 +25,20 @@ export default function OrderDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
+
+  async function handlePay() {
+    setPaying(true);
+    setPayError(null);
+    try {
+      const { url } = await authFetch(`/orders/${id}/pay/`, { method: "POST" });
+      window.location.href = url;
+    } catch (err) {
+      setPayError(err.message);
+      setPaying(false);
+    }
+  }
 
   async function handleCancel() {
     setConfirmCancel(false);
@@ -110,15 +124,28 @@ export default function OrderDetailPage() {
 
                 {order.status === "pending" && (
                   <div style={{ marginTop: "1.5rem" }}>
+                    {payError && <p className="auth-error" role="alert">{payError}</p>}
                     {cancelError && <p className="auth-error" role="alert">{cancelError}</p>}
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => setConfirmCancel(true)}
-                      disabled={cancelling}
-                      style={{ color: "var(--error, #dc2626)" }}
-                    >
-                      {cancelling ? "Cancelling…" : "Cancel order"}
-                    </button>
+                    <p className="product-cat" style={{ marginBottom: "0.75rem" }}>
+                      This order is awaiting payment.
+                    </p>
+                    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handlePay}
+                        disabled={paying}
+                      >
+                        {paying ? "Redirecting…" : "Complete payment"}
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => setConfirmCancel(true)}
+                        disabled={cancelling}
+                        style={{ color: "var(--error, #dc2626)" }}
+                      >
+                        {cancelling ? "Cancelling…" : "Cancel order"}
+                      </button>
+                    </div>
                   </div>
                 )}
               </article>
