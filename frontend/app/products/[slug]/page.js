@@ -1,9 +1,9 @@
-import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import AddToCart from "../../components/AddToCart";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
@@ -38,9 +38,13 @@ export default async function ProductDetailPage({ params }) {
       <main>
         <section className="features">
           <div className="container">
-            <p className="product-back">
-              <Link href="/products">← Back to shop</Link>
-            </p>
+            <Breadcrumbs
+              items={[
+                { label: "Home", href: "/" },
+                { label: "Shop", href: "/products" },
+                { label: product.name },
+              ]}
+            />
 
             <article className="product-detail">
               <div className="product-detail-image">

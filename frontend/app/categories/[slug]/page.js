@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
@@ -46,9 +47,13 @@ export default async function CategoryPage({ params }) {
       <main>
         <section className="features">
           <div className="container">
-            <p className="product-back">
-              <Link href="/products">← Back to shop</Link>
-            </p>
+            <Breadcrumbs
+              items={[
+                { label: "Home", href: "/" },
+                { label: "Categories", href: "/categories" },
+                { label: category.name },
+              ]}
+            />
 
             <Reveal>
               <div className="section-head center">

@@ -7,6 +7,7 @@ import Link from "next/link";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useAuth, authFetch } from "../../lib/auth";
 import { OrderDetailSkeleton } from "../../components/Skeleton";
@@ -77,9 +78,13 @@ export default function OrderDetailPage() {
       <main>
         <section className="features">
           <div className="container">
-            <p className="product-back">
-              <Link href="/orders">← Back to orders</Link>
-            </p>
+            <Breadcrumbs
+              items={[
+                { label: "Home", href: "/" },
+                { label: "Orders", href: "/orders" },
+                { label: `Order #${id}` },
+              ]}
+            />
 
             {!user && !authLoading ? (
               <p className="center">Please <Link href="/login">sign in</Link> to view this order.</p>
