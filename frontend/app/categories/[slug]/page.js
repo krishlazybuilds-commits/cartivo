@@ -1,0 +1,103 @@
+import Link from "next/link";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+
+import Nav from "../../components/Nav";
+import Footer from "../../components/Footer";
+import Reveal from "../../components/Reveal";
+import { apiFetch } from "../../lib/api";
+import { formatPrice } from "../../lib/format";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }) {
+  try {
+    const category = await apiFetch(`/categories/${params.slug}/`);
+    return {
+      title: `${category.name} — Cartivo`,
+      description: category.description?.slice(0, 150) || `Browse ${category.name} products on Cartivo.`,
+    };
+  } catch {
+    return { title: "Category — Cartivo" };
+  }
+}
+
+export default async function CategoryPage({ params }) {
+  let category;
+  try {
+    category = await apiFetch(`/categories/${params.slug}/`);
+  } catch (e) {
+    if (String(e.message).includes("404")) notFound();
+    throw e;
+  }
+
+  let products = [];
+  let error = null;
+  try {
+    const data = await apiFetch(`/products/?category=${category.id}`);
+    products = data.results ?? data;
+  } catch (e) {
+    error = e.message;
+  }
+
+  return (
+    <>
+      <Nav />
+      <main>
+        <section className="features">
+          <div className="container">
+            <p className="product-back">
+              <Link href="/products">← Back to shop</Link>
+            </p>
+
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Category</span>
+                <h2>{category.name}</h2>
+                {category.description && <p>{category.description}</p>}
+              </div>
+            </Reveal>
+
+            {error && (
+              <p className="center" role="alert">
+                Something went wrong loading this category. Please try again in a moment.
+              </p>
+            )}
+
+            {!error && products.length === 0 && (
+              <p className="center">No products in this category yet.</p>
+            )}
+
+            <div className="feature-grid">
+              {products.map((p, i) => (
+                <Reveal key={p.id} delay={i * 60}>
+                  <Link className="feature-card product-card" href={`/products/${p.slug}`}>
+                    <div className="product-image">
+                      {p.image ? (
+                        <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
+                      ) : (
+                        <span className="product-image-ph" aria-hidden="true">
+                          {p.name?.[0] ?? "?"}
+                        </span>
+                      )}
+                    </div>
+                    <span className="product-cat">{p.category_name ?? "Product"}</span>
+                    <h3>{p.name}</h3>
+                    <p>{p.description}</p>
+                    <div className="product-meta">
+                      <span className="product-price">{formatPrice(p.price)}</span>
+                      <span className={p.in_stock ? "product-stock" : "product-stock out"}>
+                        {p.in_stock ? "In stock" : "Out of stock"}
+                      </span>
+                    </div>
+                  </Link>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  );
+}
