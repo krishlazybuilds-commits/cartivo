@@ -24,6 +24,7 @@ function OrdersContent() {
   const { user, loading: authLoading } = useAuth();
   const params = useSearchParams();
   const placedId = params.get("placed");
+  const wasPaid = params.get("paid") === "1";
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,7 +64,7 @@ function OrdersContent() {
 
             {placedId && (
               <p className="order-placed" role="status">
-                ✓ Order #{placedId} placed successfully. Thank you!
+                ✓ Order #{placedId} {wasPaid ? "paid successfully" : "placed successfully"}. Thank you!
               </p>
             )}
 

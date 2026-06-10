@@ -47,7 +47,8 @@ export default function CheckoutPage() {
         body: JSON.stringify(form),
       });
       await refresh(); // cart is now empty
-      router.push(`/orders?placed=${order.id}`);
+      const { url } = await authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
+      window.location.href = url;
     } catch (err) {
       setError(err.message);
     } finally {
@@ -109,11 +110,8 @@ export default function CheckoutPage() {
                     <input type="text" value={form.shipping_country} onChange={update("shipping_country")} required />
                   </label>
                   <button className="btn btn-primary" type="submit" disabled={submitting}>
-                    {submitting ? "Placing order…" : `Place order · ${formatPrice(cart.total)}`}
+                    {submitting ? "Redirecting to payment…" : `Pay · ${formatPrice(cart.total)}`}
                   </button>
-                  <p className="auth-alt">
-                    Payment is not collected in this demo — orders are created as pending.
-                  </p>
                 </form>
 
                 <aside className="checkout-summary">
