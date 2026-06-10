@@ -84,7 +84,7 @@ export default function CheckoutPage() {
                 <form className="auth-form checkout-form" onSubmit={handleSubmit}>
                   {error && (
                     <p className="auth-error" role="alert">
-                      {error}
+                      Something went wrong. Please check your details and try again.
                     </p>
                   )}
                   <label>

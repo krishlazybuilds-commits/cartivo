@@ -64,7 +64,7 @@ export default async function ProductsPage({ searchParams }) {
 
             {error && (
               <p className="center" role="alert">
-                Couldn&apos;t load products: {error}
+                Something went wrong loading the shop. Please try again in a moment.
               </p>
             )}
 

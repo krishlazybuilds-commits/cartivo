@@ -75,7 +75,7 @@ function OrdersContent() {
             ) : loading ? (
               <OrdersListSkeleton />
             ) : error ? (
-              <p className="center auth-error">{error}</p>
+              <p className="center auth-error">Couldn&apos;t load your orders. Please try again.</p>
             ) : orders.length === 0 ? (
               <p className="center">
                 No orders yet. <Link href="/products">Start shopping</Link>.
