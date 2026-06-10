@@ -195,6 +195,31 @@ CSRF_COOKIE_DOMAIN = AUTH_COOKIE_DOMAIN
 CSRF_COOKIE_HTTPONLY = False
 
 
+# --- Production security ------------------------------------------------------
+# These hardening settings only take effect when DEBUG is False, so local
+# development over http is unaffected. Each is overridable via env var.
+if not DEBUG:
+    # Redirect all http requests to https.
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    # Trust the X-Forwarded-Proto header set by a TLS-terminating proxy/load balancer.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # HTTP Strict Transport Security: force https for the configured duration.
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
+
+    # Session cookies sent over https only; auth/CSRF cookies already follow
+    # AUTH_COOKIE_SECURE which defaults to (not DEBUG).
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
+
+    # Misc hardening headers.
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+
+
 # --- Internationalization ----------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "UTC")
