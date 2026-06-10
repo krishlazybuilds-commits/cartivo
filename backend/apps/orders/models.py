@@ -11,6 +11,7 @@ class Order(models.Model):
         SHIPPED = "shipped", "Shipped"
         DELIVERED = "delivered", "Delivered"
         CANCELLED = "cancelled", "Cancelled"
+        REFUNDED = "refunded", "Refunded"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -30,6 +31,13 @@ class Order(models.Model):
     shipping_city = models.CharField(max_length=120)
     shipping_postal_code = models.CharField(max_length=20)
     shipping_country = models.CharField(max_length=120)
+
+    # Stripe correlation IDs, captured during checkout so webhook events
+    # (expired/refunded) can be matched back to the order.
+    stripe_session_id = models.CharField(max_length=255, blank=True, default="")
+    stripe_payment_intent = models.CharField(
+        max_length=255, blank=True, default="", db_index=True
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

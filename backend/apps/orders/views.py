@@ -1,3 +1,5 @@
+import logging
+
 import stripe
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -11,12 +13,23 @@ from rest_framework.response import Response
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
+from config.throttling import OrderWriteThrottle, PaymentThrottle
 
 from .models import Order, OrderItem, StripeEvent
 from .serializers import CheckoutSerializer, OrderSerializer
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
 
+logger = logging.getLogger(__name__)
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def _restock_order(order):
+    """Return an order's items to inventory (atomic, race-free)."""
+    for item in order.items.select_related("product"):
+        Product.objects.filter(pk=item.product_id).update(
+            stock=F("stock") + item.quantity
+        )
 
 
 class OrderViewSet(
@@ -26,6 +39,13 @@ class OrderViewSet(
 ):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        # Payment-session creation hits Stripe, so rate-limit it tighter than
+        # other order writes. Reads (list/retrieve) are not throttled.
+        if self.action == "pay":
+            return [PaymentThrottle()]
+        return [OrderWriteThrottle()]
 
     def get_queryset(self):
         return (
@@ -124,7 +144,12 @@ class OrderViewSet(
             success_url=f"{frontend_base}/orders?placed={order.id}&paid=1",
             cancel_url=f"{frontend_base}/orders/{order.id}",
             metadata={"order_id": order.id},
+            # Propagate order_id onto the PaymentIntent (and its charge) so
+            # payment_failed / charge.refunded events can be matched back.
+            payment_intent_data={"metadata": {"order_id": order.id}},
         )
+        # Persist the session id so checkout.session.expired can be correlated.
+        Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
         return Response({"url": session.url})
 
     @action(detail=True, methods=["post"], url_path="cancel")
@@ -171,14 +196,19 @@ def _handle_checkout_completed(event):
     scheduled with transaction.on_commit so it never fires on a rolled-back
     transaction.
     """
-    metadata = event["data"]["object"].get("metadata") or {}
+    session = event["data"]["object"]
+    metadata = session.get("metadata") or {}
     order_id = metadata.get("order_id")
     if not order_id:
         return
 
     updated = Order.objects.filter(
         pk=order_id, status=Order.Status.PENDING
-    ).update(status=Order.Status.PAID)
+    ).update(
+        status=Order.Status.PAID,
+        # Capture the PaymentIntent so a later refund can be matched.
+        stripe_payment_intent=session.get("payment_intent") or "",
+    )
     if not updated:
         return
 
@@ -190,6 +220,73 @@ def _handle_checkout_completed(event):
     )
     if order:
         transaction.on_commit(lambda: send_payment_confirmed_task.delay(order.id))
+
+
+def _handle_checkout_expired(event):
+    """A Checkout session expired unpaid: cancel + restock the pending order.
+
+    Releases stock reserved at order creation. Status-filtered to PENDING so it
+    never disturbs an order that was paid or already cancelled.
+    """
+    metadata = event["data"]["object"].get("metadata") or {}
+    order_id = metadata.get("order_id")
+    if not order_id:
+        return
+
+    order = (
+        Order.objects.select_for_update()
+        .filter(pk=order_id, status=Order.Status.PENDING)
+        .first()
+    )
+    if order is None:
+        return
+    _restock_order(order)
+    order.status = Order.Status.CANCELLED
+    order.save(update_fields=["status"])
+
+
+def _handle_payment_failed(event):
+    """A PaymentIntent failed. Leave the order PENDING so the customer can retry;
+    record it for visibility."""
+    metadata = event["data"]["object"].get("metadata") or {}
+    order_id = metadata.get("order_id")
+    logger.warning("Stripe payment failed for order_id=%s", order_id)
+
+
+def _handle_charge_refunded(event):
+    """A charge was refunded: mark the order REFUNDED and restock its items.
+
+    Idempotent via the status filter (PAID -> REFUNDED), so duplicate refund
+    events don't restock twice.
+    """
+    charge = event["data"]["object"]
+    metadata = charge.get("metadata") or {}
+    order_id = metadata.get("order_id")
+    payment_intent = charge.get("payment_intent")
+
+    qs = Order.objects.select_for_update().filter(status=Order.Status.PAID)
+    if order_id:
+        order = qs.filter(pk=order_id).first()
+    elif payment_intent:
+        order = qs.filter(stripe_payment_intent=payment_intent).first()
+    else:
+        order = None
+
+    if order is None:
+        return
+    _restock_order(order)
+    order.status = Order.Status.REFUNDED
+    order.save(update_fields=["status"])
+
+
+# Maps Stripe event types to their handlers. Unlisted events are acknowledged
+# (200) but otherwise ignored.
+_EVENT_HANDLERS = {
+    "checkout.session.completed": _handle_checkout_completed,
+    "checkout.session.expired": _handle_checkout_expired,
+    "payment_intent.payment_failed": _handle_payment_failed,
+    "charge.refunded": _handle_charge_refunded,
+}
 
 
 @csrf_exempt
@@ -220,8 +317,9 @@ def stripe_webhook(request):
         with transaction.atomic():
             StripeEvent.objects.create(event_id=event_id, event_type=event_type)
 
-            if event_type == "checkout.session.completed":
-                _handle_checkout_completed(event)
+            handler = _EVENT_HANDLERS.get(event_type)
+            if handler is not None:
+                handler(event)
     except IntegrityError:
         return JsonResponse({"received": True, "duplicate": True})
 

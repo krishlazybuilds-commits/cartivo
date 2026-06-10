@@ -4,6 +4,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from config.throttling import CartWriteThrottle
+
 from .models import Cart, CartItem
 from .serializers import CartItemSerializer, CartSerializer
 
@@ -12,6 +14,7 @@ class CartViewSet(viewsets.ViewSet):
     """Single endpoint to view and clear the authenticated user's cart."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [CartWriteThrottle]
 
     def _get_cart(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -41,6 +44,7 @@ class CartItemViewSet(
 
     serializer_class = CartItemSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [CartWriteThrottle]
 
     def get_queryset(self):
         return CartItem.objects.filter(cart__user=self.request.user).select_related(

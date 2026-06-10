@@ -226,6 +226,10 @@ REST_FRAMEWORK = {
         "login": "10/min",
         "register": "5/hour",
         "password_reset": "5/hour",
+        # Authenticated mutating endpoints (writes only; reads are unthrottled).
+        "cart": "60/min",
+        "order": "20/min",
+        "payment": "10/min",
     },
 }
 
