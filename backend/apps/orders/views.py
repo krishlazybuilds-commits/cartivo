@@ -12,9 +12,9 @@ from rest_framework.response import Response
 from apps.cart.models import Cart
 from apps.catalog.models import Product
 
-from .emails import send_order_confirmation, send_payment_confirmed
 from .models import Order, OrderItem, StripeEvent
 from .serializers import CheckoutSerializer, OrderSerializer
+from .tasks import send_order_confirmation_task, send_payment_confirmed_task
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -91,7 +91,7 @@ class OrderViewSet(
             cart.items.all().delete()
 
         serializer = self.get_serializer(order)
-        send_order_confirmation(order)
+        send_order_confirmation_task.delay(order.id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="pay")
@@ -167,7 +167,7 @@ def _handle_checkout_completed(event):
     """Mark the matching order PAID and queue its confirmation email.
 
     The status filter (PENDING -> PAID) makes the transition itself idempotent:
-    only the first delivery that flips the order sends the email, which is
+    only the first delivery that flips the order enqueues the email, which is
     scheduled with transaction.on_commit so it never fires on a rolled-back
     transaction.
     """
@@ -189,7 +189,7 @@ def _handle_checkout_completed(event):
         .first()
     )
     if order:
-        transaction.on_commit(lambda: send_payment_confirmed(order))
+        transaction.on_commit(lambda: send_payment_confirmed_task.delay(order.id))
 
 
 @csrf_exempt

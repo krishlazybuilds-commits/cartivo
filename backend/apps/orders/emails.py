@@ -6,17 +6,19 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _safe_send(subject, body, recipient):
-    """Send an email, logging (not raising) on failure so flows aren't broken."""
-    try:
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[recipient],
-        )
-    except Exception:
-        logger.exception("Failed to send email '%s' to %s", subject, recipient)
+def _send(subject, body, recipient):
+    """Send an email.
+
+    Raises on failure so the calling Celery task can retry. These helpers are
+    invoked from background tasks (see apps.orders.tasks), so SMTP latency and
+    transient errors are kept off the request cycle and retried automatically.
+    """
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[recipient],
+    )
 
 
 def send_order_confirmation(order):
@@ -41,7 +43,7 @@ def send_order_confirmation(order):
         f"We'll notify you when your order ships.\n\n"
         f"— The Cartivo Team"
     )
-    _safe_send(f"Order #{order.id} confirmed — Cartivo", body, user.email)
+    _send(f"Order #{order.id} confirmed — Cartivo", body, user.email)
 
 
 def send_payment_confirmed(order):
@@ -58,4 +60,4 @@ def send_payment_confirmed(order):
         f"  {order.shipping_postal_code}, {order.shipping_country}\n\n"
         f"— The Cartivo Team"
     )
-    _safe_send(f"Payment received for Order #{order.id} — Cartivo", body, user.email)
+    _send(f"Payment received for Order #{order.id} — Cartivo", body, user.email)

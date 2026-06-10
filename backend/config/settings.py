@@ -158,6 +158,31 @@ else:
     }
 
 
+# --- Celery / background tasks -----------------------------------------------
+# Async task queue for emails and Stripe webhook side-effects, running on the
+# same Redis used for caching/throttling. Keeping email/SMTP work off the
+# request cycle removes its latency from checkout and adds automatic retries.
+#
+# When no broker is configured (local dev/tests without Redis), tasks run
+# eagerly (synchronously, inline) so the app still works without a worker.
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "") or None
+CELERY_TASK_ALWAYS_EAGER = env_bool(
+    "CELERY_TASK_ALWAYS_EAGER", not bool(CELERY_BROKER_URL)
+)
+# In eager mode don't propagate task exceptions to the caller, so a failing
+# email never breaks the request flow that enqueued it.
+CELERY_TASK_EAGER_PROPAGATES = False
+# Acknowledge tasks only after they finish so a worker crash re-queues them.
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "120"))
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "90"))
+CELERY_TIMEZONE = os.getenv("DJANGO_TIME_ZONE", "UTC")
+
+
 # --- Auth --------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
 
@@ -198,6 +223,8 @@ if "test" in sys.argv:
     REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
         key: None for key in REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
     }
+    # Run Celery tasks inline during tests so they execute without a broker.
+    CELERY_TASK_ALWAYS_EAGER = True
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
