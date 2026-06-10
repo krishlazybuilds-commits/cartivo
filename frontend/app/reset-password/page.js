@@ -14,11 +14,17 @@ function ResetPasswordForm() {
   const token = searchParams.get("token") || "";
 
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState(null); // "submitting" | "done" | "error"
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setErrorMsg("Passwords do not match.");
+      setStatus("error");
+      return;
+    }
     setStatus("submitting");
     try {
       const res = await fetch(`${API_URL}/auth/password-reset/confirm/`, {
@@ -59,6 +65,17 @@ function ResetPasswordForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+      </label>
+      <label>
+        Confirm new password
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           autoComplete="new-password"
           minLength={8}
           required

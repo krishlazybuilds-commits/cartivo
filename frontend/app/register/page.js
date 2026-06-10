@@ -15,6 +15,7 @@ export default function RegisterPage() {
     username: "",
     email: "",
     password: "",
+    confirmPassword: "",
     first_name: "",
     last_name: "",
   });
@@ -28,9 +29,14 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setSubmitting(true);
     try {
-      await register(form);
+      const { confirmPassword, ...payload } = form;
+      await register(payload);
       router.push("/products");
     } catch (err) {
       setError(err.message);
@@ -100,6 +106,17 @@ export default function RegisterPage() {
                   type="password"
                   value={form.password}
                   onChange={update("password")}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </label>
+              <label>
+                Confirm password
+                <input
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={update("confirmPassword")}
                   autoComplete="new-password"
                   minLength={8}
                   required
