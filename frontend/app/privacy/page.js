@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 
 export const metadata = {
   title: "Privacy Policy — Cartivo",
+  description: "How Cartivo collects, uses, and protects your personal data.",
 };
 
 export default function PrivacyPage() {

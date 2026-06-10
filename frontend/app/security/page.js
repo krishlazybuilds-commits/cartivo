@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 
 export const metadata = {
   title: "Security — Cartivo",
+  description: "How Cartivo keeps your account and payment information secure.",
 };
 
 export default function SecurityPage() {

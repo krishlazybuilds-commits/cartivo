@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 
 export const metadata = {
   title: "Terms of Service — Cartivo",
+  description: "Terms and conditions governing the use of the Cartivo platform.",
 };
 
 export default function TermsPage() {
