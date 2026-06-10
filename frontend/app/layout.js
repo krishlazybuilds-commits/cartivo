@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
 import { ToastProvider } from "./lib/toast";
+import CookieConsent from "./components/CookieConsent";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -43,7 +44,10 @@ export default function RootLayout({ children }) {
       <body className={`${jakarta.variable} ${fraunces.variable}`}>
         <AuthProvider>
           <ToastProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              {children}
+              <CookieConsent />
+            </CartProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

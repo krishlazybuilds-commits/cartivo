@@ -1723,3 +1723,46 @@ body::after {
 .breadcrumb-sep {
   color: var(--line, #cbd5e1);
 }
+
+
+/* --- Cookie consent -------------------------------------------------------- */
+.cookie-consent {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: 720px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  z-index: 90;
+  animation: cookie-slide 0.25s ease;
+}
+@keyframes cookie-slide {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.cookie-consent-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--slate, #475569);
+  flex: 1;
+  min-width: 220px;
+}
+.cookie-consent-text a {
+  color: var(--accent, #4f46e5);
+  text-decoration: underline;
+}
+.cookie-consent-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
