@@ -9,13 +9,7 @@ import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { useAuth, authFetch } from "../lib/auth";
 import { OrdersListSkeleton } from "../components/Skeleton";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value));
-}
+import { formatPrice } from "../lib/format";
 
 function formatDate(value) {
   return new Date(value).toLocaleString();

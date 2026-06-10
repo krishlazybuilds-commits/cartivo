@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { apiFetch } from "../lib/api";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
-}
+import { formatPrice } from "../lib/format";
 
 export default async function FeaturedProducts() {
   let products = [];

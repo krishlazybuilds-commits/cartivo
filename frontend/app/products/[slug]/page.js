@@ -5,15 +5,9 @@ import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import AddToCart from "../../components/AddToCart";
 import { apiFetch } from "../../lib/api";
+import { formatPrice } from "../../lib/format";
 
 export const dynamic = "force-dynamic";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value));
-}
 
 export async function generateMetadata({ params }) {
   try {

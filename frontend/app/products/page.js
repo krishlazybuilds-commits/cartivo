@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import ShopFilters from "../components/ShopFilters";
 import Reveal from "../components/Reveal";
 import { apiFetch } from "../lib/api";
+import { formatPrice } from "../lib/format";
 
 export const metadata = {
   title: "Shop — Cartivo",
@@ -12,13 +13,6 @@ export const metadata = {
 
 // Always fetch fresh data from the API (no static caching).
 export const dynamic = "force-dynamic";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value));
-}
 
 export default async function ProductsPage({ searchParams }) {
   const category = searchParams?.category ?? "";

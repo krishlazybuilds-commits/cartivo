@@ -9,10 +9,7 @@ import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import { useAuth, authFetch } from "../../lib/auth";
 import { OrderDetailSkeleton } from "../../components/Skeleton";
-
-function formatPrice(v) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(v));
-}
+import { formatPrice } from "../../lib/format";
 
 function formatDate(v) {
   return new Date(v).toLocaleString();

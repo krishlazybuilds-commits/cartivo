@@ -10,13 +10,7 @@ import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { authFetch } from "../lib/auth";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value));
-}
+import { formatPrice } from "../lib/format";
 
 const EMPTY = {
   shipping_full_name: "",

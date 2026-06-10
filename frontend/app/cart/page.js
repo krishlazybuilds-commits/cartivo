@@ -9,13 +9,7 @@ import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
-
-function formatPrice(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value));
-}
+import { formatPrice } from "../lib/format";
 
 export default function CartPage() {
   const { user, loading: authLoading } = useAuth();
