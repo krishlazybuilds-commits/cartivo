@@ -16,7 +16,7 @@ export default function BlogPage() {
             <span className="eyebrow">Coming soon</span>
             <h2>Blog</h2>
             <p style={{ color: "var(--muted)", maxWidth: 480, margin: "1rem auto 0" }}>
-              We're working on guides, product updates, and merchant stories.
+              We&apos;re working on guides, product updates, and merchant stories.
               The blog will launch soon — stay tuned.
             </p>
           </div>

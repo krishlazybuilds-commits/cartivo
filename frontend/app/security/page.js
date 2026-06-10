@@ -30,7 +30,7 @@ export default function SecurityPage() {
               <p>All communication between your browser and Cartivo servers is encrypted using TLS (HTTPS). Unencrypted connections are redirected automatically.</p>
 
               <h3>Data at rest</h3>
-              <p>Your personal data — name, email, shipping addresses, and order history — is stored in a secured database. Passwords are hashed using Django's PBKDF2 algorithm with a SHA-256 hash and are never stored in plain text.</p>
+              <p>Your personal data — name, email, shipping addresses, and order history — is stored in a secured database. Passwords are hashed using Django&apos;s PBKDF2 algorithm with a SHA-256 hash and are never stored in plain text.</p>
 
               <h3>Refresh token rotation</h3>
               <p>Every time your session is refreshed, the previous refresh token is blacklisted and a new one is issued. This limits the window of exposure if a token were ever compromised.</p>

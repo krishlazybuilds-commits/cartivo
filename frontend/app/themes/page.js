@@ -16,7 +16,7 @@ export default function ThemesPage() {
             <span className="eyebrow">Coming soon</span>
             <h2>Themes</h2>
             <p style={{ color: "var(--muted)", maxWidth: 480, margin: "1rem auto 0" }}>
-              We're crafting a collection of beautiful, customizable storefront themes.
+              We&apos;re crafting a collection of beautiful, customizable storefront themes.
               Check back soon — or join early access to be the first to know.
             </p>
           </div>

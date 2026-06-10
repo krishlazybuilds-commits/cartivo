@@ -73,7 +73,7 @@ export default function ContactPage() {
               <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
                 {status === "sending" ? "Sending…" : "Send message"}
               </button>
-              {status === "success" && <p style={{ color: "green" }}>Message sent! We'll get back to you soon.</p>}
+              {status === "success" && <p style={{ color: "green" }}>Message sent! We&apos;ll get back to you soon.</p>}
               {status === "error" && <p style={{ color: "red" }}>Something went wrong. Please try again.</p>}
             </form>
           </div>

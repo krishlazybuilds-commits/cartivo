@@ -16,8 +16,8 @@ export default function RoadmapPage() {
             <span className="eyebrow">Coming soon</span>
             <h2>Roadmap</h2>
             <p style={{ color: "var(--muted)", maxWidth: 480, margin: "1rem auto 0" }}>
-              We're building in public. Our product roadmap will be shared here soon
-              so you can see what's coming and vote on what matters most to your shop.
+              We&apos;re building in public. Our product roadmap will be shared here soon
+              so you can see what&apos;s coming and vote on what matters most to your shop.
             </p>
           </div>
         </section>

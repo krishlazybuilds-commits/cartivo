@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
             <div className="section-head center">
               <span className="eyebrow">Account recovery</span>
               <h2>Forgot password</h2>
-              <p>Enter your email and we'll send you a reset link.</p>
+              <p>Enter your email and we&apos;ll send you a reset link.</p>
             </div>
 
             {status === "done" ? (

@@ -36,7 +36,7 @@ export default function TermsPage() {
               <p>All content, logos, and trademarks on this platform are the property of Cartivo. You may not reproduce or distribute any content without written permission.</p>
 
               <h3>Limitation of liability</h3>
-              <p>Cartivo is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the platform.</p>
+              <p>Cartivo is provided &quot;as is&quot; without warranties of any kind. We are not liable for any damages arising from your use of the platform.</p>
 
               <h3>Changes to terms</h3>
               <p>We may update these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms.</p>
