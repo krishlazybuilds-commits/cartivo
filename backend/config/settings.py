@@ -134,6 +134,20 @@ if REDIS_URL:
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": REDIS_URL,
+            # Passed through to the redis-py connection pool. Short socket
+            # timeouts ensure a Redis outage fails fast instead of hanging
+            # request threads; a periodic health check recycles dead
+            # connections so workers recover automatically once Redis is back.
+            "OPTIONS": {
+                "socket_connect_timeout": int(
+                    os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", "5")
+                ),
+                "socket_timeout": int(os.getenv("REDIS_SOCKET_TIMEOUT", "5")),
+                "retry_on_timeout": True,
+                "health_check_interval": int(
+                    os.getenv("REDIS_HEALTH_CHECK_INTERVAL", "30")
+                ),
+            },
         }
     }
 else:
