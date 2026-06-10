@@ -1,6 +1,7 @@
 import stripe
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -8,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.cart.models import Cart
+from apps.catalog.models import Product
 
 from .emails import send_order_confirmation, send_payment_confirmed
 from .models import Order, OrderItem
@@ -44,8 +46,18 @@ class OrderViewSet(
 
         with transaction.atomic():
             cart_items = list(cart.items.select_related("product"))
+
+            # Lock the product rows for the duration of the transaction so two
+            # concurrent checkouts can't both pass the stock check and oversell.
+            locked_products = {
+                p.id: p
+                for p in Product.objects.select_for_update().filter(
+                    id__in=[item.product_id for item in cart_items]
+                )
+            }
+
             for item in cart_items:
-                product = item.product
+                product = locked_products[item.product_id]
                 if item.quantity > product.stock:
                     return Response(
                         {
@@ -60,8 +72,9 @@ class OrderViewSet(
             order = Order.objects.create(user=request.user, **checkout.validated_data)
             order_items = []
             for item in cart_items:
-                product = item.product
-                product.stock -= item.quantity
+                product = locked_products[item.product_id]
+                # Atomic decrement at the DB level (no read-then-write gap).
+                product.stock = F("stock") - item.quantity
                 product.save(update_fields=["stock"])
                 order_items.append(
                     OrderItem(
@@ -123,8 +136,10 @@ class OrderViewSet(
             )
         with transaction.atomic():
             for item in order.items.select_related("product"):
-                item.product.stock += item.quantity
-                item.product.save(update_fields=["stock"])
+                # Atomic restock; F() avoids a read-then-write race.
+                Product.objects.filter(pk=item.product_id).update(
+                    stock=F("stock") + item.quantity
+                )
             order.status = Order.Status.CANCELLED
             order.save(update_fields=["status"])
         return Response(self.get_serializer(order).data)
