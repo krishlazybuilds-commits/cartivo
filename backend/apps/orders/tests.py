@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 
 from apps.cart.models import Cart, CartItem
 from apps.catalog.models import Category, Product
-from apps.orders.models import Order
+from apps.orders.models import Order, StripeEvent
 
 User = get_user_model()
 
@@ -208,3 +208,109 @@ class ExpirePendingOrdersCommandTests(APITestCase):
         self.assertEqual(order.status, Order.Status.PENDING)
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)  # unchanged
+
+
+class StripeWebhookIdempotencyTests(APITestCase):
+    """The webhook must tolerate Stripe's at-least-once / retry delivery."""
+
+    WEBHOOK_URL = "/api/orders/webhook/"
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="payer", password="pass12345")
+        self.category = Category.objects.create(name="Things")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Thing",
+            price=Decimal("10.00"),
+            stock=5,
+            sku="THG-1",
+        )
+
+    def _pending_order(self):
+        return Order.objects.create(
+            user=self.user,
+            total=Decimal("10.00"),
+            **SHIPPING,
+        )
+
+    @staticmethod
+    def _event(order_id, event_id="evt_1", event_type="checkout.session.completed"):
+        return {
+            "id": event_id,
+            "type": event_type,
+            "data": {"object": {"metadata": {"order_id": str(order_id)}}},
+        }
+
+    def _post(self, event):
+        from unittest.mock import patch
+
+        with patch(
+            "apps.orders.views.stripe.Webhook.construct_event", return_value=event
+        ):
+            return self.client.post(
+                self.WEBHOOK_URL, data="{}", content_type="application/json"
+            )
+
+    def test_first_delivery_marks_paid_and_sends_email_once(self):
+        from unittest.mock import patch
+
+        order = self._pending_order()
+        with patch("apps.orders.views.send_payment_confirmed") as mock_email:
+            with self.captureOnCommitCallbacks(execute=True):
+                res = self._post(self._event(order.id))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PAID)
+        self.assertEqual(mock_email.call_count, 1)
+        self.assertEqual(StripeEvent.objects.filter(event_id="evt_1").count(), 1)
+
+    def test_duplicate_event_is_ignored(self):
+        from unittest.mock import patch
+
+        order = self._pending_order()
+        event = self._event(order.id)
+        with patch("apps.orders.views.send_payment_confirmed") as mock_email:
+            with self.captureOnCommitCallbacks(execute=True):
+                self._post(event)
+            # Same event_id delivered again (Stripe retry).
+            with self.captureOnCommitCallbacks(execute=True):
+                res = self._post(event)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.json().get("duplicate"))
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PAID)
+        # Email sent only on the first delivery.
+        self.assertEqual(mock_email.call_count, 1)
+        self.assertEqual(StripeEvent.objects.count(), 1)
+
+    def test_invalid_signature_returns_400_and_records_nothing(self):
+        from unittest.mock import patch
+
+        order = self._pending_order()
+        with patch(
+            "apps.orders.views.stripe.Webhook.construct_event",
+            side_effect=ValueError("bad sig"),
+        ):
+            res = self.client.post(
+                self.WEBHOOK_URL, data="{}", content_type="application/json"
+            )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.assertEqual(StripeEvent.objects.count(), 0)
+
+    def test_unhandled_event_type_is_recorded_and_acknowledged(self):
+        res = self._post(
+            self._event(0, event_id="evt_payment", event_type="payment_intent.created")
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            StripeEvent.objects.filter(event_id="evt_payment").count(), 1
+        )
+
+    def test_get_request_is_rejected(self):
+        res = self.client.get(self.WEBHOOK_URL)
+        self.assertEqual(res.status_code, 405)
