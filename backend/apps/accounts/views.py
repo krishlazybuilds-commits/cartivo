@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -221,6 +223,11 @@ class PasswordResetConfirmView(APIView):
 
         if not default_token_generator.check_token(user, token):
             return Response({"detail": "Reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            return Response({"detail": exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(new_password)
         user.save(update_fields=["password"])
