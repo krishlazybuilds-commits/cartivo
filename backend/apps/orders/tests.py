@@ -92,3 +92,119 @@ class CheckoutTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 0)
+
+
+class CancelOrderTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="canceller", password="pass12345")
+        self.category = Category.objects.create(name="Gizmos")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Gizmo",
+            price=Decimal("15.00"),
+            stock=5,
+            sku="GIZ-1",
+        )
+        self.client.force_authenticate(self.user)
+
+    def _place_order(self, quantity=2):
+        cart, _ = Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=quantity)
+        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        return res.data["id"]
+
+    def test_cancel_pending_order_restocks_and_updates_status(self):
+        order_id = self._place_order(2)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)  # 5 - 2
+
+        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["status"], "cancelled")
+
+        # Stock restored.
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+    def test_cannot_cancel_twice(self):
+        order_id = self._place_order(1)
+        self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+
+        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Stock not double-restocked.
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+    def test_cannot_cancel_another_users_order(self):
+        order_id = self._place_order(1)
+        other = User.objects.create_user(username="intruder", password="pass12345")
+        self.client.force_authenticate(other)
+        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ExpirePendingOrdersCommandTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="staleuser", password="pass12345")
+        self.category = Category.objects.create(name="Widgets")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Widget",
+            price=Decimal("10.00"),
+            stock=5,
+            sku="WID-X",
+        )
+        self.client.force_authenticate(self.user)
+
+    def _place_order(self, quantity=2):
+        cart, _ = Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=quantity)
+        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        return res.data["id"]
+
+    def _backdate(self, order_id, minutes):
+        from django.utils import timezone
+        # created_at uses auto_now_add, so set it directly via queryset.
+        Order.objects.filter(pk=order_id).update(
+            created_at=timezone.now() - timezone.timedelta(minutes=minutes)
+        )
+
+    def test_expires_and_restocks_stale_pending_order(self):
+        from django.core.management import call_command
+
+        order_id = self._place_order(2)
+        self._backdate(order_id, minutes=60)
+
+        call_command("expire_pending_orders", "--minutes", "30")
+
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)  # restocked
+
+    def test_does_not_expire_recent_pending_order(self):
+        from django.core.management import call_command
+
+        order_id = self._place_order(2)  # created just now
+
+        call_command("expire_pending_orders", "--minutes", "30")
+
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)  # still reserved
+
+    def test_dry_run_changes_nothing(self):
+        from django.core.management import call_command
+
+        order_id = self._place_order(2)
+        self._backdate(order_id, minutes=60)
+
+        call_command("expire_pending_orders", "--minutes", "30", "--dry-run")
+
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)  # unchanged
