@@ -18,13 +18,15 @@ from apps.cart.models import Cart
 from apps.catalog.models import Product
 from config.throttling import OrderWriteThrottle, PaymentThrottle
 
-from .models import Order, OrderItem, StripeEvent
+from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
     CheckoutSerializer,
+    CouponResponseSerializer,
     GuestCartItemSerializer,
     OrderSerializer,
     ShippingEstimateSerializer,
     ShippingEstimateResponseSerializer,
+    ValidateCouponSerializer,
     calculate_estimate,
 )
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
@@ -71,6 +73,61 @@ class ShippingEstimateView(APIView):
             float(ser.validated_data["subtotal"]),
         )
         return Response(result)
+
+
+class ValidateCouponView(APIView):
+    """Validate a coupon code against a subtotal and return the discount amount.
+
+    Open to all (guests and authenticated users). Used on the frontend to show
+    the discount before the user submits the checkout form.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    @extend_schema(
+        request=ValidateCouponSerializer,
+        responses={200: CouponResponseSerializer},
+        summary="Validate a coupon code",
+        tags=["orders"],
+    )
+    def post(self, request):
+        ser = ValidateCouponSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        code = ser.validated_data["code"].strip().upper()
+        subtotal = ser.validated_data["subtotal"]
+
+        try:
+            coupon = Coupon.objects.get(code__iexact=code)
+        except Coupon.DoesNotExist:
+            return Response({
+                "valid": False,
+                "code": code,
+                "discount_type": "",
+                "value": 0,
+                "discount_amount": 0,
+                "message": "Invalid coupon code.",
+            })
+
+        valid, reason = coupon.is_valid(subtotal)
+        if not valid:
+            return Response({
+                "valid": False,
+                "code": code,
+                "discount_type": coupon.discount_type,
+                "value": coupon.value,
+                "discount_amount": 0,
+                "message": reason,
+            })
+
+        discount_amount = coupon.calculate_discount(subtotal)
+        return Response({
+            "valid": True,
+            "code": coupon.code,
+            "discount_type": coupon.discount_type,
+            "value": coupon.value,
+            "discount_amount": discount_amount,
+            "message": f"Coupon applied! You save ${discount_amount:.2f}.",
+        })
 
 
 @extend_schema_view(
@@ -130,6 +187,18 @@ class OrderViewSet(
         checkout.is_valid(raise_exception=True)
         data = checkout.validated_data
 
+        # --- Resolve coupon (optional) ----------------------------------------
+        coupon = None
+        coupon_code = data.get("coupon_code", "").strip()
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code)
+            except Coupon.DoesNotExist:
+                return Response(
+                    {"detail": "Invalid coupon code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         if is_guest:
             # --- Guest checkout: cart lines come in the request body ----------
             raw_items = data.get("items", [])
@@ -186,8 +255,20 @@ class OrderViewSet(
                         quantity=line["quantity"],
                     ))
                 OrderItem.objects.bulk_create(order_items)
-                order.recalculate_total()
-                order.save(update_fields=["total"])
+                # Apply coupon discount if provided.
+                subtotal = order.recalculate_total()  # sets order.total before discount
+                if coupon:
+                    valid, reason = coupon.is_valid(subtotal + order.discount)
+                    if not valid:
+                        # Rollback will undo the order; surface the error.
+                        transaction.set_rollback(True)
+                        return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
+                    order.discount = coupon.calculate_discount(subtotal + order.discount)
+                    order.coupon = coupon
+                    order.total = max(subtotal - order.discount, 0)
+                    coupon.times_used = F("times_used") + 1
+                    coupon.save(update_fields=["times_used"])
+                order.save(update_fields=["total", "discount", "coupon"])
         else:
             # --- Authenticated checkout: use the server-side cart -------------
             cart = Cart.objects.filter(user=request.user).first()
@@ -234,8 +315,19 @@ class OrderViewSet(
                         quantity=item.quantity,
                     ))
                 OrderItem.objects.bulk_create(order_items)
-                order.recalculate_total()
-                order.save(update_fields=["total"])
+                # Apply coupon discount if provided.
+                subtotal = order.recalculate_total()
+                if coupon:
+                    valid, reason = coupon.is_valid(subtotal + order.discount)
+                    if not valid:
+                        transaction.set_rollback(True)
+                        return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
+                    order.discount = coupon.calculate_discount(subtotal + order.discount)
+                    order.coupon = coupon
+                    order.total = max(subtotal - order.discount, 0)
+                    coupon.times_used = F("times_used") + 1
+                    coupon.save(update_fields=["times_used"])
+                order.save(update_fields=["total", "discount", "coupon"])
                 cart.items.all().delete()
 
         serializer = self.get_serializer(order)

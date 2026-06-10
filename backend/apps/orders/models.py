@@ -1,9 +1,80 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.catalog.models import Product
+
+
+class Coupon(models.Model):
+    """Discount coupon that can be applied at checkout."""
+
+    class DiscountType(models.TextChoices):
+        PERCENT = "percent", "Percentage"
+        FLAT = "flat", "Flat amount"
+
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    discount_type = models.CharField(
+        max_length=10, choices=DiscountType.choices, default=DiscountType.PERCENT
+    )
+    # For percent: value between 1–100. For flat: dollar amount.
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    # Minimum cart subtotal required to use this coupon (0 = no minimum).
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Maximum number of times this coupon can be used (0 = unlimited).
+    max_uses = models.PositiveIntegerField(default=0)
+    times_used = models.PositiveIntegerField(default=0)
+    # Null = never expires.
+    valid_from = models.DateTimeField(default=timezone.now)
+    valid_until = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(value__gt=0),
+                name="coupon_value_positive",
+            ),
+            models.CheckConstraint(
+                check=models.Q(min_order_amount__gte=0),
+                name="coupon_min_order_non_negative",
+            ),
+        ]
+
+    def is_valid(self, subtotal: Decimal) -> tuple[bool, str]:
+        """Check if this coupon can be applied to an order with the given subtotal.
+
+        Returns (True, "") on success or (False, reason) on failure.
+        """
+        if not self.is_active:
+            return False, "This coupon is no longer active."
+        now = timezone.now()
+        if now < self.valid_from:
+            return False, "This coupon is not yet valid."
+        if self.valid_until and now > self.valid_until:
+            return False, "This coupon has expired."
+        if self.max_uses and self.times_used >= self.max_uses:
+            return False, "This coupon has reached its usage limit."
+        if subtotal < self.min_order_amount:
+            return False, f"Minimum order of ${self.min_order_amount:.2f} required."
+        return True, ""
+
+    def calculate_discount(self, subtotal: Decimal) -> Decimal:
+        """Return the discount amount for the given subtotal."""
+        if self.discount_type == self.DiscountType.PERCENT:
+            discount = subtotal * (self.value / Decimal("100"))
+        else:
+            discount = min(self.value, subtotal)
+        return discount.quantize(Decimal("0.01"))
+
+    def __str__(self) -> str:
+        if self.discount_type == self.DiscountType.PERCENT:
+            return f"{self.code} ({self.value}% off)"
+        return f"{self.code} (${self.value} off)"
 
 
 class Order(models.Model):
@@ -35,6 +106,16 @@ class Order(models.Model):
         default=Status.PENDING,
     )
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Discount applied via coupon. Stored as a snapshot so the order total is
+    # self-contained even if the coupon is later modified or deleted.
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
 
     # Shipping snapshot
     shipping_full_name = models.CharField(max_length=200)
@@ -66,7 +147,8 @@ class Order(models.Model):
         ]
 
     def recalculate_total(self):
-        self.total = sum((item.subtotal for item in self.items.all()), start=0)
+        subtotal = sum((item.subtotal for item in self.items.all()), start=Decimal("0"))
+        self.total = max(subtotal - self.discount, Decimal("0"))
         return self.total
 
     def __str__(self) -> str:

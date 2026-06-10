@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Order, OrderItem
+from .models import Coupon, Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -27,6 +27,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     order_number = serializers.UUIDField(read_only=True)
+    coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
 
     class Meta:
         model = Order
@@ -35,6 +36,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "order_number",
             "status",
             "total",
+            "discount",
+            "coupon_code",
             "shipping_full_name",
             "shipping_address",
             "shipping_city",
@@ -44,7 +47,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "items",
             "created_at",
         )
-        read_only_fields = ("id", "order_number", "status", "total", "items", "created_at")
+        read_only_fields = ("id", "order_number", "status", "total", "discount", "coupon_code", "items", "created_at")
 
 
 class CheckoutSerializer(serializers.Serializer):
@@ -65,6 +68,8 @@ class CheckoutSerializer(serializers.Serializer):
     # Guest-only fields
     guest_email = serializers.EmailField(required=False, allow_blank=True, default="")
     items = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    # Optional coupon code
+    coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
 
     def validate(self, data):
         # guest_email is required when the request is unauthenticated.
@@ -133,3 +138,24 @@ def calculate_estimate(country: str, subtotal: float) -> dict:
             "Final amounts confirmed at payment."
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Coupon validation
+# ---------------------------------------------------------------------------
+
+
+class ValidateCouponSerializer(serializers.Serializer):
+    """Request body for the coupon-validation endpoint."""
+    code = serializers.CharField(max_length=50)
+    subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+
+
+class CouponResponseSerializer(serializers.Serializer):
+    """Response from the coupon-validation endpoint."""
+    valid = serializers.BooleanField()
+    code = serializers.CharField()
+    discount_type = serializers.CharField()
+    value = serializers.DecimalField(max_digits=10, decimal_places=2)
+    discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    message = serializers.CharField()
