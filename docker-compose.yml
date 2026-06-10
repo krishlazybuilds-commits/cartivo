@@ -25,6 +25,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # One-shot migration runner. Applies database migrations exactly once before
+  # the backend starts, so scaling `backend` to multiple containers can't run
+  # `migrate` concurrently and race. Exits when migrations finish.
+  migrate:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DB_ENGINE: django.db.backends.postgresql
+      DB_HOST: db
+      DB_PORT: "5432"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build: ./backend
     env_file: ./backend/.env
@@ -39,6 +55,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
     volumes:
