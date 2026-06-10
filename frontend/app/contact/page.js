@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import { API_URL } from "../lib/api";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -12,7 +13,7 @@ export default function ContactPage() {
     e.preventDefault();
     setStatus("sending");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/contact/", {
+      const res = await fetch(`${API_URL}/contact/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

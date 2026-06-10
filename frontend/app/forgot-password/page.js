@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import { API_URL } from "../lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setStatus("sending");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/password-reset/", {
+      const res = await fetch(`${API_URL}/auth/password-reset/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

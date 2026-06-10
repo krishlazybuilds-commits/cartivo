@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import { API_URL } from "../lib/api";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -20,7 +21,7 @@ function ResetPasswordForm() {
     e.preventDefault();
     setStatus("submitting");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/password-reset/confirm/", {
+      const res = await fetch(`${API_URL}/auth/password-reset/confirm/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, token, new_password: password }),
