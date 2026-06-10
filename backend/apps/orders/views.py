@@ -1,7 +1,8 @@
 import stripe
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +13,7 @@ from apps.cart.models import Cart
 from apps.catalog.models import Product
 
 from .emails import send_order_confirmation, send_payment_confirmed
-from .models import Order, OrderItem
+from .models import Order, OrderItem, StripeEvent
 from .serializers import CheckoutSerializer, OrderSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -162,10 +163,38 @@ class OrderViewSet(
         return Response(self.get_serializer(order).data)
 
 
+def _handle_checkout_completed(event):
+    """Mark the matching order PAID and queue its confirmation email.
+
+    The status filter (PENDING -> PAID) makes the transition itself idempotent:
+    only the first delivery that flips the order sends the email, which is
+    scheduled with transaction.on_commit so it never fires on a rolled-back
+    transaction.
+    """
+    metadata = event["data"]["object"].get("metadata") or {}
+    order_id = metadata.get("order_id")
+    if not order_id:
+        return
+
+    updated = Order.objects.filter(
+        pk=order_id, status=Order.Status.PENDING
+    ).update(status=Order.Status.PAID)
+    if not updated:
+        return
+
+    order = (
+        Order.objects.filter(pk=order_id)
+        .prefetch_related("items__product")
+        .select_related("user")
+        .first()
+    )
+    if order:
+        transaction.on_commit(lambda: send_payment_confirmed(order))
+
+
 @csrf_exempt
 def stripe_webhook(request):
     if request.method != "POST":
-        from django.http import HttpResponse
         return HttpResponse(status=405)
 
     payload = request.body
@@ -176,16 +205,24 @@ def stripe_webhook(request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except (ValueError, stripe.error.SignatureVerificationError):
-        from django.http import HttpResponse
         return HttpResponse(status=400)
 
-    if event["type"] == "checkout.session.completed":
-        order_id = event["data"]["object"]["metadata"].get("order_id")
-        updated = Order.objects.filter(pk=order_id, status=Order.Status.PENDING)
-        updated.update(status=Order.Status.PAID)
-        order = Order.objects.filter(pk=order_id).prefetch_related("items__product").select_related("user").first()
-        if order:
-            send_payment_confirmed(order)
+    event_id = event.get("id")
+    event_type = event.get("type", "")
 
-    from django.http import JsonResponse
+    # Idempotency: Stripe delivers each event at least once and retries on any
+    # non-2xx response, so the same event can arrive multiple times. Recording
+    # the event_id under a unique constraint inside the transaction means a
+    # duplicate delivery hits an IntegrityError and skips all side effects,
+    # while the handler's DB writes roll back together with the marker if
+    # processing fails (so a genuine retry can reprocess).
+    try:
+        with transaction.atomic():
+            StripeEvent.objects.create(event_id=event_id, event_type=event_type)
+
+            if event_type == "checkout.session.completed":
+                _handle_checkout_completed(event)
+    except IntegrityError:
+        return JsonResponse({"received": True, "duplicate": True})
+
     return JsonResponse({"received": True})

@@ -48,6 +48,27 @@ class Order(models.Model):
         return f"Order #{self.pk} ({self.user})"
 
 
+class StripeEvent(models.Model):
+    """Records processed Stripe webhook event IDs to guarantee idempotency.
+
+    Stripe delivers each event at least once and retries delivery whenever the
+    endpoint responds with a non-2xx status, so the same event can arrive more
+    than once. The unique ``event_id`` lets the webhook detect and skip an
+    event it has already handled, preventing duplicate side effects (e.g.
+    re-sending the payment confirmation email).
+    """
+
+    event_id = models.CharField(max_length=255, unique=True)
+    event_type = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.event_type} ({self.event_id})"
+
+
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
