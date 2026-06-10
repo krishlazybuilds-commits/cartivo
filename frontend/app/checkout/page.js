@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { authFetch } from "../lib/auth";
@@ -66,10 +67,12 @@ export default function CheckoutPage() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head center">
-              <span className="eyebrow">Checkout</span>
-              <h2>Shipping & payment</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Checkout</span>
+                <h2>Shipping & payment</h2>
+              </div>
+            </Reveal>
 
             {!user ? (
               <p className="center">

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import Reveal from "../../components/Reveal";
 import { useAuth, authFetch } from "../../lib/auth";
 import { OrderDetailSkeleton } from "../../components/Skeleton";
 
@@ -73,7 +74,8 @@ export default function OrderDetailPage() {
             ) : error ? (
               <p className="center auth-error">{error}</p>
             ) : order && (
-              <article className="order-card" style={{ maxWidth: 640 }}>
+              <Reveal>
+                <article className="order-card" style={{ maxWidth: 640 }}>
                 <header className="order-head">
                   <div>
                     <strong>Order #{order.id}</strong>
@@ -120,6 +122,7 @@ export default function OrderDetailPage() {
                   </div>
                 )}
               </article>
+              </Reveal>
             )}
           </div>
         </section>

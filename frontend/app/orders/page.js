@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth, authFetch } from "../lib/auth";
 import { OrdersListSkeleton } from "../components/Skeleton";
 
@@ -57,10 +58,12 @@ function OrdersContent() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head center">
-              <span className="eyebrow">Your orders</span>
-              <h2>Order history</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Your orders</span>
+                <h2>Order history</h2>
+              </div>
+            </Reveal>
 
             {placedId && (
               <p className="order-placed" role="status">
@@ -82,8 +85,9 @@ function OrdersContent() {
               </p>
             ) : (
               <div className="orders">
-                {orders.map((order) => (
-                  <article className="order-card" key={order.id}>
+                {orders.map((order, i) => (
+                  <Reveal key={order.id} delay={i * 60}>
+                    <article className="order-card">
                     <header className="order-head">
                       <div>
                         <Link href={`/orders/${order.id}`}><strong>Order #{order.id}</strong></Link>
@@ -108,6 +112,7 @@ function OrdersContent() {
                       <strong>{formatPrice(order.total)}</strong>
                     </div>
                   </article>
+                  </Reveal>
                 ))}
               </div>
             )}

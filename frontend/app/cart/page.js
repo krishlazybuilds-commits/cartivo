@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
@@ -39,10 +40,12 @@ export default function CartPage() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head center">
-              <span className="eyebrow">Your cart</span>
-              <h2>Shopping cart</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Your cart</span>
+                <h2>Shopping cart</h2>
+              </div>
+            </Reveal>
 
             {!user ? (
               <p className="center">
