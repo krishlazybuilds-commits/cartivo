@@ -1,5 +1,22 @@
+import logging
+
 from django.core.mail import send_mail
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_send(subject, body, recipient):
+    """Send an email, logging (not raising) on failure so flows aren't broken."""
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient],
+        )
+    except Exception:
+        logger.exception("Failed to send email '%s' to %s", subject, recipient)
 
 
 def send_order_confirmation(order):
@@ -24,13 +41,7 @@ def send_order_confirmation(order):
         f"We'll notify you when your order ships.\n\n"
         f"— The Cartivo Team"
     )
-    send_mail(
-        subject=f"Order #{order.id} confirmed — Cartivo",
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
-    )
+    _safe_send(f"Order #{order.id} confirmed — Cartivo", body, user.email)
 
 
 def send_payment_confirmed(order):
@@ -47,10 +58,4 @@ def send_payment_confirmed(order):
         f"  {order.shipping_postal_code}, {order.shipping_country}\n\n"
         f"— The Cartivo Team"
     )
-    send_mail(
-        subject=f"Payment received for Order #{order.id} — Cartivo",
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
-    )
+    _safe_send(f"Payment received for Order #{order.id} — Cartivo", body, user.email)
