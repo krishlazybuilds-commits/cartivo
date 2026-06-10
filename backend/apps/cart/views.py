@@ -18,7 +18,11 @@ class CartViewSet(viewsets.ViewSet):
         return cart
 
     def list(self, request):
-        serializer = CartSerializer(self._get_cart(request))
+        cart = self._get_cart(request)
+        # Prefetch items and their products so serializing items and computing
+        # total/item_count don't trigger a query per cart item (avoids N+1).
+        cart = Cart.objects.prefetch_related("items__product").get(pk=cart.pk)
+        serializer = CartSerializer(cart)
         return Response(serializer.data)
 
     @action(detail=False, methods=["post"])

@@ -36,6 +36,9 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
 
     def recalculate_total(self):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)
