@@ -52,6 +52,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
+    "drf_spectacular",
 ]
 
 LOCAL_APPS = [
@@ -221,6 +222,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_RATES": {
         "contact": "5/hour",
         "login": "10/min",
@@ -230,6 +232,41 @@ REST_FRAMEWORK = {
         "cart": "60/min",
         "order": "20/min",
         "payment": "10/min",
+    },
+}
+
+# --- OpenAPI schema (drf-spectacular) ----------------------------------------
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Cartivo API",
+    "DESCRIPTION": (
+        "REST API for the Cartivo e-commerce platform.\n\n"
+        "Authentication uses httpOnly JWT cookies. "
+        "Call `POST /api/auth/csrf/` first to receive the `csrftoken` cookie, "
+        "then include it as the `X-CSRFToken` header on all unsafe requests.\n\n"
+        "Swagger UI is available at `/api/schema/swagger/`; "
+        "Redoc at `/api/schema/redoc/`."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Group endpoints by their app tag.
+    "SCHEMA_PATH_PREFIX": r"/api/",
+    # Show all response codes, not just 200.
+    "COMPONENT_SPLIT_PATCH": True,
+    "COMPONENT_NO_READ_ONLY_REQUIRED": True,
+    # Cookie-based JWT security scheme.
+    "SECURITY": [{"cookieAuth": []}],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "access_token",
+                "description": (
+                    "httpOnly JWT access token set by `POST /api/auth/token/`. "
+                    "Pair with the `X-CSRFToken` header on unsafe requests."
+                ),
+            }
+        }
     },
 }
 

@@ -12,6 +12,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
+
 from apps.cart.models import Cart
 from apps.catalog.models import Product
 from config.throttling import OrderWriteThrottle, PaymentThrottle
@@ -22,6 +24,7 @@ from .serializers import (
     GuestCartItemSerializer,
     OrderSerializer,
     ShippingEstimateSerializer,
+    ShippingEstimateResponseSerializer,
     calculate_estimate,
 )
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
@@ -48,6 +51,18 @@ class ShippingEstimateView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = []  # public read; no auth throttle needed
 
+    @extend_schema(
+        request=ShippingEstimateSerializer,
+        responses={200: ShippingEstimateResponseSerializer},
+        summary="Get shipping & tax estimate",
+        description=(
+            "Returns flat-rate shipping cost and estimated tax for the given "
+            "country and order subtotal. Free shipping applies on US orders "
+            "over $100. Tax (8%) is estimated for US orders only. "
+            "Final amounts are confirmed at payment."
+        ),
+        tags=["orders"],
+    )
     def post(self, request):
         ser = ShippingEstimateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -58,6 +73,28 @@ class ShippingEstimateView(APIView):
         return Response(result)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List my orders",
+        tags=["orders"],
+    ),
+    retrieve=extend_schema(
+        summary="Get order detail",
+        tags=["orders"],
+    ),
+    create=extend_schema(
+        summary="Place an order",
+        description=(
+            "Creates an order from the authenticated user's server-side cart, "
+            "or from the `items` list for guest checkouts. "
+            "Decrements stock and clears the cart. "
+            "Guests must supply `guest_email` and `items`."
+        ),
+        request=CheckoutSerializer,
+        responses={201: OrderSerializer},
+        tags=["orders"],
+    ),
+)
 class OrderViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -78,6 +115,9 @@ class OrderViewSet(
 
     def get_queryset(self):
         # list/retrieve require auth (enforced by get_permissions).
+        # Guard against schema-generation calls which run with an anonymous user.
+        if getattr(self, "swagger_fake_view", False):
+            return Order.objects.none()
         return (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items__product")
@@ -202,6 +242,12 @@ class OrderViewSet(
         send_order_confirmation_task.delay(order.id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Start Stripe payment",
+        description="Creates a Stripe Checkout Session and returns the redirect URL.",
+        responses={200: {"type": "object", "properties": {"url": {"type": "string"}}}},
+        tags=["orders"],
+    )
     @action(detail=True, methods=["post"], url_path="pay")
     def pay(self, request, pk=None):
         order = self.get_object()
@@ -240,6 +286,12 @@ class OrderViewSet(
         Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
         return Response({"url": session.url})
 
+    @extend_schema(
+        summary="Cancel a pending order",
+        description="Cancels a PENDING order and restocks its items.",
+        responses={200: OrderSerializer},
+        tags=["orders"],
+    )
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):
         # Ownership is enforced by get_queryset (filtered to request.user).
@@ -377,6 +429,22 @@ _EVENT_HANDLERS = {
 }
 
 
+@extend_schema(
+    summary="Stripe webhook receiver",
+    description=(
+        "Receives and processes Stripe webhook events. "
+        "Validates the `Stripe-Signature` header. "
+        "Idempotent: duplicate event IDs are silently ignored."
+    ),
+    request=None,
+    responses={
+        200: OpenApiResponse(description="Event received and processed."),
+        400: OpenApiResponse(description="Invalid payload or signature."),
+        405: OpenApiResponse(description="Method not allowed."),
+    },
+    tags=["orders"],
+    exclude=False,
+)
 @csrf_exempt
 def stripe_webhook(request):
     if request.method != "POST":

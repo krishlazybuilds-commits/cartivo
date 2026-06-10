@@ -4,6 +4,8 @@ from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -23,6 +25,23 @@ class ContactRateThrottle(AnonRateThrottle):
     scope = "contact"
 
 
+@extend_schema(
+    tags=["contact"],
+    summary="Send a contact message",
+    description="Sends a contact message to the site administrators. Rate-limited to 5/hour per IP.",
+    request=inline_serializer(
+        name="ContactRequest",
+        fields={
+            "name": drf_serializers.CharField(),
+            "email": drf_serializers.EmailField(),
+            "message": drf_serializers.CharField(),
+        },
+    ),
+    responses={200: inline_serializer(
+        name="ContactResponse",
+        fields={"detail": drf_serializers.CharField()},
+    )},
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])

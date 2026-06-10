@@ -11,7 +11,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework import filters, generics, permissions, status, viewsets
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
+from rest_framework import filters, generics, permissions, serializers as drf_serializers, status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -78,6 +79,10 @@ def set_auth_cookies(response, access=None, refresh=None):
         )
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Register a new account",
+)
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -85,6 +90,7 @@ class RegisterView(generics.CreateAPIView):
     throttle_classes = [RegisterRateThrottle]
 
 
+@extend_schema(tags=["auth"])
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -93,6 +99,14 @@ class MeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["admin"], summary="List users"),
+    retrieve=extend_schema(tags=["admin"], summary="Get user"),
+    create=extend_schema(tags=["admin"], summary="Create user"),
+    update=extend_schema(tags=["admin"], summary="Update user"),
+    partial_update=extend_schema(tags=["admin"], summary="Partial update user"),
+    destroy=extend_schema(tags=["admin"], summary="Delete user"),
+)
 class AdminUserViewSet(viewsets.ModelViewSet):
     """Admin-only account management: list, inspect, update flags, delete.
 
@@ -136,9 +150,14 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         instance.delete()
 
 
+@extend_schema(tags=["auth"], summary="Change password")
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=PasswordChangeSerializer,
+        responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -147,13 +166,24 @@ class ChangePasswordView(APIView):
         return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Obtain JWT cookies",
+    description="Validates credentials and sets httpOnly `access_token` and `refresh_token` cookies.",
+)
 class LoginView(APIView):
-    """Validate credentials and set httpOnly JWT cookies."""
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = [LoginRateThrottle]
 
+    @extend_schema(
+        request=inline_serializer("LoginRequest", fields={
+            "username": drf_serializers.CharField(),
+            "password": drf_serializers.CharField(),
+        }),
+        responses={200: inline_serializer("LoginResponse", fields={"detail": drf_serializers.CharField()})},
+    )
     def post(self, request):
         serializer = TokenObtainPairSerializer(data=request.data)
         try:
@@ -169,12 +199,21 @@ class LoginView(APIView):
         return response
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Refresh access token",
+    description="Issues a new access token from the `refresh_token` cookie, rotating it.",
+)
 class RefreshView(APIView):
     """Issue a new access token from the refresh cookie, rotating the refresh token."""
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=None,
+        responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
     def post(self, request):
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if not raw_refresh:
@@ -209,12 +248,21 @@ class RefreshView(APIView):
         return response
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Logout",
+    description="Blacklists the refresh token and clears the auth cookies.",
+)
 class LogoutView(APIView):
     """Blacklist the refresh token and clear the auth cookies."""
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=None,
+        responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
     def post(self, request):
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if raw_refresh:
@@ -232,6 +280,11 @@ class LogoutView(APIView):
         return response
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Bootstrap CSRF cookie",
+    description="Sets the `csrftoken` cookie so the SPA can include it on unsafe requests.",
+)
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CSRFView(APIView):
     """Bootstrap endpoint: sets the csrftoken cookie so the SPA can read it."""
@@ -239,16 +292,29 @@ class CSRFView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=None,
+        responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
     def get(self, request):
         return Response({"detail": "CSRF cookie set."})
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Request password reset email",
+    description="Sends a reset link to the given email if an account exists. Always returns 200 to avoid email enumeration.",
+)
 class PasswordResetRequestView(APIView):
     """Send a password reset link to the user's email."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = [PasswordResetRateThrottle]
 
+    @extend_schema(
+        request=inline_serializer("PasswordResetRequestBody", fields={"email": drf_serializers.EmailField()}),
+        responses={200: inline_serializer("PasswordResetRequestResponse", fields={"detail": drf_serializers.CharField()})},
+    )
     def post(self, request):
         email = request.data.get("email", "").strip()
         # Always return the same 200 to avoid leaking whether an email exists.
@@ -292,12 +358,25 @@ class PasswordResetRequestView(APIView):
         return generic_response
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Confirm password reset",
+    description="Validates the uid/token pair and sets the new password.",
+)
 class PasswordResetConfirmView(APIView):
     """Validate the reset token and set a new password."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = [PasswordResetRateThrottle]
 
+    @extend_schema(
+        request=inline_serializer("PasswordResetConfirmBody", fields={
+            "uid": drf_serializers.CharField(),
+            "token": drf_serializers.CharField(),
+            "new_password": drf_serializers.CharField(),
+        }),
+        responses={200: inline_serializer("PasswordResetConfirmResponse", fields={"detail": drf_serializers.CharField()})},
+    )
     def post(self, request):
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
