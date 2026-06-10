@@ -63,6 +63,28 @@ services:
       # Persist uploaded media outside the container.
       - media:/app/media
 
+  # Celery worker: processes background tasks (order/payment emails, webhook
+  # side-effects) off the request cycle, with automatic retries.
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DB_ENGINE: django.db.backends.postgresql
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=2"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - media:/app/media
+
   frontend:
     build:
       context: ./frontend

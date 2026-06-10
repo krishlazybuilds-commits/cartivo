@@ -255,7 +255,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
         from unittest.mock import patch
 
         order = self._pending_order()
-        with patch("apps.orders.views.send_payment_confirmed") as mock_email:
+        with patch("apps.orders.views.send_payment_confirmed_task.delay") as mock_email:
             with self.captureOnCommitCallbacks(execute=True):
                 res = self._post(self._event(order.id))
 
@@ -270,7 +270,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
 
         order = self._pending_order()
         event = self._event(order.id)
-        with patch("apps.orders.views.send_payment_confirmed") as mock_email:
+        with patch("apps.orders.views.send_payment_confirmed_task.delay") as mock_email:
             with self.captureOnCommitCallbacks(execute=True):
                 self._post(event)
             # Same event_id delivered again (Stripe retry).
