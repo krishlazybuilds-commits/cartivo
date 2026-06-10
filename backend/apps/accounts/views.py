@@ -11,7 +11,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework import generics, permissions, status
+from rest_framework import filters, generics, permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -19,7 +20,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import PasswordChangeSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    AdminUserSerializer,
+    PasswordChangeSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
 
 User = get_user_model()
 
@@ -85,6 +91,49 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """Admin-only account management: list, inspect, update flags, delete.
+
+    Restricted to staff users. Guard rails prevent an admin from locking
+    themselves out (deactivating/demoting/deleting their own account) and stop
+    non-superusers from modifying superuser accounts.
+    """
+
+    queryset = User.objects.all().order_by("-date_joined")
+    serializer_class = AdminUserSerializer
+    permission_classes = [permissions.IsAdminUser]
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("username", "email", "first_name", "last_name")
+    ordering_fields = ("date_joined", "username", "last_login")
+
+    def _assert_target_modifiable(self, target):
+        # Only superusers may modify or delete other superusers.
+        if target.is_superuser and not self.request.user.is_superuser:
+            raise PermissionDenied(
+                "Only a superuser can modify a superuser account."
+            )
+
+    def perform_update(self, serializer):
+        target = serializer.instance
+        self._assert_target_modifiable(target)
+        # Block self-lockout: an admin can't deactivate or demote themselves
+        # through this endpoint (they'd lose access mid-request).
+        if target.pk == self.request.user.pk:
+            new_is_active = serializer.validated_data.get("is_active", target.is_active)
+            new_is_staff = serializer.validated_data.get("is_staff", target.is_staff)
+            if not new_is_active or not new_is_staff:
+                raise ValidationError(
+                    "You cannot deactivate or remove admin access from your own account."
+                )
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._assert_target_modifiable(instance)
+        if instance.pk == self.request.user.pk:
+            raise ValidationError("You cannot delete your own account.")
+        instance.delete()
 
 
 class ChangePasswordView(APIView):

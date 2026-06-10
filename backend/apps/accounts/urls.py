@@ -1,6 +1,8 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminUserViewSet,
     ChangePasswordView,
     CSRFView,
     LoginView,
@@ -14,6 +16,9 @@ from .views import (
 
 app_name = "accounts"
 
+router = DefaultRouter()
+router.register("admin/users", AdminUserViewSet, basename="admin-user")
+
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path("me/", MeView.as_view(), name="me"),
@@ -24,4 +29,4 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password_reset"),
     path("password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
-]
+] + router.urls

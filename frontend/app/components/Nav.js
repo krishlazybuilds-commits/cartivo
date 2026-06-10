@@ -49,6 +49,11 @@ export default function Nav() {
               <Link href="/orders" className="nav-cart">
                 Orders
               </Link>
+              {user.is_staff && (
+                <Link href="/admin" className="nav-cart">
+                  Admin
+                </Link>
+              )}
               <Link href="/profile" className="nav-user">Hi, {user.username}</Link>
               <button className="btn btn-ghost" onClick={logout} type="button">
                 Sign out
@@ -96,6 +101,11 @@ export default function Nav() {
               <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>
                 Orders
               </Link>
+              {user.is_staff && (
+                <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>
+                  Admin
+                </Link>
+              )}
               <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>
                 Profile
               </Link>
