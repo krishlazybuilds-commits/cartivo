@@ -6,6 +6,7 @@ import { useState } from "react";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
@@ -15,6 +16,7 @@ export default function CartPage() {
   const { user, loading: authLoading } = useAuth();
   const { cart, loading, updateItem, removeItem, clear } = useCart();
   const [error, setError] = useState(null);
+  const [confirm, setConfirm] = useState(null); // { type, item } | null
 
   // Wrap a cart action so any error (e.g. exceeding stock) surfaces to the user.
   async function run(action) {
@@ -24,6 +26,15 @@ export default function CartPage() {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  function handleConfirm() {
+    if (!confirm) return;
+    const action = confirm.type === "clear"
+      ? () => clear()
+      : () => removeItem(confirm.item.id);
+    setConfirm(null);
+    run(action);
   }
 
   if (authLoading) return null;
@@ -96,7 +107,7 @@ export default function CartPage() {
                       <button
                         className="cart-item-remove"
                         type="button"
-                        onClick={() => run(() => removeItem(item.id))}
+                        onClick={() => setConfirm({ type: "remove", item })}
                         aria-label="Remove item"
                       >
                         Remove
@@ -114,7 +125,7 @@ export default function CartPage() {
                     <button
                       className="btn btn-ghost"
                       type="button"
-                      onClick={() => run(() => clear())}
+                      onClick={() => setConfirm({ type: "clear" })}
                     >
                       Clear cart
                     </button>
@@ -129,6 +140,20 @@ export default function CartPage() {
         </section>
       </main>
       <Footer />
+
+      <ConfirmDialog
+        open={!!confirm}
+        title={confirm?.type === "clear" ? "Clear your cart?" : "Remove item?"}
+        message={
+          confirm?.type === "clear"
+            ? "This will remove all items from your cart. This can't be undone."
+            : `Remove "${confirm?.item?.product_name}" from your cart?`
+        }
+        confirmLabel={confirm?.type === "clear" ? "Clear cart" : "Remove"}
+        destructive
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </>
   );
 }

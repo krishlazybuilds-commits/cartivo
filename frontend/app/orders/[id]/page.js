@@ -7,6 +7,7 @@ import Link from "next/link";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { useAuth, authFetch } from "../../lib/auth";
 import { OrderDetailSkeleton } from "../../components/Skeleton";
 import { formatPrice } from "../../lib/format";
@@ -23,8 +24,10 @@ export default function OrderDetailPage() {
   const [error, setError] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   async function handleCancel() {
+    setConfirmCancel(false);
     setCancelling(true);
     setCancelError(null);
     try {
@@ -110,7 +113,7 @@ export default function OrderDetailPage() {
                     {cancelError && <p className="auth-error" role="alert">{cancelError}</p>}
                     <button
                       className="btn btn-ghost"
-                      onClick={handleCancel}
+                      onClick={() => setConfirmCancel(true)}
                       disabled={cancelling}
                       style={{ color: "var(--error, #dc2626)" }}
                     >
@@ -125,6 +128,17 @@ export default function OrderDetailPage() {
         </section>
       </main>
       <Footer />
+
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Cancel this order?"
+        message="This will cancel your order. This action can't be undone."
+        confirmLabel="Cancel order"
+        cancelLabel="Keep order"
+        destructive
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmCancel(false)}
+      />
     </>
   );
 }
