@@ -1466,3 +1466,16 @@ body::after {
 .product-image-ph.large {
   font-size: 5rem;
 }
+
+/* --- Pagination ---------------------------------------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+.pagination-info {
+  font-size: 0.9rem;
+  color: var(--muted, #666);
+}

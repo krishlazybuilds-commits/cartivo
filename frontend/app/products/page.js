@@ -23,15 +23,18 @@ function formatPrice(value) {
 export default async function ProductsPage({ searchParams }) {
   const category = searchParams?.category ?? "";
   const search = searchParams?.search ?? "";
+  const page = searchParams?.page ?? "";
 
   let products = [];
   let categories = [];
+  let count = 0;
   let error = null;
 
   // Build the filtered query string for the products endpoint.
   const query = new URLSearchParams();
   if (category) query.set("category", category);
   if (search) query.set("search", search);
+  if (page) query.set("page", page);
   const qs = query.toString();
 
   try {
@@ -41,8 +44,22 @@ export default async function ProductsPage({ searchParams }) {
     ]);
     products = productData.results ?? productData;
     categories = categoryData.results ?? categoryData;
+    count = productData.count ?? products.length;
   } catch (e) {
     error = e.message;
+  }
+
+  const pageSize = 20;
+  const currentPage = parseInt(page || "1", 10);
+  const totalPages = Math.ceil(count / pageSize);
+
+  function pageUrl(p) {
+    const q = new URLSearchParams();
+    if (category) q.set("category", category);
+    if (search) q.set("search", search);
+    if (p > 1) q.set("page", p);
+    const qs = q.toString();
+    return qs ? `/products?${qs}` : "/products";
   }
 
   return (
@@ -106,6 +123,22 @@ export default async function ProductsPage({ searchParams }) {
                 </Reveal>
               ))}
             </div>
+
+            {totalPages > 1 && (
+              <div className="pagination">
+                {currentPage > 1 ? (
+                  <Link href={pageUrl(currentPage - 1)} className="btn btn-ghost">← Prev</Link>
+                ) : (
+                  <span className="btn btn-ghost" aria-disabled="true" style={{ opacity: 0.4 }}>← Prev</span>
+                )}
+                <span className="pagination-info">Page {currentPage} of {totalPages}</span>
+                {currentPage < totalPages ? (
+                  <Link href={pageUrl(currentPage + 1)} className="btn btn-ghost">Next →</Link>
+                ) : (
+                  <span className="btn btn-ghost" aria-disabled="true" style={{ opacity: 0.4 }}>Next →</span>
+                )}
+              </div>
+            )}
           </div>
         </section>
       </main>

@@ -19,12 +19,12 @@ export default function ShopFilters({ categories, activeCategory, activeSearch }
   }
 
   function selectCategory(id) {
-    router.push(buildQuery({ category: id || "" }));
+    router.push(buildQuery({ category: id || "", page: "" }));
   }
 
   function submitSearch(e) {
     e.preventDefault();
-    router.push(buildQuery({ search: search.trim() || "" }));
+    router.push(buildQuery({ search: search.trim() || "", page: "" }));
   }
 
   return (
