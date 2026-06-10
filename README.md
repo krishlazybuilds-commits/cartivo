@@ -79,6 +79,26 @@ createdb -U postgres cartivo
 # Or in pgAdmin: right-click Databases → Create → Database → name: cartivo
 ```
 
+#### Stripe (payments)
+
+1. Install the [Stripe CLI](https://stripe.com/docs/stripe-cli) and log in:
+   ```bash
+   stripe login
+   ```
+2. In a separate terminal, start the webhook forwarder:
+   ```bash
+   stripe listen --forward-to http://localhost:8000/api/orders/webhook/
+   ```
+3. Copy the `whsec_...` signing secret printed on startup into `backend/.env`:
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+   You also need your test keys from the [Stripe dashboard](https://dashboard.stripe.com/test/apikeys):
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_PUBLISHABLE_KEY=pk_test_...
+   ```
+
 Run migrations and seed the catalog:
 
 ```bash
