@@ -2,6 +2,22 @@
 # Usage: docker compose up --build
 # Provide secrets via backend/.env (gitignored). See backend/.env.example.
 
+# Shared S3-compatible media storage settings, pointed at the bundled MinIO.
+# These make uploads survive across multiple backend containers. Swap the
+# endpoint/credentials to use Cloudflare R2, Backblaze B2, or AWS S3 instead.
+x-s3-env: &s3-env
+  USE_S3: "True"
+  AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-cartivo-media}
+  AWS_S3_ENDPOINT_URL: http://minio:9000
+  AWS_S3_USE_SSL: "False"
+  AWS_S3_ADDRESSING_STYLE: path
+  AWS_QUERYSTRING_AUTH: "False"
+  # Browser-reachable host used to build media URLs (MinIO published on :9000).
+  AWS_S3_CUSTOM_DOMAIN: localhost:9000/${AWS_STORAGE_BUCKET_NAME:-cartivo-media}
+  AWS_S3_URL_PROTOCOL: "http:"
+
 services:
   db:
     image: postgres:16
@@ -25,6 +41,44 @@ services:
       timeout: 5s
       retries: 5
 
+  # Free, self-hosted S3-compatible object storage for media uploads.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # One-shot: create the media bucket and make it public-read so media URLs
+  # work without signed query strings. Exits when done.
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-cartivo-media}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do echo 'waiting for minio'; sleep 2; done;
+      mc mb -p local/$${AWS_STORAGE_BUCKET_NAME};
+      mc anonymous set download local/$${AWS_STORAGE_BUCKET_NAME};
+      exit 0;
+      "
+    restart: "no"
+
   # One-shot migration runner. Applies database migrations exactly once before
   # the backend starts, so scaling `backend` to multiple containers can't run
   # `migrate` concurrently and race. Exits when migrations finish.
@@ -45,6 +99,7 @@ services:
     build: ./backend
     env_file: ./backend/.env
     environment:
+      <<: *s3-env
       # Point the app at the compose database service.
       DB_ENGINE: django.db.backends.postgresql
       DB_HOST: db
@@ -57,11 +112,17 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      createbuckets:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
-    volumes:
-      # Persist uploaded media outside the container.
-      - media:/app/media
+    healthcheck:
+      # Hit the readiness endpoint (checks DB + cache) using the bundled Python.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # Celery worker: processes background tasks (order/payment emails, webhook
   # side-effects) off the request cycle, with automatic retries.
@@ -69,6 +130,7 @@ services:
     build: ./backend
     env_file: ./backend/.env
     environment:
+      <<: *s3-env
       DB_ENGINE: django.db.backends.postgresql
       DB_HOST: db
       DB_PORT: "5432"
@@ -82,8 +144,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    volumes:
-      - media:/app/media
+      createbuckets:
+        condition: service_completed_successfully
 
   # Celery beat: triggers periodic tasks (e.g. expiring unpaid pending orders
   # to release reserved stock). Run a single instance to avoid duplicate ticks.
@@ -112,10 +174,12 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "3000:3000"
 
 volumes:
   pgdata:
   media:
+  miniodata:

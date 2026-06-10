@@ -336,6 +336,37 @@ STORAGES = {
     },
 }
 
+# Media (user uploads) storage. Defaults to the local filesystem. Set USE_S3=True
+# to store uploads on any S3-compatible object store — AWS S3, Cloudflare R2,
+# Backblaze B2, or a self-hosted/free MinIO — via django-storages. This is
+# required for horizontal scaling so uploads aren't trapped on one container's
+# disk. Local dev keeps using the filesystem (no cloud account needed).
+USE_S3 = env_bool("USE_S3", False)
+if USE_S3:
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "") or None
+    # Custom endpoint for non-AWS providers (R2 / B2 / MinIO). Leave unset for AWS S3.
+    AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "") or None
+    # Public host used to build media URLs (e.g. a CDN domain, or the browser-
+    # reachable MinIO host:port/bucket). Leave unset to derive from the bucket.
+    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "") or None
+    # URL scheme for generated media links ("https:" or "http:").
+    AWS_S3_URL_PROTOCOL = os.getenv("AWS_S3_URL_PROTOCOL", "https:")
+    AWS_S3_USE_SSL = env_bool("AWS_S3_USE_SSL", True)
+    # MinIO/some providers need path-style addressing rather than virtual-host.
+    AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
+    # Serve objects via public URLs (no signed query string) when the bucket is
+    # public-read. Set True to require signed URLs for a private bucket.
+    AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", False)
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    }
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Stripe ------------------------------------------------------------------
