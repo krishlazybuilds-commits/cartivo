@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 // Default revalidation period for catalog data (seconds). Catalog pages are
 // served from cache and revalidated in the background at this interval (ISR).
