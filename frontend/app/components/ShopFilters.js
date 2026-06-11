@@ -40,20 +40,25 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
 
   // Auto-search with debounce
   const debounceRef = useRef(null);
+  const [searching, setSearching] = useState(false);
   useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed === (activeSearch || "")) {
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const trimmed = search.trim();
-      if (trimmed !== (activeSearch || "")) {
-        router.push(buildQuery({ search: trimmed || "", page: "" }));
-      }
+      setSearching(false);
+      router.push(buildQuery({ search: trimmed || "", page: "" }));
     }, 400);
     return () => clearTimeout(debounceRef.current);
   }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="shop-filters">
-      <div className="shop-search">
+      <div className={`shop-search${searching ? " is-searching" : ""}`}>
         <input
           type="search"
           placeholder="Search products…"
@@ -61,6 +66,7 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search products"
         />
+        <span className="shop-search-bar" aria-hidden="true" />
       </div>
 
       <div className="shop-filters-row">
