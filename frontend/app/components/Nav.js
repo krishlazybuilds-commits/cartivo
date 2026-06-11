@@ -57,7 +57,7 @@ export default function Nav() {
         {/* Desktop links */}
         <div className="nav-links">
           {LINKS.map((l) => {
-            const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href.replace("/#", "/"));
+            const isActive = l.href.startsWith("/#") ? pathname === "/" : pathname.startsWith(l.href);
             return <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>;
           })}
         </div>
