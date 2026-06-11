@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import SortSelect from "./SortSelect";
 
@@ -38,14 +38,22 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
     router.push(buildQuery({ ordering: value || "", page: "" }));
   }
 
-  function submitSearch(e) {
-    e.preventDefault();
-    router.push(buildQuery({ search: search.trim() || "", page: "" }));
-  }
+  // Auto-search with debounce
+  const debounceRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const trimmed = search.trim();
+      if (trimmed !== (activeSearch || "")) {
+        router.push(buildQuery({ search: trimmed || "", page: "" }));
+      }
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="shop-filters">
-      <form className="shop-search" onSubmit={submitSearch}>
+      <div className="shop-search">
         <input
           type="search"
           placeholder="Search products…"
@@ -53,10 +61,7 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search products"
         />
-        <button className="btn btn-ghost" type="submit">
-          Search
-        </button>
-      </form>
+      </div>
 
       <div className="shop-filters-row">
         <div className="shop-cats">
