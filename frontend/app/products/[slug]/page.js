@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import Reveal from "../../components/Reveal";
 import AddToCart from "../../components/AddToCart";
 import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/StarRating";
@@ -81,6 +82,7 @@ export default async function ProductDetailPage({ params }) {
               ]}
             />
 
+            <Reveal>
             <article className="product-detail">
               <div className="product-detail-image">
                 {product.image ? (
@@ -115,6 +117,7 @@ export default async function ProductDetailPage({ params }) {
                 </div>
               </div>
             </article>
+            </Reveal>
 
             <ProductReviews productId={product.id} />
           </div>

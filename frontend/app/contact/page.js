@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
 export default function ContactPage() {
@@ -32,12 +33,15 @@ export default function ContactPage() {
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
-            <div className="section-head">
-              <span className="eyebrow">Get in touch</span>
-              <h2>Contact us</h2>
-              <p>Have a question or want to collaborate? Drop us a message.</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Get in touch</span>
+                <h2>Contact us</h2>
+                <p>Have a question or want to collaborate? Drop us a message.</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <form onSubmit={handleSubmit} className="auth-form" style={{ gap: "1rem" }}>
               <label>
                 Name
@@ -76,6 +80,7 @@ export default function ContactPage() {
               {status === "success" && <p style={{ color: "green" }}>Message sent! We&apos;ll get back to you soon.</p>}
               {status === "error" && <p style={{ color: "red" }}>Something went wrong. Please try again.</p>}
             </form>
+            </Reveal>
           </div>
         </section>
       </main>

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 
 export default function RegisterPage() {
@@ -51,10 +52,13 @@ export default function RegisterPage() {
       <main>
         <section className="features">
           <div className="container auth-wrap">
-            <div className="section-head center">
-              <span className="eyebrow">Get started</span>
-              <h2>Create your account</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Get started</span>
+                <h2>Create your account</h2>
+              </div>
+            </Reveal>
+            <Reveal delay={80}>
             <form className="auth-form" onSubmit={handleSubmit}>
               {error && (
                 <p className="auth-error" role="alert">
@@ -129,6 +133,7 @@ export default function RegisterPage() {
                 Already have an account? <Link href="/login">Sign in</Link>
               </p>
             </form>
+            </Reveal>
           </div>
         </section>
       </main>

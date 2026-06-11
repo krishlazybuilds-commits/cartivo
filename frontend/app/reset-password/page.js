@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
 function ResetPasswordForm() {
@@ -95,13 +96,17 @@ export default function ResetPasswordPage() {
       <main>
         <section className="features">
           <div className="container auth-wrap">
-            <div className="section-head center">
-              <span className="eyebrow">Account recovery</span>
-              <h2>Set new password</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Account recovery</span>
+                <h2>Set new password</h2>
+              </div>
+            </Reveal>
+            <Reveal delay={80}>
             <Suspense fallback={null}>
               <ResetPasswordForm />
             </Suspense>
+            </Reveal>
           </div>
         </section>
       </main>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import AdminTabs from "../../components/AdminTabs";
+import Reveal from "../../components/Reveal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 import { formatPrice } from "../../lib/format";
@@ -193,11 +194,13 @@ export default function AdminCatalogPage() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head">
-              <span className="eyebrow">Admin</span>
-              <h2>Catalog management</h2>
-              <p>Create, edit, and remove products and categories.</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Admin</span>
+                <h2>Catalog management</h2>
+                <p>Create, edit, and remove products and categories.</p>
+              </div>
+            </Reveal>
 
             <AdminTabs />
 

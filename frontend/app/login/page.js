@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 
 export default function LoginPage() {
@@ -37,10 +38,13 @@ export default function LoginPage() {
       <main>
         <section className="features">
           <div className="container auth-wrap">
-            <div className="section-head center">
-              <span className="eyebrow">Welcome back</span>
-              <h2>Sign in</h2>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Welcome back</span>
+                <h2>Sign in</h2>
+              </div>
+            </Reveal>
+            <Reveal delay={80}>
             <form className="auth-form" onSubmit={handleSubmit}>
               {error && (
                 <p className="auth-error" role="alert">
@@ -77,6 +81,7 @@ export default function LoginPage() {
                 <Link href="/forgot-password">Forgot password?</Link>
               </p>
             </form>
+            </Reveal>
           </div>
         </section>
       </main>

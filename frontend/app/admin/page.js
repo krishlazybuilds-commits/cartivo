@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import AdminTabs from "../components/AdminTabs";
+import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
@@ -114,11 +115,13 @@ export default function AdminUsersPage() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head">
-              <span className="eyebrow">Admin</span>
-              <h2>Account management</h2>
-              <p>Manage user accounts: search, activate or deactivate, grant or revoke admin access, and remove accounts.</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Admin</span>
+                <h2>Account management</h2>
+                <p>Manage user accounts: search, activate or deactivate, grant or revoke admin access, and remove accounts.</p>
+              </div>
+            </Reveal>
 
             <AdminTabs />
 

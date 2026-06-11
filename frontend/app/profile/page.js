@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
 export default function ProfilePage() {
@@ -69,11 +70,14 @@ export default function ProfilePage() {
       <main>
         <section className="features">
           <div className="container">
-            <div className="section-head">
-              <span className="eyebrow">Account</span>
-              <h2>Your profile</h2>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Account</span>
+                <h2>Your profile</h2>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <div style={{ display: "grid", gap: "2rem", maxWidth: 560 }}>
               {/* Profile info */}
               <div className="order-card">
@@ -135,6 +139,7 @@ export default function ProfilePage() {
                 <button className="btn btn-ghost" type="button" onClick={logout}>Sign out</button>
               </div>
             </div>
+            </Reveal>
 
           </div>
         </section>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "About — Cartivo",
@@ -14,12 +15,15 @@ export default function AboutPage() {
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
-            <div className="section-head">
-              <span className="eyebrow">Our story</span>
-              <h2>About Cartivo</h2>
-              <p>Built for independent brands who just want to sell.</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Our story</span>
+                <h2>About Cartivo</h2>
+                <p>Built for independent brands who just want to sell.</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <div className="legal-body">
               <h3>What is Cartivo?</h3>
               <p>Cartivo is a modern e-commerce storefront built to give independent brands a fast, clean shopping experience without the complexity of enterprise platforms. Browse a real product catalog, add items to your cart, and check out — all in seconds.</p>
@@ -36,6 +40,7 @@ export default function AboutPage() {
               <h3>Get in touch</h3>
               <p>Have a question or want to collaborate? Reach us at <a href="mailto:hello@cartivo.com">hello@cartivo.com</a> or browse the <Link href="/products">shop</Link> to see it in action.</p>
             </div>
+            </Reveal>
           </div>
         </section>
       </main>

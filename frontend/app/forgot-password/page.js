@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
 export default function ForgotPasswordPage() {
@@ -32,12 +33,15 @@ export default function ForgotPasswordPage() {
       <main>
         <section className="features">
           <div className="container auth-wrap">
-            <div className="section-head center">
-              <span className="eyebrow">Account recovery</span>
-              <h2>Forgot password</h2>
-              <p>Enter your email and we&apos;ll send you a reset link.</p>
-            </div>
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Account recovery</span>
+                <h2>Forgot password</h2>
+                <p>Enter your email and we&apos;ll send you a reset link.</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             {status === "done" ? (
               <p style={{ textAlign: "center" }}>
                 Check your inbox — a reset link is on its way.<br />
@@ -66,6 +70,7 @@ export default function ForgotPasswordPage() {
                 </p>
               </form>
             )}
+            </Reveal>
           </div>
         </section>
       </main>

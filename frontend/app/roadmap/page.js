@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "Roadmap — Cartivo",
@@ -13,12 +14,14 @@ export default function RoadmapPage() {
       <main>
         <section className="features">
           <div className="container" style={{ textAlign: "center", padding: "6rem 1rem" }}>
-            <span className="eyebrow">Coming soon</span>
-            <h2>Roadmap</h2>
-            <p style={{ color: "var(--muted)", maxWidth: 480, margin: "1rem auto 0" }}>
-              We&apos;re building in public. Our product roadmap will be shared here soon
-              so you can see what&apos;s coming and vote on what matters most to your shop.
-            </p>
+            <Reveal>
+              <span className="eyebrow">Coming soon</span>
+              <h2>Roadmap</h2>
+              <p style={{ color: "var(--muted)", maxWidth: 480, margin: "1rem auto 0" }}>
+                We&apos;re building in public. Our product roadmap will be shared here soon
+                so you can see what&apos;s coming and vote on what matters most to your shop.
+              </p>
+            </Reveal>
           </div>
         </section>
       </main>
