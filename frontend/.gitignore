@@ -8,6 +8,3 @@
 .vercel
 next-env.d.ts
 
-*.mp4
-*.webm
-*.mov
