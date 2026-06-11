@@ -1459,6 +1459,7 @@ body::after {
 }
 .auth-row label {
   flex: 1;
+  min-width: 0;
 }
 .auth-error {
   background: #fee2e2;

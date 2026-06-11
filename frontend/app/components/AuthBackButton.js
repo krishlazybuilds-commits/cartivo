@@ -8,7 +8,7 @@ export default function AuthBackButton() {
     <button
       type="button"
       className="auth-back"
-      onClick={() => router.back()}
+      onClick={() => router.push("/")}
       aria-label="Go back"
     >
       <svg className="auth-back-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
