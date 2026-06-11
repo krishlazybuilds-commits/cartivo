@@ -17,7 +17,7 @@ const LINKS = [
 ];
 
 export default function Nav() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const { itemCount } = useCart();
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {user ? (
+          {authLoading ? null : user ? (
             <>
               <Link href="/cart" className="nav-icon" aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />
