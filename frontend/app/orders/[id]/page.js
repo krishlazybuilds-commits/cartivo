@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
-import Nav from "../../components/Nav";
-import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -74,7 +72,6 @@ export default function OrderDetailPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -159,7 +156,6 @@ export default function OrderDetailPage() {
           </div>
         </section>
       </main>
-      <Footer />
 
       <ConfirmDialog
         open={confirmCancel}

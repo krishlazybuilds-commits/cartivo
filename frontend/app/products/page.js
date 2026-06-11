@@ -1,7 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import ShopFilters from "../components/ShopFilters";
 import Reveal from "../components/Reveal";
 import WishlistButton from "../components/WishlistButton";
@@ -61,7 +59,6 @@ export default async function ProductsPage({ searchParams }) {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -143,7 +140,6 @@ export default async function ProductsPage({ searchParams }) {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

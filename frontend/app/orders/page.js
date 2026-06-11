@@ -4,8 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { useAuth, authFetch } from "../lib/auth";
 import { OrdersListSkeleton } from "../components/Skeleton";
@@ -48,7 +46,6 @@ function OrdersContent() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -120,12 +117,9 @@ function OrdersContent() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }
-
-export default function OrdersPage() {
   return (
     <Suspense fallback={null}>
       <OrdersContent />

@@ -1,5 +1,3 @@
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 
 export const metadata = {
@@ -10,7 +8,6 @@ export const metadata = {
 export default function ThemesPage() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ textAlign: "center", padding: "6rem 1rem" }}>
@@ -25,7 +22,6 @@ export default function ThemesPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

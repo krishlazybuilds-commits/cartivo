@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { apiFetch } from "../lib/api";
 
@@ -22,7 +20,6 @@ export default async function CategoriesPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -57,7 +54,6 @@ export default async function CategoriesPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
@@ -29,7 +27,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container auth-wrap">
@@ -74,7 +71,6 @@ export default function ForgotPasswordPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

@@ -1,8 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-import Nav from "../../components/Nav";
-import Footer from "../../components/Footer";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import Reveal from "../../components/Reveal";
 import AddToCart from "../../components/AddToCart";
@@ -69,7 +67,6 @@ export default async function ProductDetailPage({ params }) {
 
   return (
     <>
-      <Nav />
       <JsonLd data={buildProductJsonLd(product)} />
       <main>
         <section className="features">
@@ -123,7 +120,6 @@ export default async function ProductDetailPage({ params }) {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

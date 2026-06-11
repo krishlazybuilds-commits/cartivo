@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useCart } from "../lib/cart";
@@ -57,7 +55,6 @@ export default function CartPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -193,7 +190,6 @@ export default function CartPage() {
           </div>
         </section>
       </main>
-      <Footer />
 
       <ConfirmDialog
         open={!!confirm}

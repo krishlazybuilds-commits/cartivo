@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 
@@ -48,7 +46,6 @@ export default function RegisterPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container auth-wrap">
@@ -137,7 +134,6 @@ export default function RegisterPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

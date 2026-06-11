@@ -3,8 +3,6 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
@@ -92,7 +90,6 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container auth-wrap">
@@ -110,7 +107,6 @@ export default function ResetPasswordPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

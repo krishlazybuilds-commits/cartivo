@@ -4,8 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useWishlist } from "../lib/wishlist";
@@ -51,7 +49,6 @@ export default function WishlistPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -125,7 +122,6 @@ export default function WishlistPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

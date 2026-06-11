@@ -1,5 +1,3 @@
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 
 export const metadata = {
@@ -10,7 +8,6 @@ export const metadata = {
 export default function SecurityPage() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
@@ -49,7 +46,6 @@ export default function SecurityPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

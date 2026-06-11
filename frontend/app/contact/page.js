@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { API_URL } from "../lib/api";
 
@@ -29,7 +27,6 @@ export default function ContactPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
@@ -84,7 +81,6 @@ export default function ContactPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

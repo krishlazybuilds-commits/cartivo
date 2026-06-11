@@ -2,8 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-import Nav from "../../components/Nav";
-import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import { apiFetch } from "../../lib/api";
@@ -47,7 +45,6 @@ export default async function CategoryPage({ params }) {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -106,7 +103,6 @@ export default async function CategoryPage({ params }) {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

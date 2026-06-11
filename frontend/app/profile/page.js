@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
@@ -66,7 +64,6 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -144,7 +141,6 @@ export default function ProfilePage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

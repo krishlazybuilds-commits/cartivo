@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import Nav from "../components/Nav";
-import Footer from "../components/Footer";
 import AdminTabs from "../components/AdminTabs";
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -111,7 +109,6 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">
@@ -229,7 +226,6 @@ export default function AdminUsersPage() {
           </div>
         </section>
       </main>
-      <Footer />
 
       <ConfirmDialog
         open={!!toDelete}
