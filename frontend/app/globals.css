@@ -3095,29 +3095,125 @@ body::after {
   font-size: 0.8rem;
 }
 
-/* --- Page transition (route change enter animation) ------------------------ */
+/* --- Page enter animation (template.js re-mounts on every navigation) ------
+   Content fades in after the strips have uncovered the new page.
+---------------------------------------------------------------------------- */
 .page-transition {
-  animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
   background: var(--bg, #ffffff);
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 @keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .page-transition {
-    animation: none;
-  }
+  .page-transition { animation: none; }
 }
+
+/* ==========================================================================
+   Page transition overlay — identical mechanic to the landing intro.
+   Strips START covering the screen (snaps on instantly — no slide-in).
+   Title animates in: tagline → letter-rise → underline (same as intro).
+   Then strips slide UP (same keyframe as landing intro exit) to reveal page.
+   ========================================================================== */
+.pt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8888;
+  pointer-events: all;
+}
+
+/* ── Strips — start IN PLACE, only animate on exit ──────────────────────── */
+.pt-strip {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  transform: translateY(0); /* already covering — no slide-in */
+}
+.pt-strip-1 { top: 0;      height: 34%; background: var(--ink); }
+.pt-strip-2 { top: 33.2%;  height: 34%; background: var(--ink-soft); }
+.pt-strip-3 { top: 66.4%;  height: 34%; background: var(--ink); }
+
+/* Exit: slide UP — same timing as landing intro .li-strip */
+.pt-strip--exit.pt-strip-1 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0s     forwards; }
+.pt-strip--exit.pt-strip-2 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0.12s  forwards; }
+.pt-strip--exit.pt-strip-3 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0.24s  forwards; }
+
+@keyframes pt-strip-out { to { transform: translateY(-101vh); } }
+
+/* ── Center — same structure + animations as .li-center ─────────────────── */
+.pt-center {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+}
+.pt-center--out {
+  animation: pt-center-fade 0.35s ease 0s forwards;
+}
+@keyframes pt-center-fade { to { opacity: 0; } }
+
+/* Tagline — identical to .li-tagline */
+.pt-tagline {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: pt-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+}
+
+/* Word — identical to .li-word */
+.pt-word {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.02em;
+}
+.pt-letter-wrap {
+  overflow: visible;
+  clip-path: inset(0 0 -50% 0);
+  line-height: 1;
+}
+/* Letters — identical to .li-letter */
+.pt-letter {
+  display: block;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(3.2rem, 9vw, 6.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  transform: translateY(110%);
+  opacity: 0;
+  animation: pt-letter-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Underline — identical to .li-underline */
+.pt-underline {
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  margin-top: 4px;
+  animation: pt-line 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+}
+
+@keyframes pt-up          { to { opacity: 1; transform: translateY(0); } }
+@keyframes pt-letter-rise { to { transform: translateY(0); opacity: 1; } }
+@keyframes pt-line        { to { width: clamp(200px, 45vw, 460px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-overlay { display: none !important; }
+}
+
 
 /* ==========================================================================
    Landing intro — "Stacked Strip Reveal"

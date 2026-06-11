@@ -9,6 +9,8 @@ import ConditionalNav from "./components/ConditionalNav";
 import ConditionalFooter from "./components/ConditionalFooter";
 import CookieConsent from "./components/CookieConsent";
 import LandingIntro from "./components/LandingIntro";
+import TransitionProvider from "./components/TransitionProvider";
+import PrefetchRoutes from "./components/PrefetchRoutes";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -93,14 +95,18 @@ export default function RootLayout({ children }) {
         </div>
         {/* Hydration-side cleanup only */}
         <LandingIntro />
+        {/* Prefetch all key routes when browser is idle */}
+        <PrefetchRoutes />
         <AuthProvider initialAuthed={initialAuthed} initialName={initialName}>
           <ToastProvider>
             <CartProvider>
               <WishlistProvider>
-                <ConditionalNav />
-                {children}
-                <ConditionalFooter />
-                <CookieConsent />
+                <TransitionProvider>
+                  <ConditionalNav />
+                  {children}
+                  <ConditionalFooter />
+                  <CookieConsent />
+                </TransitionProvider>
               </WishlistProvider>
             </CartProvider>
           </ToastProvider>

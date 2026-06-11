@@ -1,37 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 /*
- * Drives the rolling counter via requestAnimationFrame, prefetches the most
- * common routes while the intro animation plays (using the ~2.5s window as
- * free loading time), and handles cleanup after the strips exit.
+ * Drives the rolling counter via requestAnimationFrame and handles cleanup
+ * after the strip-exit animation finishes.
  * The overlay HTML lives in layout.js (server-rendered) so it covers the
  * page from byte 1.
+ *
+ * Route prefetching has been moved to PrefetchRoutes.js so it runs on every
+ * page load via requestIdleCallback, not just during the landing animation.
  */
-
-// Routes to prefetch while the intro plays, in priority order.
-// Staggered so requests don't all fire simultaneously.
-const PREFETCH_ROUTES = [
-  { path: "/products",   delay: 200  },
-  { path: "/cart",       delay: 600  },
-  { path: "/login",      delay: 1000 },
-  { path: "/register",   delay: 1400 },
-  { path: "/categories", delay: 1800 },
-];
-
 export default function LandingIntro() {
-  const router = useRouter();
-
   useEffect(() => {
     const root = document.documentElement;
     if (root.getAttribute("data-intro") !== "play") return;
-
-    // ── Prefetch key routes during the animation window ──────────────────────
-    const prefetchTimers = PREFETCH_ROUTES.map(({ path, delay }) =>
-      setTimeout(() => router.prefetch(path), delay)
-    );
 
     // ── Rolling counter 0 → 100 ──────────────────────────────────────────────
     const counterEl = document.getElementById("li-counter-num");
@@ -55,11 +38,10 @@ export default function LandingIntro() {
     window.addEventListener("keydown", skip, { once: true });
 
     return () => {
-      prefetchTimers.forEach(clearTimeout);
       clearTimeout(timer);
       window.removeEventListener("keydown", skip);
     };
-  }, [router]);
+  }, []);
 
   return null;
 }
