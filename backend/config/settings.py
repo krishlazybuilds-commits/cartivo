@@ -414,6 +414,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
+# --- Site media assets -------------------------------------------------------
+# Background video for the auth pages, served via /api/auth-video/ (a redirect).
+# Defaults to a free, license-clear scenery clip (Pexels). For production,
+# prefer self-hosting a compressed clip (e.g. in your S3/MinIO media bucket) and
+# pointing this at it, rather than hotlinking a third-party CDN.
+AUTH_VIDEO_URL = os.getenv(
+    "AUTH_VIDEO_URL",
+    "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4",
+)
+
 # --- Email -------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",

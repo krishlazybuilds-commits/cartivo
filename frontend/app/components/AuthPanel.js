@@ -1,64 +1,38 @@
-import Image from "next/image";
 import Link from "next/link";
-import { apiFetch } from "../lib/api";
+
+import { API_URL } from "../lib/api";
 
 /**
  * Right-hand decorative panel for all auth pages.
- * Fetches 4 featured products at build/request time and shows them in a
- * staggered floating grid over the brand navy background.
+ *
+ * Plays a short, looping scenery video as the backdrop with a dark gradient
+ * overlay for legibility and the brand mark pinned to the bottom.
+ *
+ * The video is served by the backend at /api/auth-video/ (a redirect to a
+ * configurable source — set AUTH_VIDEO_URL on the backend). Override on the
+ * frontend with NEXT_PUBLIC_AUTH_VIDEO_URL if you'd rather point elsewhere
+ * (e.g. a file in `frontend/public/`).
  */
-export default async function AuthPanel() {
-  let products = [];
-  try {
-    const data = await apiFetch("/products/?page_size=4&ordering=-created_at", {
-      next: { revalidate: 3600, tags: ["products"] },
-    });
-    products = (data.results ?? data).slice(0, 4);
-  } catch {
-    products = [];
-  }
+const VIDEO_SRC = process.env.NEXT_PUBLIC_AUTH_VIDEO_URL || `${API_URL}/auth-video/`;
+const POSTER_SRC = process.env.NEXT_PUBLIC_AUTH_VIDEO_POSTER || "";
 
-  // Pick 4 — fill with placeholders if fewer available
-  const cards = [0, 1, 2, 3].map((i) => products[i] ?? null);
-
+export default function AuthPanel() {
   return (
     <div className="auth-panel" aria-hidden="true">
-      {/* Animated ambient orbs behind the cards */}
-      <div className="auth-panel-orb auth-panel-orb--1" />
-      <div className="auth-panel-orb auth-panel-orb--2" />
-      <div className="auth-panel-orb auth-panel-orb--3" />
+      {/* Background scenery video */}
+      <video
+        className="auth-panel-video"
+        src={VIDEO_SRC}
+        poster={POSTER_SRC || undefined}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+      />
 
-      {/* Staggered product cards */}
-      <div className="auth-panel-grid">
-        {cards.map((p, i) => (
-          <div
-            key={i}
-            className={`auth-panel-card auth-panel-card--${i + 1}`}
-          >
-            {p?.image ? (
-              <Image
-                src={p.image}
-                alt={p.name}
-                width={180}
-                height={140}
-                className="auth-panel-img"
-              />
-            ) : (
-              <span className="auth-panel-ph" aria-hidden="true">
-                {p?.name?.[0] ?? "C"}
-              </span>
-            )}
-            {p && (
-              <div className="auth-panel-card-info">
-                <span className="auth-panel-card-name">{p.name}</span>
-                <span className="auth-panel-card-price">
-                  ${Number(p.price).toFixed(0)}
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Dark gradient overlay for text legibility */}
+      <div className="auth-panel-overlay" />
 
       {/* Brand mark pinned to bottom */}
       <div className="auth-panel-brand">
