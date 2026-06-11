@@ -54,13 +54,9 @@ export default function Nav() {
 
         {/* Desktop links */}
         <div className="nav-links">
-          {LINKS.map((l) =>
-            l.href.startsWith("/#") ? (
-              <a key={l.label} href={l.href}>{l.label}</a>
-            ) : (
-              <Link key={l.label} href={l.href}>{l.label}</Link>
-            )
-          )}
+          {LINKS.map((l) => (
+            <Link key={l.label} href={l.href}>{l.label}</Link>
+          ))}
         </div>
 
         {/* Right actions */}
