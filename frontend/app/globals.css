@@ -249,6 +249,10 @@ a {
   gap: 18px;
   flex-shrink: 0;
 }
+.nav-cta-placeholder {
+  width: 160px;
+  height: 36px;
+}
 .nav-link-min {
   font-size: 0.9rem;
   font-weight: 500;

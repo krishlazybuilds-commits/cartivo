@@ -99,7 +99,7 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {authLoading ? null : user ? (
+          {authLoading ? <div className="nav-cta-placeholder" aria-hidden="true" /> : user ? (
             <>
               <Link href="/cart" className={`nav-icon${pathname === "/cart" ? " nav-icon-active" : ""}`} aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />
