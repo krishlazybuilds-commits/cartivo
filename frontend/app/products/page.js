@@ -100,7 +100,7 @@ export default async function ProductsPage({ searchParams }) {
 
             <div className="feature-grid">
               {products.map((p, i) => (
-                <Reveal key={p.id} delay={i * 60}>
+                <Reveal key={p.id} delay={i * 30}>
                   <Link className="feature-card product-card" href={`/products/${p.slug}`}>
                     <div className="product-image">
                       {p.image ? (
