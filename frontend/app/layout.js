@@ -5,7 +5,7 @@ import { CartProvider } from "./lib/cart";
 import { WishlistProvider } from "./lib/wishlist";
 import { ToastProvider } from "./lib/toast";
 import Nav from "./components/Nav";
-import Footer from "./components/Footer";
+import ConditionalFooter from "./components/ConditionalFooter";
 import CookieConsent from "./components/CookieConsent";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -51,7 +51,7 @@ export default function RootLayout({ children }) {
               <WishlistProvider>
                 <Nav />
                 {children}
-                <Footer />
+                <ConditionalFooter />
                 <CookieConsent />
               </WishlistProvider>
             </CartProvider>

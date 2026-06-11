@@ -1302,7 +1302,9 @@ body::after {
 .auth-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 72px); /* subtract nav height */
+  /* Nav is 72px tall plus its 1px bottom border = 73px. Subtracting the full
+     73px keeps the page exactly one viewport tall (no 1px overflow scroll). */
+  min-height: calc(100vh - 73px);
 }
 
 /* Left — form side */

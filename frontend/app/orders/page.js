@@ -120,6 +120,8 @@ function OrdersContent() {
     </>
   );
 }
+
+export default function OrdersPage() {
   return (
     <Suspense fallback={null}>
       <OrdersContent />
