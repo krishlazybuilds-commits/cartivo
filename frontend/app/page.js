@@ -9,9 +9,6 @@ import CTA from "./components/CTA";
 export default function Home() {
   return (
     <>
-      <a href="#features" className="skip-link">
-        Skip to content
-      </a>
       <main>
         <Hero />
         <FeaturedProducts />
