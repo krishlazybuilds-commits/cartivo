@@ -2877,6 +2877,22 @@ body::after {
 .admin-empty svg {
   opacity: 0.5;
 }
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 3rem 1rem;
+  color: var(--slate);
+  text-align: center;
+}
+.cart-empty svg {
+  opacity: 0.4;
+}
+.cart-empty p {
+  font-size: 1.05rem;
+  margin: 0;
+}
 .admin-table-wrap {
   overflow-x: auto;
 }
