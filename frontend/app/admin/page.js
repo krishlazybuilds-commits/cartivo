@@ -141,7 +141,12 @@ export default function AdminUsersPage() {
             {loading ? (
               <p>Loading users…</p>
             ) : users.length === 0 ? (
-              <p>No users found.</p>
+              <div className="admin-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/>
+                </svg>
+                <p>No users found.</p>
+              </div>
             ) : (
               <div className="admin-table-wrap" style={{ overflowX: "auto" }}>
                 <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>

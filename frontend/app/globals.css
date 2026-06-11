@@ -2804,6 +2804,17 @@ body::after {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(252, 163, 17, 0.18);
 }
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--slate);
+}
+.admin-empty svg {
+  opacity: 0.5;
+}
 .admin-table-wrap {
   overflow-x: auto;
 }
