@@ -1017,8 +1017,7 @@ a:focus-visible,
 }
 
 /* Scroll reveal */
-.reveal {
-  opacity: 0;
+.reveal {  opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2303,4 +2302,24 @@ body::after {
 .pagination .btn {
   padding: 0.45rem 0.9rem;
   font-size: 0.8rem;
+}
+
+/* --- Page transition (route change enter animation) ------------------------ */
+.page-transition {
+  animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-transition {
+    animation: none;
+  }
 }
