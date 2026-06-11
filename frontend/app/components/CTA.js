@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import Icon from "./Icon";
 import Reveal from "./Reveal";
 
@@ -12,13 +14,13 @@ export default function CTA() {
             build next.
           </p>
           <div className="hero-actions">
-            <a href="#" className="btn btn-primary">
+            <Link href="/register" className="btn btn-primary">
               Get early access
               <Icon name="arrowRight" size={18} />
-            </a>
-            <a href="#" className="btn btn-light">
+            </Link>
+            <Link href="/contact" className="btn btn-light">
               Talk to the team
-            </a>
+            </Link>
           </div>
         </Reveal>
       </div>
