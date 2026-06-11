@@ -7,6 +7,7 @@ import Link from "next/link";
 import AuthPanel from "../components/AuthPanel";
 import AuthBackButton from "../components/AuthBackButton";
 import PasswordInput from "../components/PasswordInput";
+import GoogleButton from "../components/GoogleButton";
 import { useAuth } from "../lib/auth";
 import { useToast } from "../lib/toast";
 
@@ -49,6 +50,8 @@ function LoginForm() {
       <button className="btn btn-primary" type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
       </button>
+      <div className="auth-divider"><span>or</span></div>
+      <GoogleButton action="Sign in" />
       <p className="auth-alt">No account? <Link href="/register">Create one</Link></p>
       <p className="auth-alt"><Link href="/forgot-password">Forgot password?</Link></p>
     </form>

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import AuthPanel from "../components/AuthPanel";
 import AuthBackButton from "../components/AuthBackButton";
+import GoogleButton from "../components/GoogleButton";
 import { useAuth } from "../lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -140,6 +141,8 @@ export default function RegisterPage() {
             <button className="btn btn-primary" type="submit" disabled={submitting}>
               {submitting ? "Creating account…" : "Create account"}
             </button>
+            <div className="auth-divider"><span>or</span></div>
+            <GoogleButton action="Sign up" />
             <p className="auth-alt">Already have an account? <Link href="/login">Sign in</Link></p>
           </form>
         </div>
