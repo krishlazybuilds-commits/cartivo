@@ -3113,3 +3113,187 @@ body::after {
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Landing intro — "Stacked Strip Reveal"
+   Agency / Awwwards-style: three stacked horizontal strips cover the screen.
+   Each letter of CARTIVO clips in from below with a stagger. A JS RAF
+   counter rolls 0→100 in the corner. Then all three strips slide upward
+   with staggered delays, revealing the page in a layered shutter motion.
+   ========================================================================== */
+
+/* Base overlay — hidden by default */
+.landing-intro {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+html[data-intro="play"] .landing-intro {
+  display: block;
+  pointer-events: all;
+}
+html[data-intro="done"] .landing-intro,
+html[data-intro="skip"] .landing-intro {
+  display: none;
+}
+
+/* ── Three stacked strips ─────────────────────────────────────────────────── */
+.li-strip {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+}
+.li-strip-1 { top: 0;        height: 34%;  background: var(--ink); }
+.li-strip-2 { top: 33.2%;    height: 34%;  background: var(--ink-soft); }
+.li-strip-3 { top: 66.4%;    height: 34%;  background: var(--ink); }
+
+/* On play: strips slide up with stagger */
+html[data-intro="play"] .li-strip-1 {
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.2s forwards;
+}
+html[data-intro="play"] .li-strip-2 {
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.32s forwards;
+}
+html[data-intro="play"] .li-strip-3 {
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.44s forwards;
+}
+@keyframes strip-out {
+  to { transform: translateY(-101vh); }
+}
+
+/* ── Center brand stage ───────────────────────────────────────────────────── */
+.li-center {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+}
+
+/* Tagline above the word */
+.li-tagline {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: li-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+/* The CARTIVO word — each letter clips in from below */
+.li-word {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.02em;
+}
+.li-letter-wrap {
+  overflow: hidden;
+  line-height: 1;
+}
+.li-letter {
+  display: block;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(3.8rem, 10vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  transform: translateY(110%);
+  opacity: 0;
+  animation: letter-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Thin amber underline grows after all letters land */
+.li-word::after {
+  content: "";
+  display: none; /* handled by a sibling instead */
+}
+.li-underline {
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  margin-top: 4px;
+  animation: li-line 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.9s forwards;
+}
+@keyframes li-line {
+  to { width: clamp(280px, 50vw, 500px); }
+}
+
+@keyframes letter-rise {
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes li-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Fade center out just before strips leave */
+html[data-intro="play"] .li-center {
+  animation: li-center-fade 0.35s ease 2.05s forwards;
+}
+@keyframes li-center-fade {
+  to { opacity: 0; }
+}
+
+/* ── Counter — bottom-right corner ───────────────────────────────────────── */
+.li-counter-block {
+  position: absolute;
+  bottom: 36px;
+  right: 44px;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  opacity: 0;
+  animation: li-up 0.4s ease 0.3s forwards;
+}
+#li-counter-num {
+  font-family: var(--font-serif), serif;
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.15);
+  font-variant-numeric: tabular-nums;
+}
+.li-counter-pct {
+  font-family: var(--font-serif), serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- Hero ambient motion (depth) ---------- */
+.hero::before {
+  animation: blob-drift 16s ease-in-out infinite;
+}
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-26px, 22px) scale(1.1); }
+}
+.float-card {
+  animation: float-idle 5.5s ease-in-out infinite;
+}
+.fc-2 {
+  animation-duration: 7s;
+  animation-delay: -2.5s;
+}
+@keyframes float-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-intro,
+  html[data-intro="play"] .landing-intro { display: none !important; }
+  .hero::before,
+  .float-card,
+  .fc-2 { animation: none !important; }
+}
+
+
