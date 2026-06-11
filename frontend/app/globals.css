@@ -56,6 +56,13 @@ body {
   background: var(--bg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
 }
 
 h1,
@@ -2407,7 +2414,9 @@ body::after {
 .page-transition {
   animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   background: var(--bg, #ffffff);
-  min-height: 100vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 @keyframes page-enter {
   from {
