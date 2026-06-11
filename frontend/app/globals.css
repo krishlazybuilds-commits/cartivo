@@ -274,22 +274,15 @@ a {
   padding: 0;
 }
 .nav-avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--accent), #e67e22);
-  color: #fff;
+  background: var(--ink);
+  color: var(--accent);
   font-weight: 700;
   font-size: 0.85rem;
-  box-shadow: 0 2px 8px rgba(252, 163, 17, 0.35);
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.nav-avatar-btn:hover .nav-avatar {
-  transform: scale(1.08);
-  box-shadow: 0 4px 14px rgba(252, 163, 17, 0.5);
 }
 .nav-account-name-row {
   padding: 8px 12px 4px;
