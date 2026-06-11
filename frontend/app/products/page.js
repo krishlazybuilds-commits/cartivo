@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import ShopFilters from "../components/ShopFilters";
 import Reveal from "../components/Reveal";
 import WishlistButton from "../components/WishlistButton";
+import StarRating from "../components/StarRating";
 import { apiFetch } from "../lib/api";
 import { formatPrice } from "../lib/format";
 
@@ -109,6 +110,9 @@ export default async function ProductsPage({ searchParams }) {
                     </div>
                     <span className="product-cat">{p.category_name ?? "Product"}</span>
                     <h3>{p.name}</h3>
+                    {p.review_count > 0 && (
+                      <StarRating value={p.avg_rating ?? 0} count={p.review_count} size="0.85rem" />
+                    )}
                     <p>{p.description}</p>
                     <div className="product-meta">
                       <span className="product-price">{formatPrice(p.price)}</span>
