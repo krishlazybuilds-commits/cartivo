@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import AuthPanel from "../components/AuthPanel";
+import AuthBackButton from "../components/AuthBackButton";
 import { API_URL } from "../lib/api";
 
 export default function ForgotPasswordPage() {
@@ -31,10 +32,7 @@ export default function ForgotPasswordPage() {
       {/* Left — form */}
       <div className="auth-split-form">
         <div className="auth-split-inner">
-          <Link href="/" className="brand auth-split-logo">
-            <span className="brand-dot">C</span>
-            Cartivo
-          </Link>
+          <AuthBackButton />
           <div className="auth-split-head">
             <h1>Forgot password?</h1>
             <p>Enter your email and we&apos;ll send you a reset link.</p>

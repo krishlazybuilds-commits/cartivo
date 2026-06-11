@@ -4,7 +4,7 @@ import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
 import { WishlistProvider } from "./lib/wishlist";
 import { ToastProvider } from "./lib/toast";
-import Nav from "./components/Nav";
+import ConditionalNav from "./components/ConditionalNav";
 import ConditionalFooter from "./components/ConditionalFooter";
 import CookieConsent from "./components/CookieConsent";
 
@@ -49,7 +49,7 @@ export default function RootLayout({ children }) {
           <ToastProvider>
             <CartProvider>
               <WishlistProvider>
-                <Nav />
+                <ConditionalNav />
                 {children}
                 <ConditionalFooter />
                 <CookieConsent />

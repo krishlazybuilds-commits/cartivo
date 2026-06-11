@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import AuthPanel from "../components/AuthPanel";
+import AuthBackButton from "../components/AuthBackButton";
 import { useAuth } from "../lib/auth";
 
 function LoginForm() {
@@ -56,10 +57,7 @@ export default function LoginPage() {
       {/* Left — form */}
       <div className="auth-split-form">
         <div className="auth-split-inner">
-          <Link href="/" className="brand auth-split-logo">
-            <span className="brand-dot">C</span>
-            Cartivo
-          </Link>
+          <AuthBackButton />
           <div className="auth-split-head">
             <h1>Welcome back</h1>
             <p>Sign in to your account to continue.</p>
