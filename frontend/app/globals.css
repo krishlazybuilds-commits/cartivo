@@ -278,6 +278,8 @@ a {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  width: auto;
+  height: auto;
 }
 .nav-avatar-arrow {
   transition: transform 0.25s ease;

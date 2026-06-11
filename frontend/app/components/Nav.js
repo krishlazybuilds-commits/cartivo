@@ -82,7 +82,7 @@ export default function Nav() {
               <div className="nav-account" ref={accountRef}>
                 <button
                   type="button"
-                  className={`nav-icon nav-avatar-btn${accountOpen ? " open" : ""}`}
+                  className={`nav-avatar-btn${accountOpen ? " open" : ""}`}
                   onClick={() => setAccountOpen((o) => !o)}
                   aria-label="Account menu"
                   aria-expanded={accountOpen}
