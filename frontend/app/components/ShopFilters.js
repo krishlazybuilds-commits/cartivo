@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import SortSelect from "./SortSelect";
+
 const SORT_OPTIONS = [
   { value: "", label: "Default" },
   { value: "-created_at", label: "Newest first" },
@@ -32,8 +34,8 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
     router.push(buildQuery({ category: id || "", page: "" }));
   }
 
-  function changeSort(e) {
-    router.push(buildQuery({ ordering: e.target.value || "", page: "" }));
+  function changeSort(value) {
+    router.push(buildQuery({ ordering: value || "", page: "" }));
   }
 
   function submitSearch(e) {
@@ -78,19 +80,7 @@ export default function ShopFilters({ categories, activeCategory, activeSearch, 
         </div>
 
         <div className="shop-sort">
-          <label htmlFor="sort-select" className="shop-sort-label">Sort by</label>
-          <select
-            id="sort-select"
-            value={activeSort || ""}
-            onChange={changeSort}
-            className="shop-sort-select"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <SortSelect value={activeSort || ""} options={SORT_OPTIONS} onChange={changeSort} />
         </div>
       </div>
     </div>
