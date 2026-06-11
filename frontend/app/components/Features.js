@@ -3,34 +3,34 @@ import Reveal from "./Reveal";
 
 const features = [
   {
-    icon: "palette",
-    title: "A storefront in minutes",
-    desc: "Start from a clean, responsive theme and edit it inline. No code, no designer hand-off, no waiting.",
+    icon: "creditCard",
+    title: "Secure Stripe checkout",
+    desc: "Pay safely with Stripe. Your card details never touch our servers — every payment is encrypted and PCI-compliant.",
   },
   {
-    icon: "zap",
-    title: "One inbox for orders",
-    desc: "Orders, refunds, and customer messages land in one place — so nothing slips while you're busy shipping.",
+    icon: "userCheck",
+    title: "Guest checkout",
+    desc: "No account needed. Add items to your cart and check out in seconds — or sign in to save your details for next time.",
   },
   {
-    icon: "chart",
-    title: "Numbers you can act on",
-    desc: "See what's selling and what's stalling in plain language, not a spreadsheet you have to decode.",
+    icon: "truck",
+    title: "Shipping costs upfront",
+    desc: "See shipping and tax estimated on your cart before you pay. No surprises at the final step.",
   },
   {
-    icon: "globe",
-    title: "Sell beyond your site",
-    desc: "Keep one product catalog in sync across your store, social, and in-person — edit once, update everywhere.",
+    icon: "mail",
+    title: "Instant order updates",
+    desc: "Get an order confirmation by email the moment you check out, plus a receipt once your payment clears.",
   },
   {
-    icon: "shield",
-    title: "Checkout that's safe",
-    desc: "PCI-compliant payments and fraud checks are built in, so you don't have to wire them up yourself.",
+    icon: "heart",
+    title: "Wishlist your favourites",
+    desc: "Save the products you love to your wishlist and come back to them whenever you're ready to buy.",
   },
   {
-    icon: "message",
-    title: "Support from real people",
-    desc: "Email and chat with a human when you're stuck. We're a small team and we answer our own tickets.",
+    icon: "star",
+    title: "Real customer reviews",
+    desc: "Read honest ratings and reviews from other shoppers, so you can buy with confidence.",
   },
 ];
 
@@ -39,11 +39,11 @@ export default function Features() {
     <section className="features" id="features">
       <div className="container">
         <Reveal className="section-head center">
-          <span className="eyebrow">What you get</span>
-          <h2>The essentials, done well.</h2>
+          <span className="eyebrow">Why shop with us</span>
+          <h2>A checkout you can trust.</h2>
           <p>
-            Cartivo focuses on the handful of things that actually move a small
-            store forward — and leaves out the rest.
+            Everything about buying from Cartivo is built to be fast, clear, and
+            secure — from your first click to your doorstep.
           </p>
         </Reveal>
         <div className="feature-grid">

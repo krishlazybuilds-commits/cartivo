@@ -5,35 +5,35 @@ export default function WhyCartivo() {
     <section className="why" id="why">
       <div className="container why-inner">
         <Reveal className="why-copy">
-          <span className="eyebrow">Why we built it</span>
-          <h2>We got tired of duct-taping tools together.</h2>
+          <span className="eyebrow">Our promise</span>
+          <h2>Tech shopping without the worry.</h2>
           <p>
-            Cartivo started because running a small shop meant juggling a site
-            builder, a payments plugin, a spreadsheet, and three inboxes. We
-            wanted one place that handles the basics well and respects your
-            time.
+            Every product in our catalog is the real deal, priced fairly, and
+            backed by secure Stripe payments. You&apos;ll always see shipping and
+            tax before you pay — no hidden fees, no surprises at checkout.
           </p>
           <p>
-            We&apos;re a small team shipping in the open. If you join early,
-            you&apos;ll talk to the people building it — and help shape what
-            comes next.
+            Prefer not to make an account? Check out as a guest. Want to track
+            orders and save favourites? Sign in and everything&apos;s in one
+            place. Either way, your data stays protected.
           </p>
-          <a href="#pricing" className="why-link">
-            Join the early access list →
+          <a href="#categories" className="why-link">
+            Start browsing the catalog →
           </a>
         </Reveal>
         <Reveal className="why-card" delay={120}>
           <div className="why-quote">
-            &ldquo;Our goal is simple: you should be able to open your store,
-            see what needs attention, and close the laptop by lunch.&rdquo;
+            &ldquo;Fast checkout, clear shipping costs, and my order confirmation
+            hit my inbox instantly. Exactly how online shopping should
+            feel.&rdquo;
           </div>
           <div className="why-author">
             <span className="why-avatar" aria-hidden="true">
-              CK
+              ★
             </span>
             <div>
-              <b>Cartivo team</b>
-              <span>Building in early access</span>
+              <b>Verified shopper</b>
+              <span>Rated 5 / 5</span>
             </div>
           </div>
         </Reveal>

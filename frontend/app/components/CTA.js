@@ -8,18 +8,18 @@ export default function CTA() {
     <section className="cta-band">
       <div className="container">
         <Reveal className="cta-inner">
-          <h2>Be one of the first stores on Cartivo.</h2>
+          <h2>Ready to find your next upgrade?</h2>
           <p>
-            Early access is open. Set up your store this week and tell us what to
-            build next.
+            Browse the full catalog of laptops, audio, phones, wearables and
+            more — with secure checkout and shipping costs shown upfront.
           </p>
           <div className="hero-actions">
-            <Link href="/register" className="btn btn-primary">
-              Get early access
+            <Link href="/products" className="btn btn-primary">
+              Shop all products
               <Icon name="arrowRight" size={18} />
             </Link>
             <Link href="/contact" className="btn btn-light">
-              Talk to the team
+              Contact us
             </Link>
           </div>
         </Reveal>

@@ -22,22 +22,22 @@ const fraunces = Fraunces({
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-  title: "Cartivo — Sell online without the busywork",
+  title: "Cartivo — Shop the latest tech",
   description:
-    "Cartivo gives independent brands a fast storefront, one inbox for every order, and clear numbers to act on. Now in early access.",
+    "Shop laptops, smartphones, audio, wearables and more at Cartivo. Secure Stripe checkout, guest ordering, and shipping costs shown upfront.",
   openGraph: {
-    title: "Cartivo — Sell online without the busywork",
+    title: "Cartivo — Shop the latest tech",
     description:
-      "Cartivo gives independent brands a fast storefront, one inbox for every order, and clear numbers to act on.",
+      "Shop laptops, smartphones, audio, wearables and more. Secure checkout, guest ordering, and shipping shown upfront.",
     siteName: "Cartivo",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cartivo — Sell online without the busywork",
+    title: "Cartivo — Shop the latest tech",
     description:
-      "Cartivo gives independent brands a fast storefront, one inbox for every order, and clear numbers to act on.",
+      "Shop laptops, smartphones, audio, wearables and more. Secure checkout and fast delivery.",
   },
 };
 

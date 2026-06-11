@@ -7,13 +7,12 @@ import NewsletterForm from "./NewsletterForm";
 
 const columns = [
   {
-    title: "Product",
+    title: "Explore",
     links: [
-      { label: "Features", href: "/#features" },
-      { label: "Pricing", href: "/#pricing" },
-      { label: "Categories", href: "/categories" },
-      { label: "Themes", href: "/themes" },
-      { label: "Roadmap", href: "/roadmap" },
+      { label: "Categories", href: "/#categories" },
+      { label: "Why shop with us", href: "/#features" },
+      { label: "How it works", href: "/#how" },
+      { label: "Our promise", href: "/#why" },
     ],
   },
   {
@@ -74,12 +73,12 @@ export default function Footer() {
               Cartivo
             </a>
             <p className="tag">
-              A simpler way for independent brands to sell online. Currently in early access.
+              Your store for the latest laptops, audio, phones, wearables and more — with secure checkout and fast delivery.
             </p>
 
             <div className="footer-newsletter">
               <h4>Stay in the loop</h4>
-              <p>Product updates and tips for growing your shop. No spam.</p>
+              <p>New arrivals and deals, straight to your inbox. No spam.</p>
               <NewsletterForm />
             </div>
 

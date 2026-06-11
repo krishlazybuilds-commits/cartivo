@@ -13,8 +13,8 @@ import { useToast } from "../lib/toast";
    Why Cartivo, account links) lives in the mobile drawer below. */
 const LINKS = [
   { label: "Shop", href: "/products" },
+  { label: "Categories", href: "/#categories" },
   { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/#pricing" },
 ];
 
 export default function Nav() {
@@ -31,7 +31,7 @@ export default function Nav() {
       setActiveSection("");
       return;
     }
-    const ids = ["features", "pricing"];
+    const ids = ["categories", "features"];
     const sections = ids
       .map((id) => document.getElementById(id))
       .filter(Boolean);
@@ -170,9 +170,9 @@ export default function Nav() {
       <div className={`nav-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="nav-drawer-links">
           <Link href="/products" onClick={closeMenu}>Shop</Link>
+          <a href="/#categories" onClick={closeMenu}>Categories</a>
           <a href="/#features" onClick={closeMenu}>Features</a>
           <a href="/#how" onClick={closeMenu}>How it works</a>
-          <a href="/#pricing" onClick={closeMenu}>Pricing</a>
           <a href="/#why" onClick={closeMenu}>Why Cartivo</a>
         </div>
         <div className="nav-drawer-cta">

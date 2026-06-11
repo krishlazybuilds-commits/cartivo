@@ -4,26 +4,31 @@ import Reveal from "./Reveal";
 const steps = [
   {
     n: 1,
-    title: "Pick a theme",
-    desc: "Choose a starting point and make it yours with inline editing — colors, fonts, layout.",
+    title: "Browse the catalog",
+    desc: "Explore laptops, audio, phones, wearables and more. Filter by category, sort by price, and read real reviews.",
   },
   {
     n: 2,
-    title: "Add your products",
-    desc: "Import a CSV or add items by hand, with images, variants, and inventory tracking.",
+    title: "Add to cart",
+    desc: "Add items to your cart and see shipping and tax estimated before you commit — no hidden costs.",
   },
   {
     n: 3,
-    title: "Go live",
-    desc: "Connect a domain, switch on payments, and start taking orders the same day.",
+    title: "Check out securely",
+    desc: "Pay with Stripe as a guest or signed-in customer. Your details are encrypted end to end.",
+  },
+  {
+    n: 4,
+    title: "Track your order",
+    desc: "Get instant email confirmation and follow your order status right through to delivery.",
   },
 ];
 
 const facts = [
-  { label: "Set up your store in", value: "an afternoon" },
-  { label: "Starter themes", value: "12" },
-  { label: "Payment methods", value: "100+" },
-  { label: "Transaction fees", value: "0%" },
+  { label: "Product categories", value: "6" },
+  { label: "Free shipping over", value: "$500" },
+  { label: "Guest checkout", value: "Yes" },
+  { label: "Secure payments", value: "Stripe" },
 ];
 
 export default function HowItWorks() {
@@ -32,10 +37,10 @@ export default function HowItWorks() {
       <div className="container split">
         <Reveal className="split-copy">
           <span className="eyebrow">How it works</span>
-          <h2 className="split-title">From zero to your first order, fast.</h2>
+          <h2 className="split-title">From browsing to your doorstep.</h2>
           <p className="split-lead">
-            No developers or agencies required. Cartivo gets you live quickly,
-            then stays out of your way.
+            Shopping with Cartivo is simple and secure — here&apos;s what to
+            expect from cart to delivery.
           </p>
           <ul className="checklist">
             {steps.map((s) => (

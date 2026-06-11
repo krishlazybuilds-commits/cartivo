@@ -556,6 +556,38 @@ a {
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+.cart-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.cart-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+.cart-line b {
+  color: #fff;
+  font-weight: 600;
+}
+.cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 12px;
+}
+.cart-total-row > span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+.cart-total-row .pc-revenue {
+  font-size: 1.9rem;
+}
 .pc-sub {
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
@@ -710,6 +742,63 @@ section {
 .feature-card p {
   color: var(--slate);
   font-size: 0.98rem;
+}
+
+/* Categories */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.category-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.category-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+.category-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(252, 163, 17, 0.14);
+  color: var(--accent-deep);
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+}
+.category-card h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+}
+.category-card p {
+  color: var(--slate);
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+}
+.category-link {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  transition: gap 0.2s ease, color 0.2s ease;
+}
+.category-card:hover .category-link {
+  color: var(--accent-deep);
+  gap: 10px;
 }
 
 /* Showcase / split */
