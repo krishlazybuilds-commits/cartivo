@@ -19,57 +19,51 @@ export default async function Hero() {
   const categories = await getCategories();
 
   return (
-    <header className="hero hero--dark" id="top">
-      <div className="hero-glow" aria-hidden="true" />
-      <div className="container hero-grid">
-        <div className="hero-copy">
-          <Reveal as="span" className="eyebrow">
-            Premium tech, fair prices
-          </Reveal>
-          <Reveal as="h1" delay={60}>
-            Sound, vision and <span className="accent">everyday tech</span>.
-          </Reveal>
-          <Reveal as="p" className="lead" delay={120}>
-            Headphones, smartphones, wearables and accessories — a curated catalog,
-            in stock and delivered fast, with secure checkout and shipping shown
-            upfront.
-          </Reveal>
-          <Reveal className="hero-actions" delay={180}>
-            <Link href="/products" className="btn btn-primary">
-              Shop now
-              <Icon name="arrowRight" size={18} />
-            </Link>
-            <Link href="/categories" className="btn btn-light">
-              Browse categories
-            </Link>
-          </Reveal>
+    <header className="hero-cinematic" id="top">
+      <div className="container">
+        <div className="hero-stage">
+          <Image
+            src="/hero-model.png"
+            alt="A person enjoying premium headphones and everyday tech"
+            fill
+            priority
+            sizes="(max-width: 1180px) 100vw, 1180px"
+            className="hero-bg"
+          />
+          <div className="hero-stage-overlay" aria-hidden="true" />
 
-          {categories.length > 0 && (
-            <Reveal className="hero-cats" delay={240}>
-              <span className="hero-cats-label">Shop by category</span>
-              <div className="hero-cats-list">
+          <div className="hero-stage-content">
+            <Reveal as="span" className="eyebrow">
+              Premium tech, fair prices
+            </Reveal>
+            <Reveal as="h1" delay={60}>
+              Sound, vision and <span className="accent">everyday tech</span>.
+            </Reveal>
+            <Reveal as="p" className="lead" delay={120}>
+              A curated catalog of headphones, phones, wearables and accessories —
+              in stock and delivered fast.
+            </Reveal>
+            <Reveal className="hero-actions" delay={180}>
+              <Link href="/products" className="btn btn-primary">
+                Shop now
+                <Icon name="arrowRight" size={18} />
+              </Link>
+              <Link href="/categories" className="btn btn-light">
+                Browse categories
+              </Link>
+            </Reveal>
+
+            {categories.length > 0 && (
+              <Reveal className="hero-stage-cats" delay={240}>
                 {categories.map((c) => (
                   <Link key={c.id} href={`/categories/${c.slug}`} className="hero-cat-chip">
                     {c.name}
                   </Link>
                 ))}
-              </div>
-            </Reveal>
-          )}
-        </div>
-
-        <Reveal className="hero-visual" delay={160}>
-          <div className="hero-image-wrap">
-            <Image
-              src="/hero-model.png"
-              alt="A person enjoying premium headphones and everyday tech"
-              width={760}
-              height={760}
-              priority
-              className="hero-image"
-            />
+              </Reveal>
+            )}
           </div>
-        </Reveal>
+        </div>
       </div>
     </header>
   );

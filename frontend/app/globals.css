@@ -502,76 +502,83 @@ a {
   font-size: 0.9rem;
 }
 
-/* --- Dark immersive hero (lifestyle image, Luminous-style) ----------------- */
-.hero--dark {
+/* --- Cinematic full-bleed hero (lifestyle image, Luminous-style) ----------- */
+.hero-cinematic {
+  padding: 22px 0 36px;
+  background: var(--bg);
+}
+.hero-stage {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: clamp(500px, 72vh, 700px);
+  display: flex;
   background: var(--ink);
-  color: #fff;
-  padding: 76px 0 64px;
+  box-shadow: var(--shadow-lg);
 }
-.hero--dark::before {
-  display: none;
-}
-.hero-glow {
-  position: absolute;
-  top: 46%;
-  right: 6%;
-  transform: translateY(-50%);
-  width: 640px;
-  height: 640px;
-  max-width: 60vw;
-  background: radial-gradient(circle, rgba(252, 163, 17, 0.3), transparent 62%);
+.hero-bg {
+  object-fit: cover;
+  object-position: 72% center;
   z-index: 0;
-  pointer-events: none;
-  animation: hero-glow-pulse 7s ease-in-out infinite alternate;
 }
-@keyframes hero-glow-pulse {
-  from { opacity: 0.7; transform: translateY(-50%) scale(1); }
-  to   { opacity: 1; transform: translateY(-50%) scale(1.1); }
+.hero-stage-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      to right,
+      rgba(13, 21, 41, 0.94) 0%,
+      rgba(13, 21, 41, 0.75) 34%,
+      rgba(13, 21, 41, 0.25) 64%,
+      rgba(13, 21, 41, 0.05) 100%
+    ),
+    linear-gradient(to top, rgba(13, 21, 41, 0.85) 0%, transparent 42%);
 }
-@media (prefers-reduced-motion: reduce) {
-  .hero-glow { animation: none; }
-}
-.hero--dark .eyebrow {
-  color: var(--accent);
-  background: rgba(252, 163, 17, 0.12);
-}
-.hero--dark h1 {
+.hero-stage-content {
+  position: relative;
+  z-index: 2;
+  align-self: flex-end;
+  width: 100%;
+  max-width: 660px;
+  padding: clamp(1.75rem, 4vw, 3.5rem);
   color: #fff;
 }
-.hero--dark h1 .accent {
+.hero-cinematic .eyebrow {
+  color: var(--accent);
+  background: rgba(252, 163, 17, 0.14);
+}
+.hero-cinematic h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5.5vw, 4.3rem);
+  margin: 16px 0 16px;
+}
+.hero-cinematic h1 .accent {
   color: var(--accent);
   font-style: normal;
 }
-.hero--dark p.lead {
-  color: rgba(255, 255, 255, 0.66);
-  max-width: 40ch;
+.hero-cinematic p.lead {
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 42ch;
+  margin-bottom: 26px;
+  font-size: 1.1rem;
 }
-
-/* Instant-access category chips */
-.hero-cats {
-  margin-top: 38px;
-}
-.hero-cats-label {
-  display: block;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 13px;
-}
-.hero-cats-list {
+.hero-stage-cats {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 28px;
 }
 .hero-cat-chip {
-  padding: 0.48rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0.46rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 .hero-cat-chip:hover {
@@ -581,37 +588,12 @@ a {
   transform: translateY(-1px);
 }
 
-/* Lifestyle image */
-.hero--dark .hero-visual {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.hero-image-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 580px;
-}
-.hero-image {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  border-radius: 20px;
-  /* Soften the outer edges so the dark studio backdrop melts into the hero */
-  -webkit-mask-image: radial-gradient(ellipse 82% 86% at 52% 46%, #000 66%, transparent 100%);
-  mask-image: radial-gradient(ellipse 82% 86% at 52% 46%, #000 66%, transparent 100%);
-}
-
-@media (max-width: 860px) {
-  .hero--dark .hero-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
+@media (max-width: 600px) {
+  .hero-stage {
+    min-height: 78vh;
   }
-  .hero-image-wrap {
-    max-width: 420px;
-    margin: 0 auto;
+  .hero-bg {
+    object-position: 68% center;
   }
 }
 
