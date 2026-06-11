@@ -6,6 +6,8 @@ import Footer from "../../components/Footer";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import AddToCart from "../../components/AddToCart";
 import WishlistButton from "../../components/WishlistButton";
+import StarRating from "../../components/StarRating";
+import ProductReviews from "../../components/ProductReviews";
 import JsonLd from "../../components/JsonLd";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
@@ -91,6 +93,11 @@ export default async function ProductDetailPage({ params }) {
               </div>
               <span className="product-cat">{product.category_name ?? "Product"}</span>
               <h1>{product.name}</h1>
+              {product.review_count > 0 && (
+                <div className="product-rating">
+                  <StarRating value={product.avg_rating ?? 0} count={product.review_count} />
+                </div>
+              )}
               <div className="product-meta">
                 <span className="product-price">{formatPrice(product.price)}</span>
                 <span
@@ -108,6 +115,8 @@ export default async function ProductDetailPage({ params }) {
                 </div>
               </div>
             </article>
+
+            <ProductReviews productId={product.id} />
           </div>
         </section>
       </main>
