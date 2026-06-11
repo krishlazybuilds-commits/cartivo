@@ -66,7 +66,7 @@ def contact(request):
             subject=f"[Cartivo Contact] Message from {name}",
             message=f"From: {name} <{email}>\n\n{message}",
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[settings.EMAIL_HOST_USER],
+            recipient_list=[settings.CONTACT_EMAIL],
         )
     except Exception:
         # Don't leak SMTP errors to the client or 500 the request.

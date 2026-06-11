@@ -424,7 +424,13 @@ EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+# Fall back to a non-empty sender so mail still works when SMTP creds aren't
+# configured (dev/CI). An empty From/recipient causes send_mail to silently
+# drop the message (recipients() is empty -> nothing sent).
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@cartivo.local")
+# Where contact-form submissions are delivered. Defaults to the support inbox
+# (or the configured SMTP user) and is always non-empty.
+CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", EMAIL_HOST_USER or DEFAULT_FROM_EMAIL)
 
 
 # --- Logging -----------------------------------------------------------------
