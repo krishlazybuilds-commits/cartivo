@@ -756,9 +756,24 @@ section {
 
 /* Footer */
 .footer {
+  position: relative;
+  overflow: hidden;
   background: var(--ink);
   color: rgba(255, 255, 255, 0.66);
   padding: 80px 0 32px;
+}
+.footer-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(6rem, 18vw, 14rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 .footer-top {
   display: grid;

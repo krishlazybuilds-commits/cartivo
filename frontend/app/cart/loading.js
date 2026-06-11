@@ -1,11 +1,9 @@
-import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { CartSkeleton } from "../components/Skeleton";
 
 export default function CartLoading() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">

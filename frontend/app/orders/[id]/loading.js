@@ -1,11 +1,9 @@
-import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import { OrderDetailSkeleton } from "../../components/Skeleton";
 
 export default function OrderDetailLoading() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">

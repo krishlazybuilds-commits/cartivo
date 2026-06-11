@@ -1,11 +1,9 @@
-import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import { Skeleton } from "../../components/Skeleton";
 
 export default function CategoryLoading() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container">

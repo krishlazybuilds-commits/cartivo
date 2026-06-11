@@ -1,11 +1,9 @@
 import Link from "next/link";
-import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 
 export default function NotFound() {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ textAlign: "center", padding: "80px 24px" }}>

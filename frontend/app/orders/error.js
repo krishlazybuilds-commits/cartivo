@@ -1,12 +1,10 @@
 "use client";
 
-import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 
 export default function OrdersError({ error, reset }) {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ textAlign: "center", padding: "4rem 1rem" }}>

@@ -61,6 +61,7 @@ const socials = [
 export default function Footer() {
   return (
     <footer className="footer">
+      <span className="footer-watermark" aria-hidden="true">CARTIVO</span>
       <div className="container">
         <div className="footer-top">
           <div className="footer-brand">

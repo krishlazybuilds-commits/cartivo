@@ -47,7 +47,12 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {loading ? null : user ? (
+          {loading ? (
+            <>
+              <span className="nav-link-min" style={{ visibility: "hidden" }}>Sign in</span>
+              <span className="btn btn-primary btn-sm" style={{ visibility: "hidden" }}>Get started</span>
+            </>
+          ) : user ? (
             <>
               <Link href="/cart" className="nav-icon" aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />

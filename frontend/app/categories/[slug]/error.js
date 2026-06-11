@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 
 export default function CategoryError({ error, reset }) {
   return (
     <>
-      <Nav />
       <main>
         <section className="features">
           <div className="container" style={{ textAlign: "center", padding: "4rem 1rem" }}>
