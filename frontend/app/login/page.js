@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-import Reveal from "../components/Reveal";
+import AuthPanel from "../components/AuthPanel";
 import { useAuth } from "../lib/auth";
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,57 +31,49 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <main>
-        <section className="features">
-          <div className="container auth-wrap">
-            <Reveal>
-              <div className="section-head center">
-                <span className="eyebrow">Welcome back</span>
-                <h2>Sign in</h2>
-              </div>
-            </Reveal>
-            <Reveal delay={80}>
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {error && (
-                <p className="auth-error" role="alert">
-                  {error}
-                </p>
-              )}
-              <label>
-                Username
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  required
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
-              <button className="btn btn-primary" type="submit" disabled={submitting}>
-                {submitting ? "Signing in…" : "Sign in"}
-              </button>
-              <p className="auth-alt">
-                No account? <Link href="/register">Create one</Link>
-              </p>
-              <p className="auth-alt">
-                <Link href="/forgot-password">Forgot password?</Link>
-              </p>
-            </form>
-            </Reveal>
+    <form className="auth-form" onSubmit={handleSubmit}>
+      {error && <p className="auth-error" role="alert">{error}</p>}
+      <label>
+        Username
+        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
+      </label>
+      <label>
+        Password
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+      </label>
+      <button className="btn btn-primary" type="submit" disabled={submitting}>
+        {submitting ? "Signing in…" : "Sign in"}
+      </button>
+      <p className="auth-alt">No account? <Link href="/register">Create one</Link></p>
+      <p className="auth-alt"><Link href="/forgot-password">Forgot password?</Link></p>
+    </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <main className="auth-split">
+      {/* Left — form */}
+      <div className="auth-split-form">
+        <div className="auth-split-inner">
+          <Link href="/" className="brand auth-split-logo">
+            <span className="brand-dot">C</span>
+            Cartivo
+          </Link>
+          <div className="auth-split-head">
+            <h1>Welcome back</h1>
+            <p>Sign in to your account to continue.</p>
           </div>
-        </section>
-      </main>
-    </>
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
+        </div>
+      </div>
+
+      {/* Right — visual panel */}
+      <Suspense fallback={<div className="auth-panel" />}>
+        <AuthPanel />
+      </Suspense>
+    </main>
   );
 }

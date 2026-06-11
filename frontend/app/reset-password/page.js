@@ -3,7 +3,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Reveal from "../components/Reveal";
+
+import AuthPanel from "../components/AuthPanel";
 import { API_URL } from "../lib/api";
 
 function ResetPasswordForm() {
@@ -14,7 +15,7 @@ function ResetPasswordForm() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState(null); // "submitting" | "done" | "error"
+  const [status, setStatus] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e) {
@@ -47,38 +48,23 @@ function ResetPasswordForm() {
 
   if (status === "done") {
     return (
-      <p style={{ textAlign: "center" }}>
-        Password updated! Redirecting to <Link href="/login">sign in</Link>…
-      </p>
+      <div className="auth-done">
+        <span className="auth-done-icon">✓</span>
+        <p>Password updated! Redirecting to sign in…</p>
+      </div>
     );
   }
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      {status === "error" && (
-        <p className="auth-error" role="alert">{errorMsg}</p>
-      )}
+      {status === "error" && <p className="auth-error" role="alert">{errorMsg}</p>}
       <label>
         New password
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
       </label>
       <label>
         Confirm new password
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
+        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
       </label>
       <button className="btn btn-primary" type="submit" disabled={status === "submitting"}>
         {status === "submitting" ? "Saving…" : "Set new password"}
@@ -89,24 +75,26 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <>
-      <main>
-        <section className="features">
-          <div className="container auth-wrap">
-            <Reveal>
-              <div className="section-head center">
-                <span className="eyebrow">Account recovery</span>
-                <h2>Set new password</h2>
-              </div>
-            </Reveal>
-            <Reveal delay={80}>
-            <Suspense fallback={null}>
-              <ResetPasswordForm />
-            </Suspense>
-            </Reveal>
+    <main className="auth-split">
+      {/* Left — form */}
+      <div className="auth-split-form">
+        <div className="auth-split-inner">
+          <Link href="/" className="brand auth-split-logo">
+            <span className="brand-dot">C</span>
+            Cartivo
+          </Link>
+          <div className="auth-split-head">
+            <h1>Set new password</h1>
+            <p>Choose a strong password for your account.</p>
           </div>
-        </section>
-      </main>
-    </>
+          <Suspense fallback={null}>
+            <ResetPasswordForm />
+          </Suspense>
+        </div>
+      </div>
+
+      {/* Right — visual panel */}
+      <AuthPanel />
+    </main>
   );
 }
