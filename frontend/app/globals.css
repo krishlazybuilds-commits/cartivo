@@ -1871,6 +1871,25 @@ body::after {
   color: #b91c1c;
   font-weight: 500;
 }
+.auth-optional {
+  font-weight: 400;
+  color: var(--muted, #64748b);
+}
+
+/* Two-step register slide */
+.auth-split-form {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity  0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.auth-step-sliding {
+  transform: translateX(-40px);
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-step-2 {
+  transform: translateX(0);
+  opacity: 1;
+}
 .auth-password-wrap {
   position: relative;
   display: flex;
