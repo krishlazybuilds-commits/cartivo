@@ -7,6 +7,7 @@ const STORAGE_KEY = "cartivo-cookie-consent";
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     // Only show if the user hasn't already made a choice.
@@ -25,13 +26,21 @@ export default function CookieConsent() {
     } catch {
       // Ignore storage failures.
     }
-    setVisible(false);
+    // Play the slide-out animation before unmounting so the banner doesn't
+    // vanish abruptly.
+    setLeaving(true);
+    setTimeout(() => setVisible(false), 300);
   }
 
   if (!visible) return null;
 
   return (
-    <div className="cookie-consent" role="dialog" aria-live="polite" aria-label="Cookie consent">
+    <div
+      className={`cookie-consent${leaving ? " cookie-consent--leaving" : ""}`}
+      role="dialog"
+      aria-live="polite"
+      aria-label="Cookie consent"
+    >
       <p className="cookie-consent-text">
         We use cookies to keep you signed in and improve your experience. See our{" "}
         <Link href="/privacy">Privacy Policy</Link>.
