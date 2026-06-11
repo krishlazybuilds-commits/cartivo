@@ -43,13 +43,21 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  // Read the non-sensitive auth hint cookie so the server-rendered nav can show
-  // the right controls on first paint (avoids the Sign in / Get started flash).
-  const initialAuthed = cookies().get("cartivo_auth")?.value === "1";
+  // Read the non-sensitive auth hint cookies so the server-rendered nav can
+  // show the right controls and the correct avatar initial on first paint
+  // (avoids the Sign in / Get started flash and the "U" avatar flash).
+  const cookieStore = cookies();
+  const initialAuthed = cookieStore.get("cartivo_auth")?.value === "1";
+  let initialName = "";
+  try {
+    initialName = decodeURIComponent(cookieStore.get("cartivo_name")?.value || "");
+  } catch {
+    initialName = "";
+  }
   return (
     <html lang="en" style={{ background: "#ffffff" }}>
       <body className={`${jakarta.variable} ${fraunces.variable}`} style={{ background: "#ffffff" }}>
-        <AuthProvider initialAuthed={initialAuthed}>
+        <AuthProvider initialAuthed={initialAuthed} initialName={initialName}>
           <ToastProvider>
             <CartProvider>
               <WishlistProvider>

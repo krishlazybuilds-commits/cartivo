@@ -89,19 +89,24 @@ export async function authFetch(path, options = {}) {
 }
 
 /**
- * Non-sensitive hint cookie mirroring whether a session likely exists. It holds
- * no auth data — it just lets the server-rendered HTML pick the right nav state
- * on first paint so the Sign in / Get started buttons don't flash on refresh.
- * The real source of truth remains the httpOnly auth cookies + /auth/me.
+ * Non-sensitive hint cookies mirroring whether a session likely exists and the
+ * display name to show. They hold no auth credentials — they just let the
+ * server-rendered HTML pick the right nav state (and the correct avatar
+ * initial) on first paint so nothing flashes on refresh. The real source of
+ * truth remains the httpOnly auth cookies + /auth/me.
  */
 const AUTH_HINT_COOKIE = "cartivo_auth";
+const NAME_HINT_COOKIE = "cartivo_name";
 
-function setAuthHint(value) {
+function setAuthHint(user) {
   if (typeof document === "undefined") return;
-  if (value) {
+  if (user) {
+    const name = encodeURIComponent(user.username || "");
     document.cookie = `${AUTH_HINT_COOKIE}=1; path=/; max-age=2592000; samesite=lax`;
+    document.cookie = `${NAME_HINT_COOKIE}=${name}; path=/; max-age=2592000; samesite=lax`;
   } else {
     document.cookie = `${AUTH_HINT_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${NAME_HINT_COOKIE}=; path=/; max-age=0; samesite=lax`;
   }
 }
 
@@ -118,24 +123,27 @@ async function tryRefresh() {
   return res.ok;
 }
 
-export function AuthProvider({ children, initialAuthed = false }) {
+export function AuthProvider({ children, initialAuthed = false, initialName = "" }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   // Optimistic guess of the auth state for the first paint, seeded from the
-  // hint cookie the server read. Lets the nav render the correct controls
-  // immediately instead of flashing a placeholder while /auth/me resolves.
+  // hint cookies the server read. Lets the nav render the correct controls and
+  // avatar initial immediately instead of flashing while /auth/me resolves.
   const [authed, setAuthed] = useState(initialAuthed);
+  const [displayName, setDisplayName] = useState(initialName);
 
   const loadUser = useCallback(async () => {
     try {
       const me = await authFetch("/auth/me/");
       setUser(me);
       setAuthed(true);
-      setAuthHint(true);
+      setDisplayName(me.username || "");
+      setAuthHint(me);
     } catch {
       setUser(null);
       setAuthed(false);
-      setAuthHint(false);
+      setDisplayName("");
+      setAuthHint(null);
     } finally {
       setLoading(false);
     }
@@ -201,11 +209,12 @@ export function AuthProvider({ children, initialAuthed = false }) {
     }
     setUser(null);
     setAuthed(false);
-    setAuthHint(false);
+    setDisplayName("");
+    setAuthHint(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, authed, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authed, displayName, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
