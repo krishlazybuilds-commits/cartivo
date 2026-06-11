@@ -125,6 +125,11 @@ a {
 .btn:active {
   transform: scale(0.97);
 }
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .btn-primary {
   background: var(--accent);
