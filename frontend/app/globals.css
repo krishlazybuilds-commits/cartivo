@@ -236,6 +236,13 @@ a {
 .nav-links a:hover::after {
   transform: scaleX(1);
 }
+.nav-links a.active {
+  color: var(--ink);
+}
+.nav-links a.active::after {
+  transform: scaleX(1);
+  background: var(--accent);
+}
 .nav-cta {
   display: flex;
   align-items: center;
@@ -1069,6 +1076,9 @@ section {
 }
 .footer-col a:hover {
   color: #fff;
+}
+.footer-col a.active {
+  color: var(--accent);
 }
 .footer-bottom {
   display: flex;

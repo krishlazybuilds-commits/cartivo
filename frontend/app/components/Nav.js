@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
@@ -20,6 +21,7 @@ export default function Nav() {
   const { user, loading: authLoading, logout } = useAuth();
   const { itemCount } = useCart();
   const toast = useToast();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -54,9 +56,10 @@ export default function Nav() {
 
         {/* Desktop links */}
         <div className="nav-links">
-          {LINKS.map((l) => (
-            <Link key={l.label} href={l.href}>{l.label}</Link>
-          ))}
+          {LINKS.map((l) => {
+            const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href.replace("/#", "/"));
+            return <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>;
+          })}
         </div>
 
         {/* Right actions */}

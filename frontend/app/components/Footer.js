@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import NewsletterForm from "./NewsletterForm";
 
@@ -59,6 +62,7 @@ const socials = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
   return (
     <footer className="footer">
       <span className="footer-watermark" aria-hidden="true">CARTIVO</span>
@@ -102,11 +106,14 @@ export default function Footer() {
               <div key={col.title} className="footer-col">
                 <h4>{col.title}</h4>
                 <ul>
-                  {col.links.map((l) => (
+                  {col.links.map((l) => {
+                    const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href.replace("/#", "/"));
+                    return (
                     <li key={l.label}>
-                      <Link href={l.href}>{l.label}</Link>
+                      <Link href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             ))}
