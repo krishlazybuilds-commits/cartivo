@@ -25,38 +25,38 @@ export default function Nav() {
   const [activeSection, setActiveSection] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Scroll-spy: highlight the nav link for whichever homepage section is in view.
+  // Scroll-spy: highlight the nav link for whichever homepage section the
+  // viewport's reference line (35% down from the top) is currently over.
+  // While in the hero (above the first tracked section), nothing is active.
   useEffect(() => {
     if (pathname !== "/") {
       setActiveSection("");
       return;
     }
     const ids = ["categories", "features"];
-    const sections = ids
-      .map((id) => document.getElementById(id))
-      .filter(Boolean);
-    if (!sections.length) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length) {
-          setActiveSection(visible[0].target.id);
-        } else {
-          // No tracked section in view (e.g. hero) — clear active state.
-          const anyIntersecting = sections.some((s) => {
-            const r = s.getBoundingClientRect();
-            return r.top < window.innerHeight && r.bottom > 0;
-          });
-          if (!anyIntersecting) setActiveSection("");
+    const onScroll = () => {
+      const line = window.innerHeight * 0.35;
+      let current = "";
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.top <= line && r.bottom > line) {
+          current = id;
+          break;
         }
-      },
-      { threshold: [0.25, 0.5], rootMargin: "-30% 0px -30% 0px" }
-    );
-    sections.forEach((s) => observer.observe(s));
-    return () => observer.disconnect();
+      }
+      setActiveSection(current);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [pathname]);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
