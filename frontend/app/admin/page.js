@@ -138,6 +138,7 @@ export default function AdminUsersPage() {
 
             {error && <p className="auth-error" role="alert">{error}</p>}
 
+            <div className="admin-content">
             {loading ? (
               <p>Loading users…</p>
             ) : users.length === 0 ? (
@@ -218,6 +219,7 @@ export default function AdminUsersPage() {
                 </table>
               </div>
             )}
+            </div>}
 
             {totalPages > 1 && (
               <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginTop: "1.5rem" }}>

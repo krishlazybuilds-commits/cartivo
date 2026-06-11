@@ -2789,6 +2789,9 @@ body::after {
   margin-bottom: 1.5rem;
   max-width: 520px;
 }
+.admin-content {
+  min-height: 350px;
+}
 .admin-search input {
   flex: 1;
   padding: 0.65rem 1rem;
