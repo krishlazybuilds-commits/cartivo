@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import Reveal from "../components/Reveal";
+import PasswordInput from "../components/PasswordInput";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
 export default function ProfilePage() {
@@ -116,11 +117,11 @@ export default function ProfilePage() {
                 <form onSubmit={changePassword} style={{ display: "grid", gap: "1rem" }}>
                   <label>
                     Current password
-                    <input type="password" value={pwForm.current_password} onChange={e => setPwForm(p => ({ ...p, current_password: e.target.value }))} required />
+                    <PasswordInput value={pwForm.current_password} onChange={e => setPwForm(p => ({ ...p, current_password: e.target.value }))} autoComplete="current-password" required />
                   </label>
                   <label>
                     New password
-                    <input type="password" value={pwForm.new_password} onChange={e => setPwForm(p => ({ ...p, new_password: e.target.value }))} required minLength={8} />
+                    <PasswordInput value={pwForm.new_password} onChange={e => setPwForm(p => ({ ...p, new_password: e.target.value }))} autoComplete="new-password" required minLength={8} />
                   </label>
                   {pwMsg && <p className="auth-success">{pwMsg}</p>}
                   {pwErr && <p className="auth-error">{pwErr}</p>}
