@@ -22,7 +22,15 @@ export default function Nav() {
   const { itemCount } = useCart();
   const toast = useToast();
   const pathname = usePathname();
+  const [hash, setHash] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const updateHash = () => setHash(window.location.hash);
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, [pathname]);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const accountRef = useRef(null);
@@ -57,7 +65,7 @@ export default function Nav() {
         {/* Desktop links */}
         <div className="nav-links">
           {LINKS.map((l) => {
-            const isActive = l.href.startsWith("/#") ? pathname === "/" : pathname.startsWith(l.href);
+            const isActive = l.href.startsWith("/#") ? pathname === "/" && hash === l.href.slice(1) : pathname.startsWith(l.href);
             return <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>;
           })}
         </div>
