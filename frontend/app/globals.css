@@ -504,14 +504,15 @@ a {
 
 /* --- Cinematic full-bleed hero (lifestyle image, Luminous-style) ----------- */
 .hero-cinematic {
-  padding: 22px 0 36px;
+  padding: 20px clamp(12px, 1.8vw, 24px) 36px;
   background: var(--bg);
 }
 .hero-stage {
   position: relative;
+  width: 100%;
   border-radius: 28px;
   overflow: hidden;
-  min-height: clamp(500px, 72vh, 700px);
+  min-height: clamp(500px, 72vh, 720px);
   display: flex;
   background: var(--ink);
   box-shadow: var(--shadow-lg);
@@ -540,8 +541,9 @@ a {
   z-index: 2;
   align-self: flex-end;
   width: 100%;
-  max-width: 660px;
-  padding: clamp(1.75rem, 4vw, 3.5rem);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(1.75rem, 4vw, 3.75rem);
   color: #fff;
 }
 .hero-cinematic .eyebrow {
@@ -552,6 +554,7 @@ a {
   color: #fff;
   font-size: clamp(2.4rem, 5.5vw, 4.3rem);
   margin: 16px 0 16px;
+  max-width: 15ch;
 }
 .hero-cinematic h1 .accent {
   color: var(--accent);
