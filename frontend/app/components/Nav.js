@@ -49,6 +49,9 @@ export default function Nav() {
               <Link href="/orders" className="nav-cart">
                 Orders
               </Link>
+              <Link href="/wishlist" className="nav-cart">
+                Wishlist
+              </Link>
               {user.is_staff && (
                 <Link href="/admin" className="nav-cart">
                   Admin
@@ -100,6 +103,9 @@ export default function Nav() {
               </Link>
               <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>
                 Orders
+              </Link>
+              <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>
+                Wishlist
               </Link>
               {user.is_staff && (
                 <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>
