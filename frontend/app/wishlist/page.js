@@ -60,16 +60,23 @@ export default function WishlistPage() {
             </Reveal>
 
             {!user && !authLoading ? (
-              <p className="center">
-                Please <Link href="/login">sign in</Link> to view your wishlist.
-              </p>
+              <div className="cart-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <p>Sign in to see your saved items.</p>
+                <Link href="/login" className="btn btn-primary">Sign in</Link>
+              </div>
             ) : loading || authLoading ? (
               <ProductGridSkeleton />
             ) : items.length === 0 ? (
-              <p className="center">
-                Your wishlist is empty. <Link href="/products">Browse the shop</Link> and tap the
-                heart to save items.
-              </p>
+              <div className="cart-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <p>Your wishlist is empty.</p>
+                <Link href="/products" className="btn btn-primary">Browse the shop</Link>
+              </div>
             ) : (
               <div className="feature-grid">
                 {items.map((item, i) => (
