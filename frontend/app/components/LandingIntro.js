@@ -19,13 +19,13 @@ export default function LandingIntro() {
     // ── Rolling counter 0 → 100 ──────────────────────────────────────────────
     const counterEl = document.getElementById("li-counter-num");
     if (counterEl) {
-      const duration = 2200;
+      const duration = 1800;
       const start = performance.now();
       const tick = (now) => {
         const elapsed = now - start;
         const p = Math.min(elapsed / duration, 1);
         const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-        counterEl.textContent = Math.floor(eased * 100);
+        counterEl.textContent = Math.round(eased * 100);
         if (p < 1) requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
