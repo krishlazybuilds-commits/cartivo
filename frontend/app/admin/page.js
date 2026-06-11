@@ -219,7 +219,7 @@ export default function AdminUsersPage() {
                 </table>
               </div>
             )}
-            </div>}
+            </div>
 
             {totalPages > 1 && (
               <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginTop: "1.5rem" }}>
