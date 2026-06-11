@@ -272,6 +272,8 @@ a {
 }
 .nav-avatar-btn {
   padding: 0;
+  border: none;
+  background: none;
 }
 .nav-avatar {
   width: 32px;
