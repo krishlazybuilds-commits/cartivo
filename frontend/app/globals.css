@@ -2406,6 +2406,8 @@ body::after {
 /* --- Page transition (route change enter animation) ------------------------ */
 .page-transition {
   animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--bg, #ffffff);
+  min-height: 100vh;
 }
 @keyframes page-enter {
   from {

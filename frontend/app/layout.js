@@ -43,8 +43,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={`${jakarta.variable} ${fraunces.variable}`}>
+    <html lang="en" style={{ background: "#ffffff" }}>
+      <body className={`${jakarta.variable} ${fraunces.variable}`} style={{ background: "#ffffff" }}>
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
