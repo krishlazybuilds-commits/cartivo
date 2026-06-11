@@ -122,13 +122,12 @@ export default function AdminUsersPage() {
 
             <AdminTabs />
 
-            <form onSubmit={onSearchSubmit} className="admin-search" style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", maxWidth: 480 }}>
+            <form onSubmit={onSearchSubmit} className="admin-search">
               <input
                 type="search"
                 placeholder="Search by username, email, or name"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ flex: 1 }}
                 aria-label="Search users"
               />
               <button type="submit" className="btn btn-ghost">Search</button>
