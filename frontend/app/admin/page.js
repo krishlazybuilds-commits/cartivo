@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminTabs from "../components/AdminTabs";
@@ -99,11 +99,15 @@ export default function AdminUsersPage() {
     }
   }
 
-  function onSearchSubmit(e) {
-    e.preventDefault();
-    setPage(1);
-    setQuery(search.trim());
-  }
+  const debounceRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      setQuery(search.trim());
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
 
   if (authLoading || !user || !user.is_staff) return null;
 
@@ -122,7 +126,7 @@ export default function AdminUsersPage() {
 
             <AdminTabs />
 
-            <form onSubmit={onSearchSubmit} className="admin-search">
+            <div className="admin-search">
               <input
                 type="search"
                 placeholder="Search by username, email, or name"
@@ -130,8 +134,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search users"
               />
-              <button type="submit" className="btn btn-ghost">Search</button>
-            </form>
+            </div>
 
             {error && <p className="auth-error" role="alert">{error}</p>}
 
