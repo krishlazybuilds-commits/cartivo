@@ -8,6 +8,7 @@ import { ToastProvider } from "./lib/toast";
 import ConditionalNav from "./components/ConditionalNav";
 import ConditionalFooter from "./components/ConditionalFooter";
 import CookieConsent from "./components/CookieConsent";
+import LandingIntro from "./components/LandingIntro";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -57,6 +58,41 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" style={{ background: "#ffffff" }}>
       <body className={`${jakarta.variable} ${fraunces.variable}`} style={{ background: "#ffffff" }}>
+        {/*
+          Inline script runs synchronously before the first paint.
+          It reads sessionStorage + prefers-reduced-motion and sets
+          data-intro="play" or "skip" on <html> so the CSS overlay
+          is visible/hidden from byte 1 — no hydration wait needed.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var d=document.documentElement;var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;var onHome=window.location.pathname==='/';if(r||!onHome){d.setAttribute('data-intro','skip');}else{d.setAttribute('data-intro','play');}}catch(e){d.setAttribute('data-intro','skip');}})();` }} />
+        {/* Static overlay — present in the initial HTML, shown/hidden by CSS keyed on data-intro */}
+        <div className="landing-intro" aria-hidden="true">
+          {/* Three stacked strips — exit with staggered upward slides */}
+          <div className="li-strip li-strip-1" />
+          <div className="li-strip li-strip-2" />
+          <div className="li-strip li-strip-3" />
+
+          {/* Brand center — letter-by-letter clip reveal */}
+          <div className="li-center">
+            <p className="li-tagline">Premium tech, fair prices</p>
+            <div className="li-word" aria-label="Cartivo">
+              {"CARTIVO".split("").map((ch, i) => (
+                <span key={i} className="li-letter-wrap">
+                  <span className="li-letter" style={{ animationDelay: `${0.08 + i * 0.07}s` }}>{ch}</span>
+                </span>
+              ))}
+            </div>
+            <span className="li-underline" />
+          </div>
+
+          {/* Counter — bottom right */}
+          <div className="li-counter-block">
+            <span id="li-counter-num">0</span>
+            <span className="li-counter-pct">%</span>
+          </div>
+        </div>
+        {/* Hydration-side cleanup only */}
+        <LandingIntro />
         <AuthProvider initialAuthed={initialAuthed} initialName={initialName}>
           <ToastProvider>
             <CartProvider>
