@@ -19,7 +19,7 @@ export default function LandingIntro() {
     // ── Rolling counter 0 → 100 ──────────────────────────────────────────────
     const counterEl = document.getElementById("li-counter-num");
     if (counterEl) {
-      const duration = 1800;
+      const duration = 2200;
       const start = performance.now();
       const tick = (now) => {
         const elapsed = now - start;
