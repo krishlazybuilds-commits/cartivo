@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "Privacy Policy — Cartivo",
@@ -13,12 +14,15 @@ export default function PrivacyPage() {
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
-            <div className="section-head">
-              <span className="eyebrow">Legal</span>
-              <h2>Privacy Policy</h2>
-              <p>Last updated: June 2026</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Legal</span>
+                <h2>Privacy Policy</h2>
+                <p>Last updated: June 2026</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <div className="legal-body">
               <h3>Information we collect</h3>
               <p>We collect information you provide when you register for an account, place an order, or contact us. This includes your name, email address, phone number, and shipping address.</p>
@@ -38,6 +42,7 @@ export default function PrivacyPage() {
               <h3>Contact</h3>
               <p>If you have questions about this policy, please contact us at privacy@cartivo.com.</p>
             </div>
+            </Reveal>
           </div>
         </section>
       </main>

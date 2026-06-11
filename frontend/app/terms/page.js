@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "Terms of Service — Cartivo",
@@ -13,12 +14,15 @@ export default function TermsPage() {
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
-            <div className="section-head">
-              <span className="eyebrow">Legal</span>
-              <h2>Terms of Service</h2>
-              <p>Last updated: June 2026</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Legal</span>
+                <h2>Terms of Service</h2>
+                <p>Last updated: June 2026</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <div className="legal-body">
               <h3>Acceptance of terms</h3>
               <p>By accessing or using Cartivo, you agree to be bound by these Terms of Service. If you do not agree, please do not use the platform.</p>
@@ -44,6 +48,7 @@ export default function TermsPage() {
               <h3>Contact</h3>
               <p>For questions about these terms, contact us at legal@cartivo.com.</p>
             </div>
+            </Reveal>
           </div>
         </section>
       </main>
