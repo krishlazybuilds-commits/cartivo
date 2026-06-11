@@ -18,7 +18,7 @@ const LINKS = [
 ];
 
 export default function Nav() {
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading, authed, logout } = useAuth();
   const { itemCount } = useCart();
   const toast = useToast();
   const pathname = usePathname();
@@ -99,7 +99,7 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {authLoading ? <div className="nav-cta-placeholder" aria-hidden="true" /> : user ? (
+          {user || (authed && authLoading) ? (
             <>
               <Link href="/cart" className={`nav-icon${pathname === "/cart" ? " nav-icon-active" : ""}`} aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />
@@ -116,11 +116,11 @@ export default function Nav() {
                   aria-label="Account menu"
                   aria-expanded={accountOpen}
                 >
-                  <span className="nav-avatar">{(user.username || "U")[0].toUpperCase()}</span>
+                  <span className="nav-avatar">{(user?.username || "U")[0].toUpperCase()}</span>
                   <svg className="nav-avatar-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div className={`nav-account-menu${accountOpen ? " open" : ""}`} role="menu">
-                  <div className="nav-account-name-row">{user.username}</div>
+                  <div className="nav-account-name-row">{user?.username}</div>
                   <div className="nav-account-sep" />
                   <Link href="/profile" role="menuitem" onClick={() => setAccountOpen(false)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -134,7 +134,7 @@ export default function Nav() {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     Wishlist
                   </Link>
-                  {user.is_staff && <Link href="/admin" role="menuitem" onClick={() => setAccountOpen(false)}>
+                  {user?.is_staff && <Link href="/admin" role="menuitem" onClick={() => setAccountOpen(false)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z"/></svg>
                     Admin
                   </Link>}
@@ -176,14 +176,14 @@ export default function Nav() {
           <a href="/#why" onClick={closeMenu}>Why Cartivo</a>
         </div>
         <div className="nav-drawer-cta">
-          {user ? (
+          {user || (authed && authLoading) ? (
             <>
               <Link href="/cart" className="btn btn-ghost" onClick={closeMenu}>
                 Cart{itemCount > 0 ? ` (${itemCount})` : ""}
               </Link>
               <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>Orders</Link>
               <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>Wishlist</Link>
-              {user.is_staff && (
+              {user?.is_staff && (
                 <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>Admin</Link>
               )}
               <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>Profile</Link>

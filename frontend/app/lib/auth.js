@@ -88,6 +88,23 @@ export async function authFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/**
+ * Non-sensitive hint cookie mirroring whether a session likely exists. It holds
+ * no auth data — it just lets the server-rendered HTML pick the right nav state
+ * on first paint so the Sign in / Get started buttons don't flash on refresh.
+ * The real source of truth remains the httpOnly auth cookies + /auth/me.
+ */
+const AUTH_HINT_COOKIE = "cartivo_auth";
+
+function setAuthHint(value) {
+  if (typeof document === "undefined") return;
+  if (value) {
+    document.cookie = `${AUTH_HINT_COOKIE}=1; path=/; max-age=2592000; samesite=lax`;
+  } else {
+    document.cookie = `${AUTH_HINT_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  }
+}
+
 async function tryRefresh() {
   const csrf = await ensureCsrfToken();
   const res = await fetch(`${API_URL}/auth/token/refresh/`, {
@@ -101,16 +118,24 @@ async function tryRefresh() {
   return res.ok;
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, initialAuthed = false }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Optimistic guess of the auth state for the first paint, seeded from the
+  // hint cookie the server read. Lets the nav render the correct controls
+  // immediately instead of flashing a placeholder while /auth/me resolves.
+  const [authed, setAuthed] = useState(initialAuthed);
 
   const loadUser = useCallback(async () => {
     try {
       const me = await authFetch("/auth/me/");
       setUser(me);
+      setAuthed(true);
+      setAuthHint(true);
     } catch {
       setUser(null);
+      setAuthed(false);
+      setAuthHint(false);
     } finally {
       setLoading(false);
     }
@@ -175,10 +200,12 @@ export function AuthProvider({ children }) {
       // Even if the server call fails, drop the local user state.
     }
     setUser(null);
+    setAuthed(false);
+    setAuthHint(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authed, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
