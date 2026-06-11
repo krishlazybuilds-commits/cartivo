@@ -29,7 +29,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
-  const [toDelete, setToDelete] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const isAdmin = !!user?.is_staff;
   const pageSize = 20;
@@ -82,20 +82,23 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function confirmDelete() {
-    const target = toDelete;
-    setToDelete(null);
-    if (!target) return;
-    setBusyId(target.id);
-    setError(null);
-    try {
-      await authFetch(`/auth/admin/users/${target.id}/`, { method: "DELETE" });
-      // Reload to keep pagination counts accurate.
-      await loadUsers();
-    } catch (err) {
-      setError(extractError(err.data, err.message));
-    } finally {
-      setBusyId(null);
+  async function confirmAction() {
+    const action = pendingAction;
+    setPendingAction(null);
+    if (!action) return;
+    if (action.type === "delete") {
+      setBusyId(action.target.id);
+      setError(null);
+      try {
+        await authFetch(`/auth/admin/users/${action.target.id}/`, { method: "DELETE" });
+        await loadUsers();
+      } catch (err) {
+        setError(extractError(err.data, err.message));
+      } finally {
+        setBusyId(null);
+      }
+    } else {
+      await patchUser(action.target, action.body);
     }
   }
 
@@ -191,7 +194,7 @@ export default function AdminUsersPage() {
                               type="button"
                               className="btn btn-ghost"
                               disabled={disabled}
-                              onClick={() => patchUser(u, { is_active: !u.is_active })}
+                              onClick={() => setPendingAction({ type: "patch", target: u, body: { is_active: !u.is_active }, title: u.is_active ? "Deactivate user?" : "Activate user?", message: `${u.is_active ? "Deactivate" : "Activate"} "${u.username}"?`, label: u.is_active ? "Deactivate" : "Activate" })}
                             >
                               {u.is_active ? "Deactivate" : "Activate"}
                             </button>{" "}
@@ -199,7 +202,7 @@ export default function AdminUsersPage() {
                               type="button"
                               className="btn btn-ghost"
                               disabled={disabled}
-                              onClick={() => patchUser(u, { is_staff: !u.is_staff })}
+                              onClick={() => setPendingAction({ type: "patch", target: u, body: { is_staff: !u.is_staff }, title: u.is_staff ? "Revoke admin?" : "Grant admin?", message: `${u.is_staff ? "Revoke admin access from" : "Grant admin access to"} "${u.username}"?`, label: u.is_staff ? "Revoke" : "Grant" })}
                             >
                               {u.is_staff ? "Revoke admin" : "Make admin"}
                             </button>{" "}
@@ -207,7 +210,7 @@ export default function AdminUsersPage() {
                               type="button"
                               className="btn btn-danger"
                               disabled={disabled}
-                              onClick={() => setToDelete(u)}
+                              onClick={() => setPendingAction({ type: "delete", target: u, title: "Delete user?", message: `Permanently delete "${u.username}"? This cannot be undone.`, label: "Delete", destructive: true })}
                             >
                               Delete
                             </button>
@@ -237,13 +240,13 @@ export default function AdminUsersPage() {
       </main>
 
       <ConfirmDialog
-        open={!!toDelete}
-        title="Delete user?"
-        message={toDelete ? `Permanently delete "${toDelete.username}"? This cannot be undone.` : ""}
-        confirmLabel="Delete"
-        destructive
-        onConfirm={confirmDelete}
-        onCancel={() => setToDelete(null)}
+        open={!!pendingAction}
+        title={pendingAction?.title || ""}
+        message={pendingAction?.message || ""}
+        confirmLabel={pendingAction?.label || "Confirm"}
+        destructive={pendingAction?.destructive}
+        onConfirm={confirmAction}
+        onCancel={() => setPendingAction(null)}
       />
     </>
   );
