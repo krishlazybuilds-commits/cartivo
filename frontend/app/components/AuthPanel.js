@@ -37,7 +37,7 @@ export default function AuthPanel() {
       {/* Designer quote pinned to bottom */}
       <div className="auth-panel-brand">
         <p className="auth-panel-quote">&ldquo;Why space in an e-commerce app?&rdquo;</p>
-        <p className="auth-panel-tagline">Because the developer loves space. 🚀</p>
+        <p className="auth-panel-tagline">Because the developer loves space.</p>
       </div>
     </div>
   );
