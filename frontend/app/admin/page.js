@@ -165,7 +165,7 @@ export default function AdminUsersPage() {
                   </thead>
                   <tbody>
                     {users.map((u) => {
-                      const isSelf = u.id === user.id;
+                      const isSelf = String(u.id) === String(user.id);
                       const busy = busyId === u.id;
                       const lockedSuper = u.is_superuser && !user.is_superuser;
                       const disabled = busy || isSelf || lockedSuper;
