@@ -2031,11 +2031,18 @@ body::after {
   position: absolute;
   top: 0.6rem;
   right: 0.6rem;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  display: grid;
+  place-items: center;
+}
+.wishlist-btn.product-card-wishlist .wishlist-heart {
+  font-size: 1rem;
+  line-height: 1;
+  display: block;
 }
 
 .product-actions {
