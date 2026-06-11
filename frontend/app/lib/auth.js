@@ -88,6 +88,28 @@ export async function authFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/**
+ * Non-sensitive hint cookies mirroring whether a session likely exists and the
+ * display name to show. They hold no auth credentials — they just let the
+ * server-rendered HTML pick the right nav state (and the correct avatar
+ * initial) on first paint so nothing flashes on refresh. The real source of
+ * truth remains the httpOnly auth cookies + /auth/me.
+ */
+const AUTH_HINT_COOKIE = "cartivo_auth";
+const NAME_HINT_COOKIE = "cartivo_name";
+
+function setAuthHint(user) {
+  if (typeof document === "undefined") return;
+  if (user) {
+    const name = encodeURIComponent(user.username || "");
+    document.cookie = `${AUTH_HINT_COOKIE}=1; path=/; max-age=2592000; samesite=lax`;
+    document.cookie = `${NAME_HINT_COOKIE}=${name}; path=/; max-age=2592000; samesite=lax`;
+  } else {
+    document.cookie = `${AUTH_HINT_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${NAME_HINT_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  }
+}
+
 async function tryRefresh() {
   const csrf = await ensureCsrfToken();
   const res = await fetch(`${API_URL}/auth/token/refresh/`, {
@@ -101,16 +123,27 @@ async function tryRefresh() {
   return res.ok;
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, initialAuthed = false, initialName = "" }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Optimistic guess of the auth state for the first paint, seeded from the
+  // hint cookies the server read. Lets the nav render the correct controls and
+  // avatar initial immediately instead of flashing while /auth/me resolves.
+  const [authed, setAuthed] = useState(initialAuthed);
+  const [displayName, setDisplayName] = useState(initialName);
 
   const loadUser = useCallback(async () => {
     try {
       const me = await authFetch("/auth/me/");
       setUser(me);
+      setAuthed(true);
+      setDisplayName(me.username || "");
+      setAuthHint(me);
     } catch {
       setUser(null);
+      setAuthed(false);
+      setDisplayName("");
+      setAuthHint(null);
     } finally {
       setLoading(false);
     }
@@ -175,10 +208,13 @@ export function AuthProvider({ children }) {
       // Even if the server call fails, drop the local user state.
     }
     setUser(null);
+    setAuthed(false);
+    setDisplayName("");
+    setAuthHint(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authed, displayName, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
