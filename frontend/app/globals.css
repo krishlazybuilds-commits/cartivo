@@ -512,7 +512,7 @@ a {
   width: 100%;
   border-radius: 28px;
   overflow: hidden;
-  min-height: clamp(500px, 72vh, 720px);
+  min-height: clamp(560px, calc(100vh - 116px), 940px);
   display: flex;
   background: var(--ink);
   box-shadow: var(--shadow-lg);
