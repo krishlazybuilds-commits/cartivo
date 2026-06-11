@@ -1646,6 +1646,14 @@ body::after {
 .auth-password-toggle:hover {
   color: var(--ink);
 }
+.auth-checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
 .auth-success {
   background: #dcfce7;
   color: #15803d;

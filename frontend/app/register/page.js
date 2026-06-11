@@ -25,6 +25,8 @@ function validate(form) {
     errs.password = "Password must contain at least one number.";
   if (form.password !== form.confirmPassword)
     errs.confirmPassword = "Passwords do not match.";
+  if (!form.agreed)
+    errs.agreed = "You must agree to the Terms of Service and Privacy Policy.";
   return errs;
 }
 
@@ -59,7 +61,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     username: "", email: "", password: "", confirmPassword: "",
-    first_name: "", last_name: "",
+    first_name: "", last_name: "", agreed: false,
   });
   const [fieldErrors, setFieldErrors] = useState({});
   const [serverError, setServerError] = useState(null);
@@ -79,7 +81,7 @@ export default function RegisterPage() {
     if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     setSubmitting(true);
     try {
-      const { confirmPassword, ...payload } = form;
+      const { confirmPassword, agreed, ...payload } = form;
       await register(payload);
       router.push("/products");
     } catch (err) {
@@ -130,6 +132,11 @@ export default function RegisterPage() {
               <PasswordInput value={form.confirmPassword} onChange={update("confirmPassword")} autoComplete="new-password" required />
               {fieldErrors.confirmPassword && <span className="auth-field-error">{fieldErrors.confirmPassword}</span>}
             </label>
+            <label className="auth-checkbox-label">
+              <input type="checkbox" checked={form.agreed} onChange={(e) => { setForm((f) => ({ ...f, agreed: e.target.checked })); setFieldErrors((fe) => ({ ...fe, agreed: undefined })); }} />
+              I agree to the <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>
+            </label>
+            {fieldErrors.agreed && <span className="auth-field-error">{fieldErrors.agreed}</span>}
             <button className="btn btn-primary" type="submit" disabled={submitting}>
               {submitting ? "Creating account…" : "Create account"}
             </button>
