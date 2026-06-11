@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "Security — Cartivo",
@@ -13,12 +14,15 @@ export default function SecurityPage() {
       <main>
         <section className="features">
           <div className="container" style={{ maxWidth: 720 }}>
-            <div className="section-head">
-              <span className="eyebrow">Trust & Safety</span>
-              <h2>Security</h2>
-              <p>Last updated: June 2026</p>
-            </div>
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Trust & Safety</span>
+                <h2>Security</h2>
+                <p>Last updated: June 2026</p>
+              </div>
+            </Reveal>
 
+            <Reveal delay={80}>
             <div className="legal-body">
               <h3>Authentication</h3>
               <p>Cartivo uses JSON Web Tokens (JWT) stored in httpOnly, Secure cookies. This means your session token is never accessible to JavaScript, protecting you from cross-site scripting (XSS) attacks. All authentication requests are protected with CSRF tokens.</p>
@@ -41,6 +45,7 @@ export default function SecurityPage() {
               <h3>Contact</h3>
               <p>For security-related questions or concerns, contact us at <a href="mailto:security@cartivo.com">security@cartivo.com</a>.</p>
             </div>
+            </Reveal>
           </div>
         </section>
       </main>

@@ -708,52 +708,154 @@ section {
 
 /* Footer */
 .footer {
-  padding: 64px 0 36px;
-  border-top: 1px solid var(--line);
+  background: var(--ink);
+  color: rgba(255, 255, 255, 0.66);
+  padding: 80px 0 32px;
 }
-.footer-grid {
+.footer-top {
   display: grid;
-  grid-template-columns: 1.5fr repeat(3, 1fr);
-  gap: 36px;
-  margin-bottom: 44px;
+  grid-template-columns: 1.4fr 2fr;
+  gap: 56px;
+  padding-bottom: 48px;
+}
+.footer .brand {
+  color: #fff;
+}
+.footer .brand-dot {
+  background: var(--accent);
+  color: var(--ink);
 }
 .footer p.tag {
-  color: var(--slate);
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 14px;
-  max-width: 30ch;
+  max-width: 34ch;
   font-size: 0.95rem;
+}
+
+/* Newsletter */
+.footer-newsletter {
+  margin-top: 28px;
+}
+.footer-newsletter h4 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.footer-newsletter > p {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+  max-width: 36ch;
+}
+.newsletter-field {
+  display: flex;
+  gap: 8px;
+  max-width: 380px;
+}
+.newsletter-field input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.newsletter-field input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+.newsletter-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+.newsletter-field .btn {
+  flex-shrink: 0;
+}
+.newsletter-error {
+  display: block;
+  margin-top: 8px;
+  color: #fca5a5;
+  font-size: 0.82rem;
+}
+.newsletter-done {
+  margin-top: 28px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* Social */
+.footer-social {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+.footer-social-link {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.footer-social-link:hover {
+  color: var(--ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Nav columns */
+.footer-cols {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
 }
 .footer h4 {
   font-family: var(--font-sans), sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink);
-  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 18px;
 }
-.footer ul {
+.footer-col ul {
   list-style: none;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 .footer a {
-  color: var(--slate);
-  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.92rem;
   transition: color 0.15s ease;
 }
-.footer a:hover {
-  color: var(--ink);
+.footer-col a:hover {
+  color: #fff;
 }
 .footer-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-top: 26px;
-  border-top: 1px solid var(--line);
-  color: var(--slate);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.88rem;
   flex-wrap: wrap;
   gap: 12px;
+}
+.footer-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.footer-backtop {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+.footer-backtop:hover {
+  color: var(--accent);
 }
 
 /* ---------- Mobile nav ---------- */
@@ -853,8 +955,12 @@ section {
   .nav-drawer {
     display: flex;
   }
-  .footer-grid {
-    grid-template-columns: 1fr 1fr;
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .footer-cols {
+    grid-template-columns: repeat(2, 1fr);
   }
   .price-card.featured {
     transform: none;
@@ -867,9 +973,11 @@ section {
   }
   .feature-grid,
   .price-grid,
-  .stat-grid,
-  .footer-grid {
+  .stat-grid {
     grid-template-columns: 1fr;
+  }
+  .footer-cols {
+    grid-template-columns: 1fr 1fr;
   }
   .hero p.lead {
     max-width: none;
