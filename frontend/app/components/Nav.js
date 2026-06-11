@@ -22,14 +22,41 @@ export default function Nav() {
   const { itemCount } = useCart();
   const toast = useToast();
   const pathname = usePathname();
-  const [hash, setHash] = useState("");
+  const [activeSection, setActiveSection] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Scroll-spy: highlight the nav link for whichever homepage section is in view.
   useEffect(() => {
-    const updateHash = () => setHash(window.location.hash);
-    updateHash();
-    window.addEventListener("hashchange", updateHash);
-    return () => window.removeEventListener("hashchange", updateHash);
+    if (pathname !== "/") {
+      setActiveSection("");
+      return;
+    }
+    const ids = ["features", "pricing"];
+    const sections = ids
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible.length) {
+          setActiveSection(visible[0].target.id);
+        } else {
+          // No tracked section in view (e.g. hero) — clear active state.
+          const anyIntersecting = sections.some((s) => {
+            const r = s.getBoundingClientRect();
+            return r.top < window.innerHeight && r.bottom > 0;
+          });
+          if (!anyIntersecting) setActiveSection("");
+        }
+      },
+      { threshold: [0.25, 0.5], rootMargin: "-30% 0px -30% 0px" }
+    );
+    sections.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
   }, [pathname]);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -65,7 +92,7 @@ export default function Nav() {
         {/* Desktop links */}
         <div className="nav-links">
           {LINKS.map((l) => {
-            const isActive = l.href.startsWith("/#") ? pathname === "/" && hash === l.href.slice(1) : pathname.startsWith(l.href);
+            const isActive = l.href.startsWith("/#") ? pathname === "/" && activeSection === l.href.slice(2) : pathname.startsWith(l.href);
             return <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>;
           })}
         </div>
