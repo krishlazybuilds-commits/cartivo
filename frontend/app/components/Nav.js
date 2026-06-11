@@ -15,7 +15,7 @@ const LINKS = [
 ];
 
 export default function Nav() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
   const { itemCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -47,12 +47,7 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {loading ? (
-            <>
-              <span className="nav-link-min" style={{ visibility: "hidden" }}>Sign in</span>
-              <span className="btn btn-primary btn-sm" style={{ visibility: "hidden" }}>Get started</span>
-            </>
-          ) : user ? (
+          {user ? (
             <>
               <Link href="/cart" className="nav-icon" aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />
@@ -95,7 +90,7 @@ export default function Nav() {
           <a href="/#why" onClick={closeMenu}>Why Cartivo</a>
         </div>
         <div className="nav-drawer-cta">
-          {loading ? null : user ? (
+          {user ? (
             <>
               <Link href="/cart" className="btn btn-ghost" onClick={closeMenu}>
                 Cart{itemCount > 0 ? ` (${itemCount})` : ""}
