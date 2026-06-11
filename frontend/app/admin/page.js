@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import AdminTabs from "../components/AdminTabs";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
@@ -118,6 +119,8 @@ export default function AdminUsersPage() {
               <h2>Account management</h2>
               <p>Manage user accounts: search, activate or deactivate, grant or revoke admin access, and remove accounts.</p>
             </div>
+
+            <AdminTabs />
 
             <form onSubmit={onSearchSubmit} className="admin-search" style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", maxWidth: 480 }}>
               <input
