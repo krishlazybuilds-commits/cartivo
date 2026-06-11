@@ -1621,6 +1621,30 @@ body::after {
   color: #b91c1c;
   font-weight: 500;
 }
+.auth-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.auth-password-wrap input {
+  flex: 1;
+  padding-right: 2.75rem;
+}
+.auth-password-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+}
+.auth-password-toggle:hover {
+  color: var(--ink);
+}
 .auth-success {
   background: #dcfce7;
   color: #15803d;
