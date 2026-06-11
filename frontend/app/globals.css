@@ -2031,6 +2031,29 @@ body::after {
   border-radius: 14px;
   padding: 1.25rem 1.5rem;
 }
+.order-card form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.order-card form input {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 400;
+  font-size: 0.95rem;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.order-card form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(252, 163, 17, 0.18);
+}
 .order-head {
   display: flex;
   justify-content: space-between;
