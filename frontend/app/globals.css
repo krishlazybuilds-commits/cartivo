@@ -1616,6 +1616,11 @@ body::after {
   border-radius: 8px;
   font-size: 0.85rem;
 }
+.auth-field-error {
+  font-size: 0.78rem;
+  color: #b91c1c;
+  font-weight: 500;
+}
 .auth-success {
   background: #dcfce7;
   color: #15803d;
