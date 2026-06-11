@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
+import { useToast } from "../lib/toast";
 
 /* Minimal primary links shown on desktop. The fuller set (How it works,
    Why Cartivo, account links) lives in the mobile drawer below. */
@@ -17,6 +18,7 @@ const LINKS = [
 export default function Nav() {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
+  const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
@@ -92,7 +94,7 @@ export default function Nav() {
                   <Link href="/wishlist" role="menuitem" onClick={() => setAccountOpen(false)}>Wishlist</Link>
                   {user.is_staff && <Link href="/admin" role="menuitem" onClick={() => setAccountOpen(false)}>Admin</Link>}
                   <div className="nav-account-sep" />
-                  <button type="button" role="menuitem" className="nav-account-signout" onClick={() => { setAccountOpen(false); logout(); }}>
+                  <button type="button" role="menuitem" className="nav-account-signout" onClick={() => { setAccountOpen(false); logout(); toast("Signed out successfully", "success"); }}>
                     Sign out
                   </button>
                 </div>
@@ -139,7 +141,7 @@ export default function Nav() {
                 <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>Admin</Link>
               )}
               <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>Profile</Link>
-              <button className="btn btn-ghost" onClick={() => { logout(); closeMenu(); }} type="button">
+              <button className="btn btn-ghost" onClick={() => { logout(); toast("Signed out successfully", "success"); closeMenu(); }} type="button">
                 Sign out
               </button>
             </>
