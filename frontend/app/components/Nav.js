@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 import { useAuth } from "../lib/auth";
@@ -21,6 +22,7 @@ export default function Nav() {
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const accountRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function Nav() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
+    <>
     <nav className="nav nav--min">
       <div className="container nav-inner">
         <Link href="/" className="brand" aria-label="Cartivo home">
@@ -94,7 +97,7 @@ export default function Nav() {
                   <Link href="/wishlist" role="menuitem" onClick={() => setAccountOpen(false)}>Wishlist</Link>
                   {user.is_staff && <Link href="/admin" role="menuitem" onClick={() => setAccountOpen(false)}>Admin</Link>}
                   <div className="nav-account-sep" />
-                  <button type="button" role="menuitem" className="nav-account-signout" onClick={() => { setAccountOpen(false); logout(); toast("Signed out successfully", "success"); }}>
+                  <button type="button" role="menuitem" className="nav-account-signout" onClick={() => { setAccountOpen(false); setSignOutOpen(true); }}>
                     Sign out
                   </button>
                 </div>
@@ -141,7 +144,7 @@ export default function Nav() {
                 <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>Admin</Link>
               )}
               <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>Profile</Link>
-              <button className="btn btn-ghost" onClick={() => { logout(); toast("Signed out successfully", "success"); closeMenu(); }} type="button">
+              <button className="btn btn-ghost" onClick={() => { closeMenu(); setSignOutOpen(true); }} type="button">
                 Sign out
               </button>
             </>
@@ -153,7 +156,41 @@ export default function Nav() {
           )}
         </div>
       </div>
+
     </nav>
+    <SignOutModal
+      open={signOutOpen}
+      onClose={() => setSignOutOpen(false)}
+      onConfirm={() => { setSignOutOpen(false); logout(); toast("Signed out successfully", "success"); }}
+    />
+    </>
+  );
+}
+
+function SignOutModal({ open, onClose, onConfirm }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(
+    <>
+      {open && <div className="signout-backdrop" onClick={onClose} aria-hidden="true" />}
+      <div className={`signout-modal${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Sign out confirmation">
+        <div className="signout-modal-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            <path d="M16 17l5-5-5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12H9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <h3 className="signout-modal-title">Sign out?</h3>
+        <p className="signout-modal-desc">You&apos;ll need to sign in again to access your account.</p>
+        <div className="signout-modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={onConfirm}>Sign out</button>
+        </div>
+      </div>
+    </>,
+    document.body
   );
 }
 

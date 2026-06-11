@@ -339,6 +339,76 @@ a {
   margin: 4px 4px;
 }
 
+/* Sign-out confirmation modal */
+.signout-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 33, 61, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  animation: fade-in 0.2s ease;
+}
+.signout-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -44%) scale(0.96);
+  z-index: 101;
+  background: #fff;
+  border-radius: 24px;
+  padding: 2rem;
+  width: min(380px, 90vw);
+  box-shadow: 0 32px 64px -24px rgba(20, 33, 61, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.22s;
+}
+.signout-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+.signout-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #fff0f0;
+  display: grid;
+  place-items: center;
+  color: #c0392b;
+  margin-bottom: 0.25rem;
+}
+.signout-modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.signout-modal-desc {
+  font-size: 0.9rem;
+  color: var(--slate);
+  margin: 0;
+}
+.signout-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+.signout-modal-actions .btn {
+  flex: 1;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
