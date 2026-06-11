@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='order',
             name='order_number',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            # Added nullable + non-unique first; migration 0007 backfills unique
+            # values for existing rows, then re-adds the unique constraint. This
+            # avoids a unique violation when existing rows would otherwise all
+            # receive the same callable default.
+            field=models.UUIDField(default=None, editable=False, null=True),
         ),
         migrations.AddConstraint(
             model_name='order',
