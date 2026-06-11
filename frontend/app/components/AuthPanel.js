@@ -24,6 +24,8 @@ export default function AuthPanel() {
         className="auth-panel-video"
         src={VIDEO_SRC}
         poster={POSTER_SRC || undefined}
+        width={1920}
+        height={1080}
         autoPlay
         muted
         loop

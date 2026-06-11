@@ -1505,7 +1505,7 @@ body::after {
 /* --- Auth: split-screen layout --------------------------------------------- */
 .auth-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 3fr;
   /* Nav is 72px tall plus its 1px bottom border = 73px. Subtracting the full
      73px keeps the page exactly one viewport tall (no 1px overflow scroll). */
   min-height: calc(100vh - 73px);
@@ -1669,7 +1669,11 @@ body::after {
   inset: 0;
   width: 100%;
   height: 100%;
+  min-width: 100%;
+  min-height: 100%;
   object-fit: cover;
+  object-position: center;
+  image-rendering: high-quality;
   z-index: 0;
 }
 
