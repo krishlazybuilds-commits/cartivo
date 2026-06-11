@@ -272,6 +272,10 @@ a {
 .nav-icon:hover {
   background: var(--soft);
 }
+.nav-icon-active {
+  color: var(--accent);
+  background: rgba(252, 163, 17, 0.08);
+}
 
 /* Account dropdown */
 .nav-account {

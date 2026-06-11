@@ -66,11 +66,11 @@ export default function Nav() {
         <div className="nav-cta">
           {authLoading ? null : user ? (
             <>
-              <Link href="/cart" className="nav-icon" aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
+              <Link href="/cart" className={`nav-icon${pathname === "/cart" ? " nav-icon-active" : ""}`} aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
                 <CartIcon />
                 {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
               </Link>
-              <Link href="/orders" className="nav-icon" aria-label="Orders">
+              <Link href="/orders" className={`nav-icon${pathname.startsWith("/orders") ? " nav-icon-active" : ""}`} aria-label="Orders">
                 <OrdersIcon />
               </Link>
               <div className="nav-account" ref={accountRef}>
