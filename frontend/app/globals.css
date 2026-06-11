@@ -1579,7 +1579,7 @@ body::after {
   font-weight: 600;
   color: var(--ink);
 }
-.auth-form input {
+.auth-form input:not([type="checkbox"]) {
   padding: 0.72rem 1rem;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1589,7 +1589,7 @@ body::after {
   background: #fff;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.auth-form input:focus {
+.auth-form input:not([type="checkbox"]):focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(252, 163, 17, 0.18);
@@ -1650,9 +1650,16 @@ body::after {
   flex-direction: row !important;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 400;
+  font-weight: 400 !important;
   font-size: 0.85rem;
   cursor: pointer;
+}
+.auth-checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  appearance: auto;
 }
 .auth-success {
   background: #dcfce7;
