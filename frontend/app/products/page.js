@@ -84,11 +84,18 @@ export default async function ProductsPage({ searchParams }) {
             )}
 
             {!error && products.length === 0 && (
-              <p className="center">
-                {search || category
-                  ? "No products match your filters."
-                  : "No products yet."}
-              </p>
+              <div className="empty-state">
+                <svg className="empty-state-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M9 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <p>
+                  {search || category
+                    ? "No products match your filters."
+                    : "No products yet."}
+                </p>
+              </div>
             )}
 
             <div className="feature-grid">

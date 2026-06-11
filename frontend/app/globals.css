@@ -1838,6 +1838,22 @@ body::after {
 }
 
 
+/* --- Empty state ----------------------------------------------------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 3rem 1rem;
+  color: var(--slate);
+}
+.empty-state-icon {
+  color: var(--cloud);
+}
+.empty-state p {
+  font-size: 0.95rem;
+}
+
 /* --- Shop filters ---------------------------------------------------------- */
 .shop-filters {
   display: flex;
