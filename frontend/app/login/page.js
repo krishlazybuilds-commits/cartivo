@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import AuthPanel from "../components/AuthPanel";
 import AuthBackButton from "../components/AuthBackButton";
+import PasswordInput from "../components/PasswordInput";
 import { useAuth } from "../lib/auth";
 import { useToast } from "../lib/toast";
 
@@ -43,7 +44,7 @@ function LoginForm() {
       </label>
       <label>
         Password
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+        <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
       </label>
       <button className="btn btn-primary" type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
