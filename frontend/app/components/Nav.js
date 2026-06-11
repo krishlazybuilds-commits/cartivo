@@ -6,70 +6,64 @@ import Link from "next/link";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 
+/* Minimal primary links shown on desktop. The fuller set (How it works,
+   Why Cartivo, account links) lives in the mobile drawer below. */
+const LINKS = [
+  { label: "Shop", href: "/products" },
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
+];
+
 export default function Nav() {
   const { user, logout, loading } = useAuth();
   const { itemCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Close drawer on route change (link click)
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
 
-  function closeMenu() {
-    setMenuOpen(false);
-  }
+  const closeMenu = () => setMenuOpen(false);
 
   return (
-    <nav className="nav">
+    <nav className="nav nav--min">
       <div className="container nav-inner">
-        <a href="/" className="brand" aria-label="Cartivo home">
+        <Link href="/" className="brand" aria-label="Cartivo home">
           <span className="brand-dot">C</span>
           Cartivo
-        </a>
+        </Link>
+
+        {/* Desktop links */}
         <div className="nav-links">
-          <a href="/#features">Features</a>
-          <a href="/#how">How it works</a>
-          <a href="/#pricing">Pricing</a>
-          <a href="/#why">Why Cartivo</a>
-          <Link href="/products">Shop</Link>
+          {LINKS.map((l) =>
+            l.href.startsWith("/#") ? (
+              <a key={l.label} href={l.href}>{l.label}</a>
+            ) : (
+              <Link key={l.label} href={l.href}>{l.label}</Link>
+            )
+          )}
         </div>
+
+        {/* Right actions */}
         <div className="nav-cta">
           {loading ? null : user ? (
             <>
-              <Link href="/cart" className="nav-cart" aria-label="Cart">
-                Cart
+              <Link href="/cart" className="nav-icon" aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
+                <CartIcon />
                 {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
               </Link>
-              <Link href="/orders" className="nav-cart">
-                Orders
-              </Link>
-              <Link href="/wishlist" className="nav-cart">
-                Wishlist
-              </Link>
-              {user.is_staff && (
-                <Link href="/admin" className="nav-cart">
-                  Admin
-                </Link>
-              )}
-              <Link href="/profile" className="nav-user">Hi, {user.username}</Link>
-              <button className="btn btn-ghost" onClick={logout} type="button">
+              <Link href="/orders" className="nav-link-min">Orders</Link>
+              {user.is_staff && <Link href="/admin" className="nav-link-min">Admin</Link>}
+              <Link href="/profile" className="nav-user">{user.username}</Link>
+              <button className="btn btn-ghost btn-sm" onClick={logout} type="button">
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="btn btn-ghost">
-                Sign in
-              </Link>
-              <Link href="/register" className="btn btn-primary">
-                Get started
-              </Link>
+              <Link href="/login" className="nav-link-min">Sign in</Link>
+              <Link href="/register" className="btn btn-primary btn-sm">Get started</Link>
             </>
           )}
         </div>
@@ -89,11 +83,11 @@ export default function Nav() {
       {/* Mobile drawer */}
       <div className={`nav-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="nav-drawer-links">
+          <Link href="/products" onClick={closeMenu}>Shop</Link>
           <a href="/#features" onClick={closeMenu}>Features</a>
           <a href="/#how" onClick={closeMenu}>How it works</a>
           <a href="/#pricing" onClick={closeMenu}>Pricing</a>
           <a href="/#why" onClick={closeMenu}>Why Cartivo</a>
-          <Link href="/products" onClick={closeMenu}>Shop</Link>
         </div>
         <div className="nav-drawer-cta">
           {loading ? null : user ? (
@@ -101,36 +95,40 @@ export default function Nav() {
               <Link href="/cart" className="btn btn-ghost" onClick={closeMenu}>
                 Cart{itemCount > 0 ? ` (${itemCount})` : ""}
               </Link>
-              <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>
-                Orders
-              </Link>
-              <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>
-                Wishlist
-              </Link>
+              <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>Orders</Link>
+              <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>Wishlist</Link>
               {user.is_staff && (
-                <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>
-                  Admin
-                </Link>
+                <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>Admin</Link>
               )}
-              <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>
-                Profile
-              </Link>
+              <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>Profile</Link>
               <button className="btn btn-ghost" onClick={() => { logout(); closeMenu(); }} type="button">
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="btn btn-ghost" onClick={closeMenu}>
-                Sign in
-              </Link>
-              <Link href="/register" className="btn btn-primary" onClick={closeMenu}>
-                Get started
-              </Link>
+              <Link href="/login" className="btn btn-ghost" onClick={closeMenu}>Sign in</Link>
+              <Link href="/register" className="btn btn-primary" onClick={closeMenu}>Get started</Link>
             </>
           )}
         </div>
       </div>
     </nav>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 3h2l.4 2M7 13h10l3-8H6.4M7 13L5.4 5M7 13l-2 4h12"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="20" r="1.4" fill="currentColor" />
+      <circle cx="17" cy="20" r="1.4" fill="currentColor" />
+    </svg>
   );
 }
