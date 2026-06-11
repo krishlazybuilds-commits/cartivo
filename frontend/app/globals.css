@@ -539,7 +539,7 @@ a {
 .hero-stage-content {
   position: relative;
   z-index: 2;
-  align-self: flex-end;
+  align-self: center;
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
