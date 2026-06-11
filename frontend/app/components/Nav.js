@@ -70,11 +70,6 @@ export default function Nav() {
               <Link href="/orders" className="nav-icon" aria-label="Orders">
                 <OrdersIcon />
               </Link>
-              {user.is_staff && (
-                <Link href="/admin" className="nav-icon" aria-label="Admin">
-                  <AdminIcon />
-                </Link>
-              )}
               <div className="nav-account" ref={accountRef}>
                 <button
                   type="button"
