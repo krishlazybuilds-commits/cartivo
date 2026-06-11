@@ -501,6 +501,120 @@ a {
   color: var(--slate);
   font-size: 0.9rem;
 }
+
+/* --- Dark immersive hero (lifestyle image, Luminous-style) ----------------- */
+.hero--dark {
+  background: var(--ink);
+  color: #fff;
+  padding: 76px 0 64px;
+}
+.hero--dark::before {
+  display: none;
+}
+.hero-glow {
+  position: absolute;
+  top: 46%;
+  right: 6%;
+  transform: translateY(-50%);
+  width: 640px;
+  height: 640px;
+  max-width: 60vw;
+  background: radial-gradient(circle, rgba(252, 163, 17, 0.3), transparent 62%);
+  z-index: 0;
+  pointer-events: none;
+  animation: hero-glow-pulse 7s ease-in-out infinite alternate;
+}
+@keyframes hero-glow-pulse {
+  from { opacity: 0.7; transform: translateY(-50%) scale(1); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow { animation: none; }
+}
+.hero--dark .eyebrow {
+  color: var(--accent);
+  background: rgba(252, 163, 17, 0.12);
+}
+.hero--dark h1 {
+  color: #fff;
+}
+.hero--dark h1 .accent {
+  color: var(--accent);
+  font-style: normal;
+}
+.hero--dark p.lead {
+  color: rgba(255, 255, 255, 0.66);
+  max-width: 40ch;
+}
+
+/* Instant-access category chips */
+.hero-cats {
+  margin-top: 38px;
+}
+.hero-cats-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 13px;
+}
+.hero-cats-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hero-cat-chip {
+  padding: 0.48rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.hero-cat-chip:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+/* Lifestyle image */
+.hero--dark .hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.hero-image-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+}
+.hero-image {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 20px;
+  /* Soften the outer edges so the dark studio backdrop melts into the hero */
+  -webkit-mask-image: radial-gradient(ellipse 82% 86% at 52% 46%, #000 66%, transparent 100%);
+  mask-image: radial-gradient(ellipse 82% 86% at 52% 46%, #000 66%, transparent 100%);
+}
+
+@media (max-width: 860px) {
+  .hero--dark .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .hero-image-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}
+
 .avatars {
   display: flex;
 }
