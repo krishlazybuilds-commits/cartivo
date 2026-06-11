@@ -115,13 +115,11 @@ export default function Footer() {
 
       <div className="footer-divider" />
 
-      <div className="container">
-        <div className="footer-bottom">
-          <span>© 2026 Cartivo. All rights reserved.</span>
-          <a href="#top" className="footer-backtop">
-            Back to top ↑
-          </a>
-        </div>
+      <div className="footer-bottom">
+        <span>© 2026 Cartivo. All rights reserved.</span>
+        <a href="#top" className="footer-backtop">
+          Back to top ↑
+        </a>
       </div>
     </footer>
   );
