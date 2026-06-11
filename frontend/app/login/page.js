@@ -7,9 +7,11 @@ import Link from "next/link";
 import AuthPanel from "../components/AuthPanel";
 import AuthBackButton from "../components/AuthBackButton";
 import { useAuth } from "../lib/auth";
+import { useToast } from "../lib/toast";
 
 function LoginForm() {
   const { login } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
@@ -23,6 +25,7 @@ function LoginForm() {
     setSubmitting(true);
     try {
       await login(username, password);
+      toast("Signed in successfully", "success");
       router.push(searchParams.get("next") || "/products");
     } catch (err) {
       setError(err.message);

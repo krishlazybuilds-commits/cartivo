@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { useAuth } from "../lib/auth";
@@ -18,11 +18,24 @@ export default function Nav() {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    function onDown(e) {
+      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
+    }
+    function onKey(e) { if (e.key === "Escape") setAccountOpen(false); }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [accountOpen]);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -53,12 +66,37 @@ export default function Nav() {
                 <CartIcon />
                 {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
               </Link>
-              <Link href="/orders" className="nav-link-min">Orders</Link>
-              {user.is_staff && <Link href="/admin" className="nav-link-min">Admin</Link>}
-              <Link href="/profile" className="nav-user">{user.username}</Link>
-              <button className="btn btn-ghost btn-sm" onClick={logout} type="button">
-                Sign out
-              </button>
+              <Link href="/orders" className="nav-icon" aria-label="Orders">
+                <OrdersIcon />
+              </Link>
+              {user.is_staff && (
+                <Link href="/admin" className="nav-icon" aria-label="Admin">
+                  <AdminIcon />
+                </Link>
+              )}
+              <div className="nav-account" ref={accountRef}>
+                <button
+                  type="button"
+                  className="nav-icon nav-avatar-btn"
+                  onClick={() => setAccountOpen((o) => !o)}
+                  aria-label="Account menu"
+                  aria-expanded={accountOpen}
+                >
+                  <span className="nav-avatar">{(user.username || "U")[0].toUpperCase()}</span>
+                </button>
+                <div className={`nav-account-menu${accountOpen ? " open" : ""}`} role="menu">
+                  <div className="nav-account-name-row">{user.username}</div>
+                  <div className="nav-account-sep" />
+                  <Link href="/profile" role="menuitem" onClick={() => setAccountOpen(false)}>Profile</Link>
+                  <Link href="/orders" role="menuitem" onClick={() => setAccountOpen(false)}>Orders</Link>
+                  <Link href="/wishlist" role="menuitem" onClick={() => setAccountOpen(false)}>Wishlist</Link>
+                  {user.is_staff && <Link href="/admin" role="menuitem" onClick={() => setAccountOpen(false)}>Admin</Link>}
+                  <div className="nav-account-sep" />
+                  <button type="button" role="menuitem" className="nav-account-signout" onClick={() => { setAccountOpen(false); logout(); }}>
+                    Sign out
+                  </button>
+                </div>
+              </div>
             </>
           ) : (
             <>
@@ -129,6 +167,25 @@ function CartIcon() {
       />
       <circle cx="9" cy="20" r="1.4" fill="currentColor" />
       <circle cx="17" cy="20" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+
+function OrdersIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AdminIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

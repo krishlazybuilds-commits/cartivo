@@ -261,6 +261,84 @@ a {
   background: var(--soft);
 }
 
+/* Account dropdown */
+.nav-account {
+  position: relative;
+}
+.nav-avatar-btn {
+  padding: 0;
+}
+.nav-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.nav-account-name-row {
+  padding: 8px 12px 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+.nav-account-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px -16px rgba(20,33,61,0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  z-index: 60;
+}
+.nav-account-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+.nav-account-menu a,
+.nav-account-signout {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.13s ease;
+}
+.nav-account-menu a:hover,
+.nav-account-signout:hover {
+  background: var(--soft);
+}
+.nav-account-signout { color: #c0392b; }
+.nav-account-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 4px;
+}
+
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
