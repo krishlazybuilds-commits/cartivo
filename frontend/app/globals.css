@@ -1699,10 +1699,11 @@ body::after {
   padding-top: 1.25rem;
   margin-top: 1rem;
 }
-.auth-panel-brandmark {
-  text-decoration: none;
-  gap: 10px;
-  font-size: 1.25rem;
+.auth-panel-quote {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-style: italic;
 }
 .auth-panel-tagline {
   margin-top: 0.5rem;

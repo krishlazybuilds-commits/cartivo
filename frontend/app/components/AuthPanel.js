@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { API_URL } from "../lib/api";
 
 /**
@@ -36,15 +34,10 @@ export default function AuthPanel() {
       {/* Dark gradient overlay for text legibility */}
       <div className="auth-panel-overlay" />
 
-      {/* Brand mark pinned to bottom */}
+      {/* Designer quote pinned to bottom */}
       <div className="auth-panel-brand">
-        <Link href="/" className="brand auth-panel-brandmark">
-          <span className="brand-dot" style={{ background: "var(--accent)", color: "var(--ink)" }}>C</span>
-          <span style={{ color: "#fff" }}>Cartivo</span>
-        </Link>
-        <p className="auth-panel-tagline">
-          Shop the latest tech.<br />Fast checkout. Real products.
-        </p>
+        <p className="auth-panel-quote">&ldquo;Why space in an e-commerce app?&rdquo;</p>
+        <p className="auth-panel-tagline">Because the developer loves space. 🚀</p>
       </div>
     </div>
   );
