@@ -1661,6 +1661,14 @@ body::after {
   border: none;
   appearance: auto;
 }
+.auth-checkbox-label a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 500;
+}
+.auth-checkbox-label a:hover {
+  color: var(--ink);
+}
 .auth-success {
   background: #dcfce7;
   color: #15803d;
