@@ -1989,3 +1989,185 @@ body::after {
   margin: 0.25rem 0 0;
   color: var(--slate, #475569);
 }
+
+/* --- Admin: tabs ----------------------------------------------------------- */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  margin-bottom: 1.75rem;
+}
+.admin-tab {
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  color: var(--slate, #475569);
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.admin-tab:hover {
+  color: var(--accent, #4f46e5);
+}
+.admin-tab.active {
+  color: var(--accent, #4f46e5);
+  border-bottom-color: var(--accent, #4f46e5);
+}
+
+/* --- Admin: panels --------------------------------------------------------- */
+.admin-panel {
+  background: #fff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.admin-panel-head h3 {
+  margin: 0;
+}
+.admin-inline-form {
+  display: flex;
+  gap: 0.5rem;
+}
+.admin-inline-form input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  font: inherit;
+}
+
+/* --- Admin: category chips ------------------------------------------------- */
+.admin-chip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+  font-size: 0.9rem;
+}
+.admin-chip-x {
+  border: none;
+  background: #e2e8f0;
+  color: #475569;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 1rem;
+}
+.admin-chip-x:hover {
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+/* --- Admin: table ---------------------------------------------------------- */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table th,
+.admin-table td {
+  padding: 0.6rem;
+  text-align: left;
+}
+.admin-table tbody tr {
+  border-top: 1px solid var(--line, #e2e8f0);
+}
+.admin-sku {
+  font-size: 0.8em;
+  opacity: 0.65;
+}
+
+/* --- Admin: product modal + form ------------------------------------------ */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+.admin-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.admin-modal h3 {
+  margin: 0 0 1.25rem;
+}
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  background: #fff;
+}
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  outline: none;
+  border-color: var(--accent, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+.admin-form-row {
+  display: flex;
+  gap: 1rem;
+}
+.admin-form-row label {
+  flex: 1;
+}
+.admin-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+.admin-checkbox input {
+  width: auto;
+}
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}

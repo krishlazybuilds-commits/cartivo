@@ -47,8 +47,11 @@ async function ensureCsrfToken() {
  */
 export async function authFetch(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
+  // When sending FormData (e.g. image uploads) let the browser set the
+  // multipart Content-Type with its boundary — don't force JSON.
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 
