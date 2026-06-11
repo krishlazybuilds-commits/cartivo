@@ -33,7 +33,7 @@ export default function LandingIntro() {
 
     // ── Cleanup after strips finish sliding out ──────────────────────────────
     const finish = () => root.setAttribute("data-intro", "done");
-    const timer = setTimeout(finish, 3200);
+    const timer = setTimeout(finish, 3800);
     const skip = () => { clearTimeout(timer); finish(); };
     window.addEventListener("keydown", skip, { once: true });
 

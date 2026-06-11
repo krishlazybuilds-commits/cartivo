@@ -3367,13 +3367,13 @@ html[data-intro="skip"] .landing-intro {
 
 /* On play: strips slide up with stagger */
 html[data-intro="play"] .li-strip-1 {
-  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.2s forwards;
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.6s forwards;
 }
 html[data-intro="play"] .li-strip-2 {
-  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.32s forwards;
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.72s forwards;
 }
 html[data-intro="play"] .li-strip-3 {
-  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.44s forwards;
+  animation: strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 2.84s forwards;
 }
 @keyframes strip-out {
   to { transform: translateY(-101vh); }
@@ -3451,10 +3451,10 @@ html[data-intro="play"] .li-strip-3 {
 
 /* Fade center out just before strips leave */
 html[data-intro="play"] .li-center {
-  animation: li-center-fade 0.35s ease 2.05s forwards;
+  animation: li-center-fade 0.35s ease 2.4s forwards;
 }
 html[data-intro="play"] .li-counter-block {
-  animation: li-up 0.4s ease 0.3s forwards, li-center-fade 0.3s ease 2.0s forwards;
+  animation: li-up 0.4s ease 0.3s forwards, li-center-fade 0.3s ease 2.35s forwards;
 }
 @keyframes li-center-fade {
   to { opacity: 0; }
