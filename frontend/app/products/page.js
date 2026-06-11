@@ -4,6 +4,7 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import ShopFilters from "../components/ShopFilters";
 import Reveal from "../components/Reveal";
+import WishlistButton from "../components/WishlistButton";
 import { apiFetch } from "../lib/api";
 import { formatPrice } from "../lib/format";
 
@@ -104,6 +105,7 @@ export default async function ProductsPage({ searchParams }) {
                           {p.name?.[0] ?? "?"}
                         </span>
                       )}
+                      <WishlistButton productId={p.id} className="product-card-wishlist" />
                     </div>
                     <span className="product-cat">{p.category_name ?? "Product"}</span>
                     <h3>{p.name}</h3>

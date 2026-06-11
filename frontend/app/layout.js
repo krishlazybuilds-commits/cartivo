@@ -2,6 +2,7 @@ import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
+import { WishlistProvider } from "./lib/wishlist";
 import { ToastProvider } from "./lib/toast";
 import CookieConsent from "./components/CookieConsent";
 
@@ -45,8 +46,10 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
-              {children}
-              <CookieConsent />
+              <WishlistProvider>
+                {children}
+                <CookieConsent />
+              </WishlistProvider>
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

@@ -5,6 +5,7 @@ import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import AddToCart from "../../components/AddToCart";
+import WishlistButton from "../../components/WishlistButton";
 import JsonLd from "../../components/JsonLd";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
@@ -101,7 +102,10 @@ export default async function ProductDetailPage({ params }) {
               <p className="product-desc">{product.description}</p>
               <p className="product-sku">SKU: {product.sku}</p>
               <div style={{ marginTop: "1.5rem" }}>
-                <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} />
+                <div className="product-actions">
+                  <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} />
+                  <WishlistButton productId={product.id} withLabel />
+                </div>
               </div>
             </article>
           </div>

@@ -89,3 +89,17 @@ export function OrderDetailSkeleton() {
     </div>
   );
 }
+
+export function ProductGridSkeleton({ count = 6 }) {
+  return (
+    <div className="feature-grid">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="feature-card product-card">
+          <Skeleton width="100%" height="160px" radius="12px" style={{ marginBottom: "0.75rem" }} />
+          <Skeleton width="60%" height="1rem" style={{ marginBottom: "0.5rem" }} />
+          <Skeleton width="40%" height="0.9rem" />
+        </div>
+      ))}
+    </div>
+  );
+}
