@@ -1,17 +1,14 @@
-import { API_URL } from "../lib/api";
-
 /**
  * Right-hand decorative panel for all auth pages.
  *
  * Plays a short, looping scenery video as the backdrop with a dark gradient
  * overlay for legibility and the brand mark pinned to the bottom.
  *
- * The video is served by the backend at /api/auth-video/ (a redirect to a
- * configurable source — set AUTH_VIDEO_URL on the backend). Override on the
- * frontend with NEXT_PUBLIC_AUTH_VIDEO_URL if you'd rather point elsewhere
- * (e.g. a file in `frontend/public/`).
+ * Defaults to the bundled space clip in `frontend/public/space-loop.mp4`.
+ * Override with NEXT_PUBLIC_AUTH_VIDEO_URL to point elsewhere (e.g. the backend
+ * redirect at `${API_URL}/auth-video/`, configured via AUTH_VIDEO_URL).
  */
-const VIDEO_SRC = process.env.NEXT_PUBLIC_AUTH_VIDEO_URL || `${API_URL}/auth-video/`;
+const VIDEO_SRC = process.env.NEXT_PUBLIC_AUTH_VIDEO_URL || "/space-loop.mp4";
 const POSTER_SRC = process.env.NEXT_PUBLIC_AUTH_VIDEO_POSTER || "";
 
 export default function AuthPanel() {
