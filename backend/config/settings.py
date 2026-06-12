@@ -306,6 +306,15 @@ AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
 AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN") or None
 
 
+# --- Google Sign-In ----------------------------------------------------------
+# OAuth 2.0 Web client ID from Google Cloud Console. The frontend uses it to
+# request an ID token (Google Identity Services); the backend verifies that
+# token's signature and audience against this same value. Leave blank to
+# disable Google sign-in. The matching public value is exposed to the browser
+# as NEXT_PUBLIC_GOOGLE_CLIENT_ID.
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+
+
 # --- CORS --------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",

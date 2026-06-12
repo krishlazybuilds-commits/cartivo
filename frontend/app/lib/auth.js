@@ -174,6 +174,27 @@ export function AuthProvider({ children, initialAuthed = false, initialName = ""
     [loadUser]
   );
 
+  const loginWithGoogle = useCallback(
+    async (credential) => {
+      const csrf = await ensureCsrfToken();
+      const res = await fetch(`${API_URL}/auth/google/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "X-CSRFToken": csrf } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ credential }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(extractError(data, "Google sign-in failed."));
+      }
+      await loadUser();
+    },
+    [loadUser]
+  );
+
   const register = useCallback(
     async (payload) => {
       const csrf = await ensureCsrfToken();
@@ -214,7 +235,7 @@ export function AuthProvider({ children, initialAuthed = false, initialName = ""
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, authed, displayName, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authed, displayName, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

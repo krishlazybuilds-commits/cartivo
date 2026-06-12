@@ -170,6 +170,115 @@ class ChangePasswordView(APIView):
 
 @extend_schema(
     tags=["auth"],
+    summary="Sign in with Google",
+    description=(
+        "Verifies a Google ID token (from Google Identity Services), finds or "
+        "creates the matching user, and sets httpOnly `access_token` and "
+        "`refresh_token` cookies — same as password login."
+    ),
+)
+class GoogleLoginView(APIView):
+    """Exchange a Google ID token for Cartivo auth cookies.
+
+    The frontend obtains an ID token via Google Identity Services and POSTs it
+    here as ``{"credential": "<jwt>"}``. We verify the token's signature and
+    audience against GOOGLE_OAUTH_CLIENT_ID, then issue our own JWT cookies so
+    the rest of the app treats the session identically to a password login.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [LoginRateThrottle]
+
+    @extend_schema(
+        request=inline_serializer("GoogleLoginRequest", fields={
+            "credential": drf_serializers.CharField(),
+        }),
+        responses={200: inline_serializer("GoogleLoginResponse", fields={"detail": drf_serializers.CharField()})},
+    )
+    def post(self, request):
+        client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "")
+        if not client_id:
+            return Response(
+                {"detail": "Google sign-in is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        credential = request.data.get("credential", "")
+        if not credential:
+            return Response(
+                {"detail": "Missing Google credential."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Imported lazily so the dependency is only needed when the feature is used.
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token as google_id_token
+
+        try:
+            idinfo = google_id_token.verify_oauth2_token(
+                credential, google_requests.Request(), client_id
+            )
+        except ValueError:
+            # Bad signature, wrong audience, expired, or malformed token.
+            return Response(
+                {"detail": "Invalid Google credential."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        email = (idinfo.get("email") or "").strip()
+        if not email or not idinfo.get("email_verified", False):
+            return Response(
+                {"detail": "Google account email is missing or unverified."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        user = self._get_or_create_user(idinfo, email)
+
+        if not user.is_active:
+            return Response(
+                {"detail": "This account is disabled."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        response = Response({"detail": "Login successful."})
+        set_auth_cookies(response, access=refresh.access_token, refresh=refresh)
+        return response
+
+    @staticmethod
+    def _get_or_create_user(idinfo, email):
+        """Match an existing account by email, or provision a new one.
+
+        Email isn't unique on the User model, so we match the first account with
+        this email. New Google users get a unique username derived from the
+        email local part and an unusable password (they sign in via Google only,
+        but can set a password later through the reset flow if they wish).
+        """
+        existing = User.objects.filter(email__iexact=email).order_by("date_joined").first()
+        if existing:
+            return existing
+
+        base_username = email.split("@")[0][:140] or "user"
+        username = base_username
+        suffix = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{suffix}"
+            suffix += 1
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            first_name=idinfo.get("given_name", "")[:150],
+            last_name=idinfo.get("family_name", "")[:150],
+        )
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+        return user
+
+
+@extend_schema(
+    tags=["auth"],
     summary="Obtain JWT cookies",
     description="Validates credentials and sets httpOnly `access_token` and `refresh_token` cookies.",
 )

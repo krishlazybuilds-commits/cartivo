@@ -3580,3 +3580,10 @@ html[data-intro="play"] .li-counter-block {
   height: 20px;
   flex-shrink: 0;
 }
+/* Container for the official Google Identity Services button. GIS renders an
+   iframe we can't restyle, so just center it to match the form width. */
+.google-btn-gis {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
