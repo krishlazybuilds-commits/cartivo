@@ -37,7 +37,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not (user and user.is_staff):
             qs = qs.filter(is_active=True)
-        return qs
+        # Explicit, deterministic ordering (newest first, id as tiebreaker) so
+        # pagination is stable. The annotations add a GROUP BY, which otherwise
+        # makes the model's default ordering non-guaranteed for the paginator.
+        return qs.order_by("-created_at", "id")
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
