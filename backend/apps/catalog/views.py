@@ -27,14 +27,17 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("price", "created_at", "name")
 
     def get_queryset(self):
-        return (
-            Product.objects.select_related("category")
-            .annotate(
-                avg_rating=Avg("reviews__rating"),
-                review_count=Count("reviews"),
-            )
-            .all()
+        qs = Product.objects.select_related("category").annotate(
+            avg_rating=Avg("reviews__rating"),
+            review_count=Count("reviews"),
         )
+        # Only staff (who manage the catalog) may see inactive/draft products;
+        # the public catalog is limited to active ones. Prevents leaking
+        # unreleased products (and their stock/sku) via the public API.
+        user = self.request.user
+        if not (user and user.is_staff):
+            qs = qs.filter(is_active=True)
+        return qs
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -49,25 +52,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
     filterset_fields = ("product", "rating")
     ordering_fields = ("created_at", "rating")
 
-    def get_queryset(self):
-        qs = Review.objects.select_related("user")
-        # Optionally filter by product (e.g. ?product=5).
-        product_id = self.request.query_params.get("product")
-        if product_id:
-            qs = qs.filter(product_id=product_id)
-        return qs
-
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
-        if self.action == "create":
-            return [IsAuthenticated()]
-        # update/delete — only the review author (handled in get_queryset filter below)
+        # create/update/delete all require auth; update/delete are further
+        # scoped to the author's own reviews in get_queryset.
         return [IsAuthenticated()]
 
     def get_queryset(self):
         qs = Review.objects.select_related("user")
-        # For update/delete, scope to own reviews only.
+        # Restrict edits/deletes to the author's own reviews. Listing/retrieving
+        # by product is handled by the filter backend (?product=<id>).
         if self.action in ("update", "partial_update", "destroy"):
             return qs.filter(user=self.request.user)
         return qs
