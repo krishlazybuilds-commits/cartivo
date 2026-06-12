@@ -17,28 +17,7 @@ const EMPTY = {
   shipping_city: "",
   shipping_postal_code: "",
   shipping_country: "US",
-  guest_email: "",
 };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-
-/** Place an order as a guest (no auth cookies, no CSRF needed for this call). */
-async function guestCheckout(payload) {
-  const res = await fetch(`${API_URL}/orders/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    let detail;
-    try { detail = await res.json(); } catch { detail = {}; }
-    const msg = detail?.detail || Object.values(detail).flat()[0] || "Checkout failed.";
-    const err = new Error(msg);
-    err.data = detail;
-    throw err;
-  }
-  return res.json();
-}
 
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
@@ -49,7 +28,12 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
 
-  const isGuest = !authLoading && !user;
+  // Checkout requires an account. Send guests to sign in (and back here after).
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login?next=/checkout");
+    }
+  }, [authLoading, user, router]);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -73,25 +57,11 @@ export default function CheckoutPage() {
 
     let order;
     try {
-      if (isGuest) {
-        // Build the items payload from the localStorage guest cart.
-        const items = (cart?.items || []).map((i) => ({
-          product_id: i.product_id,
-          quantity: i.quantity,
-        }));
-        order = await guestCheckout({ ...form, items });
-        // Clear the guest cart in localStorage.
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("cartivo_guest_cart");
-        }
-        await refresh();
-      } else {
-        order = await authFetch("/orders/", {
-          method: "POST",
-          body: JSON.stringify(form),
-        });
-        await refresh();
-      }
+      order = await authFetch("/orders/", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      await refresh();
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
@@ -100,22 +70,15 @@ export default function CheckoutPage() {
 
     // Redirect to Stripe Checkout.
     try {
-      const payFetch = isGuest
-        ? () => fetch(`${API_URL}/orders/${order.id}/pay/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          }).then((r) => r.json())
-        : () => authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
-
-      const { url } = await payFetch();
+      const { url } = await authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
       window.location.href = url;
     } catch {
       // Order created but payment couldn't start — let user retry from order page.
-      router.push(isGuest ? "/" : `/orders/${order.id}`);
+      router.push(`/orders/${order.id}`);
     }
   }
 
-  if (authLoading) return null;
+  if (authLoading || !user) return null;
 
   const isEmpty = !cart || cart.items.length === 0;
 
@@ -142,24 +105,6 @@ export default function CheckoutPage() {
                     <p className="auth-error" role="alert">
                       {error}
                     </p>
-                  )}
-
-                  {/* Guest email — only shown when not logged in */}
-                  {isGuest && (
-                    <label>
-                      Email address
-                      <input
-                        type="email"
-                        value={form.guest_email}
-                        onChange={update("guest_email")}
-                        placeholder="you@example.com"
-                        required
-                      />
-                      <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
-                        Your order confirmation will be sent here.{" "}
-                        <Link href="/login">Sign in</Link> for faster checkout.
-                      </span>
-                    </label>
                   )}
 
                   <label>

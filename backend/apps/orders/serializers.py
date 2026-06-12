@@ -51,13 +51,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class CheckoutSerializer(serializers.Serializer):
-    """Validates shipping details for creating an order from the cart.
+    """Validates shipping details for creating an order from the user's cart.
 
-    For guest checkouts (unauthenticated), ``guest_email`` is required so we
-    can send the order confirmation. For authenticated users it is ignored.
-
-    ``items`` carries the cart lines for guest orders (guests have no
-    server-side cart), each entry being ``{product_id, quantity}``.
+    ``coupon_code`` is optional. Checkout requires authentication; the order is
+    built from the user's server-side cart.
     """
 
     shipping_full_name = serializers.CharField(max_length=200)
@@ -65,31 +62,8 @@ class CheckoutSerializer(serializers.Serializer):
     shipping_city = serializers.CharField(max_length=120)
     shipping_postal_code = serializers.CharField(max_length=20)
     shipping_country = serializers.CharField(max_length=120)
-    # Guest-only fields
-    guest_email = serializers.EmailField(required=False, allow_blank=True, default="")
-    items = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     # Optional coupon code
     coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
-
-    def validate(self, data):
-        # guest_email is required when the request is unauthenticated.
-        request = self.context.get("request")
-        is_guest = not (request and request.user and request.user.is_authenticated)
-        if is_guest and not data.get("guest_email"):
-            raise serializers.ValidationError(
-                {"guest_email": "Email is required for guest checkout."}
-            )
-        if is_guest and not data.get("items"):
-            raise serializers.ValidationError(
-                {"items": "Cart items are required for guest checkout."}
-            )
-        return data
-
-
-class GuestCartItemSerializer(serializers.Serializer):
-    """One line of a guest cart, submitted with the checkout payload."""
-    product_id = serializers.IntegerField(min_value=1)
-    quantity = serializers.IntegerField(min_value=1)
 
 
 # ---------------------------------------------------------------------------

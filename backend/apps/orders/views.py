@@ -22,7 +22,6 @@ from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
     CheckoutSerializer,
     CouponResponseSerializer,
-    GuestCartItemSerializer,
     OrderSerializer,
     ShippingEstimateSerializer,
     ShippingEstimateResponseSerializer,
@@ -142,10 +141,8 @@ class ValidateCouponView(APIView):
     create=extend_schema(
         summary="Place an order",
         description=(
-            "Creates an order from the authenticated user's server-side cart, "
-            "or from the `items` list for guest checkouts. "
-            "Decrements stock and clears the cart. "
-            "Guests must supply `guest_email` and `items`."
+            "Creates an order from the authenticated user's server-side cart. "
+            "Decrements stock and clears the cart."
         ),
         request=CheckoutSerializer,
         responses={201: OrderSerializer},
@@ -158,12 +155,7 @@ class OrderViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = OrderSerializer
-
-    def get_permissions(self):
-        # Guests may create orders; browsing order history requires auth.
-        if self.action == "create":
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def get_throttles(self):
         if self.action == "pay":
@@ -182,7 +174,6 @@ class OrderViewSet(
         )
 
     def create(self, request, *args, **kwargs):
-        is_guest = not (request.user and request.user.is_authenticated)
         checkout = CheckoutSerializer(data=request.data, context={"request": request})
         checkout.is_valid(raise_exception=True)
         data = checkout.validated_data
@@ -199,136 +190,65 @@ class OrderViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        if is_guest:
-            # --- Guest checkout: cart lines come in the request body ----------
-            raw_items = data.get("items", [])
-            item_sers = [GuestCartItemSerializer(data=it) for it in raw_items]
-            errors = {}
-            for i, s in enumerate(item_sers):
-                if not s.is_valid():
-                    errors[i] = s.errors
-            if errors:
-                return Response({"items": errors}, status=status.HTTP_400_BAD_REQUEST)
-            cart_lines = [s.validated_data for s in item_sers]
-
-            with transaction.atomic():
-                product_ids = [l["product_id"] for l in cart_lines]
-                locked_products = {
-                    p.id: p
-                    for p in Product.objects.select_for_update().filter(id__in=product_ids)
-                }
-                missing = set(product_ids) - locked_products.keys()
-                if missing:
+        # --- Checkout from the authenticated user's server-side cart ----------
+        cart = Cart.objects.filter(user=request.user).first()
+        if not cart or not cart.items.exists():
+            return Response(
+                {"detail": "Your cart is empty."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            cart_items = list(cart.items.select_related("product"))
+            locked_products = {
+                p.id: p
+                for p in Product.objects.select_for_update().filter(
+                    id__in=[item.product_id for item in cart_items]
+                )
+            }
+            for item in cart_items:
+                product = locked_products[item.product_id]
+                if item.quantity > product.stock:
                     return Response(
-                        {"detail": f"Product(s) not found: {sorted(missing)}."},
+                        {"detail": (
+                            f"Insufficient stock for '{product.name}'. "
+                            f"Available: {product.stock}."
+                        )},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                for line in cart_lines:
-                    product = locked_products[line["product_id"]]
-                    if line["quantity"] > product.stock:
-                        return Response(
-                            {"detail": (
-                                f"Insufficient stock for '{product.name}'. "
-                                f"Available: {product.stock}."
-                            )},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                order = Order.objects.create(
-                    user=None,
-                    guest_email=data["guest_email"],
-                    shipping_full_name=data["shipping_full_name"],
-                    shipping_address=data["shipping_address"],
-                    shipping_city=data["shipping_city"],
-                    shipping_postal_code=data["shipping_postal_code"],
-                    shipping_country=data["shipping_country"],
-                )
-                order_items = []
-                for line in cart_lines:
-                    product = locked_products[line["product_id"]]
-                    Product.objects.filter(pk=product.pk).update(
-                        stock=F("stock") - line["quantity"]
-                    )
-                    order_items.append(OrderItem(
-                        order=order,
-                        product=product,
-                        unit_price=product.price,
-                        quantity=line["quantity"],
-                    ))
-                OrderItem.objects.bulk_create(order_items)
-                # Apply coupon discount if provided.
-                subtotal = order.recalculate_total()  # sets order.total before discount
-                if coupon:
-                    valid, reason = coupon.is_valid(subtotal + order.discount)
-                    if not valid:
-                        # Rollback will undo the order; surface the error.
-                        transaction.set_rollback(True)
-                        return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
-                    order.discount = coupon.calculate_discount(subtotal + order.discount)
-                    order.coupon = coupon
-                    order.total = max(subtotal - order.discount, 0)
-                    coupon.times_used = F("times_used") + 1
-                    coupon.save(update_fields=["times_used"])
-                order.save(update_fields=["total", "discount", "coupon"])
-        else:
-            # --- Authenticated checkout: use the server-side cart -------------
-            cart = Cart.objects.filter(user=request.user).first()
-            if not cart or not cart.items.exists():
-                return Response(
-                    {"detail": "Your cart is empty."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            with transaction.atomic():
-                cart_items = list(cart.items.select_related("product"))
-                locked_products = {
-                    p.id: p
-                    for p in Product.objects.select_for_update().filter(
-                        id__in=[item.product_id for item in cart_items]
-                    )
-                }
-                for item in cart_items:
-                    product = locked_products[item.product_id]
-                    if item.quantity > product.stock:
-                        return Response(
-                            {"detail": (
-                                f"Insufficient stock for '{product.name}'. "
-                                f"Available: {product.stock}."
-                            )},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                order = Order.objects.create(
-                    user=request.user,
-                    shipping_full_name=data["shipping_full_name"],
-                    shipping_address=data["shipping_address"],
-                    shipping_city=data["shipping_city"],
-                    shipping_postal_code=data["shipping_postal_code"],
-                    shipping_country=data["shipping_country"],
-                )
-                order_items = []
-                for item in cart_items:
-                    product = locked_products[item.product_id]
-                    product.stock = F("stock") - item.quantity
-                    product.save(update_fields=["stock"])
-                    order_items.append(OrderItem(
-                        order=order,
-                        product=product,
-                        unit_price=product.price,
-                        quantity=item.quantity,
-                    ))
-                OrderItem.objects.bulk_create(order_items)
-                # Apply coupon discount if provided.
-                subtotal = order.recalculate_total()
-                if coupon:
-                    valid, reason = coupon.is_valid(subtotal + order.discount)
-                    if not valid:
-                        transaction.set_rollback(True)
-                        return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
-                    order.discount = coupon.calculate_discount(subtotal + order.discount)
-                    order.coupon = coupon
-                    order.total = max(subtotal - order.discount, 0)
-                    coupon.times_used = F("times_used") + 1
-                    coupon.save(update_fields=["times_used"])
-                order.save(update_fields=["total", "discount", "coupon"])
-                cart.items.all().delete()
+            order = Order.objects.create(
+                user=request.user,
+                shipping_full_name=data["shipping_full_name"],
+                shipping_address=data["shipping_address"],
+                shipping_city=data["shipping_city"],
+                shipping_postal_code=data["shipping_postal_code"],
+                shipping_country=data["shipping_country"],
+            )
+            order_items = []
+            for item in cart_items:
+                product = locked_products[item.product_id]
+                product.stock = F("stock") - item.quantity
+                product.save(update_fields=["stock"])
+                order_items.append(OrderItem(
+                    order=order,
+                    product=product,
+                    unit_price=product.price,
+                    quantity=item.quantity,
+                ))
+            OrderItem.objects.bulk_create(order_items)
+            # Apply coupon discount if provided.
+            subtotal = order.recalculate_total()
+            if coupon:
+                valid, reason = coupon.is_valid(subtotal + order.discount)
+                if not valid:
+                    transaction.set_rollback(True)
+                    return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
+                order.discount = coupon.calculate_discount(subtotal + order.discount)
+                order.coupon = coupon
+                order.total = max(subtotal - order.discount, 0)
+                coupon.times_used = F("times_used") + 1
+                coupon.save(update_fields=["times_used"])
+            order.save(update_fields=["total", "discount", "coupon"])
+            cart.items.all().delete()
 
         serializer = self.get_serializer(order)
         send_order_confirmation_task.delay(order.id)

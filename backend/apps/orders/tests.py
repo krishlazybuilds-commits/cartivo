@@ -78,19 +78,14 @@ class CheckoutTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_checkout_requires_authentication(self):
-        # Guest checkout is now supported; submitting without items and without
-        # guest_email should return 400 (validation error), not 401.
+        # Guest checkout is no longer supported — placing an order requires auth.
         self.client.force_authenticate(None)
         res = self.client.post("/api/orders/", SHIPPING, format="json")
-        # Guest requires guest_email and items fields
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_guest_checkout_requires_email_and_items(self):
-        self.client.force_authenticate(None)
-        # Missing guest_email and items
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("guest_email", str(res.data))
+        self.assertIn(
+            res.status_code,
+            (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+        )
+        self.assertEqual(Order.objects.count(), 0)
 
     def test_users_only_see_their_own_orders(self):
         self._add_to_cart(1)
