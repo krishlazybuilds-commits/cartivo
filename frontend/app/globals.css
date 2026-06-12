@@ -3350,6 +3350,36 @@ body::after {
 
 
 /* ==========================================================================
+   Auth direct-load reveal — reuses the .pt-* strip/title styles. Shown only
+   when the page is loaded directly (typed URL / refresh) on an auth route,
+   keyed on html[data-auth-intro] which the inline layout script sets before
+   first paint. In-app navigation to these routes is handled by
+   TransitionProvider instead, so this stays hidden then.
+   ========================================================================== */
+.auth-intro {
+  display: none;
+}
+html[data-auth-intro="play"] .auth-intro {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 8888;
+  pointer-events: all;
+}
+html[data-auth-intro="done"] .auth-intro {
+  display: none;
+}
+/* On uncover: strips slide up with the same stagger as the in-app transition. */
+.auth-intro--uncovering .pt-strip-1 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0s    forwards; }
+.auth-intro--uncovering .pt-strip-2 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0.12s forwards; }
+.auth-intro--uncovering .pt-strip-3 { animation: pt-strip-out 0.8s cubic-bezier(0.76, 0, 0.24, 1) 0.24s forwards; }
+.auth-intro--uncovering .pt-center  { animation: pt-center-fade 0.35s ease 0s forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-intro { display: none !important; }
+}
+
+
+/* ==========================================================================
    Landing intro — "Stacked Strip Reveal"
    Agency / Awwwards-style: three stacked horizontal strips cover the screen.
    Each letter of CARTIVO clips in from below with a stagger. A JS RAF

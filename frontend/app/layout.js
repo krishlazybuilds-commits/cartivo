@@ -9,6 +9,7 @@ import ConditionalNav from "./components/ConditionalNav";
 import ConditionalFooter from "./components/ConditionalFooter";
 import CookieConsent from "./components/CookieConsent";
 import LandingIntro from "./components/LandingIntro";
+import AuthIntro from "./components/AuthIntro";
 import TransitionProvider from "./components/TransitionProvider";
 import PrefetchRoutes from "./components/PrefetchRoutes";
 
@@ -66,7 +67,7 @@ export default function RootLayout({ children }) {
           data-intro="play" or "skip" on <html> so the CSS overlay
           is visible/hidden from byte 1 — no hydration wait needed.
         */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var d=document.documentElement;var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;var onHome=window.location.pathname==='/';if(r||!onHome){d.setAttribute('data-intro','skip');}else{d.setAttribute('data-intro','play');}}catch(e){d.setAttribute('data-intro','skip');}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var d=document.documentElement;var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;var p=window.location.pathname;var onHome=p==='/';if(r||!onHome){d.setAttribute('data-intro','skip');}else{d.setAttribute('data-intro','play');}var authRoutes=['/login','/register','/forgot-password','/reset-password'];if(!r&&authRoutes.indexOf(p)!==-1){d.setAttribute('data-auth-intro','play');}}catch(e){d.setAttribute('data-intro','skip');}})();` }} />
         {/* Static overlay — present in the initial HTML, shown/hidden by CSS keyed on data-intro */}
         <div className="landing-intro" aria-hidden="true">
           {/* Three stacked strips — exit with staggered upward slides */}
@@ -95,6 +96,23 @@ export default function RootLayout({ children }) {
         </div>
         {/* Hydration-side cleanup only */}
         <LandingIntro />
+
+        {/*
+          Auth direct-load reveal — covering strips present from byte 1 (keyed on
+          data-auth-intro, set before paint by the inline script above). AuthIntro
+          fills the title and drives the uncover after hydration.
+        */}
+        <div className="auth-intro" aria-hidden="true">
+          <div className="pt-strip pt-strip-1" />
+          <div className="pt-strip pt-strip-2" />
+          <div className="pt-strip pt-strip-3" />
+          <div className="pt-center">
+            <p className="pt-tagline">Cartivo</p>
+            <div className="pt-word" id="auth-intro-word" />
+            <span className="pt-underline" />
+          </div>
+        </div>
+        <AuthIntro />
         {/* Prefetch all key routes when browser is idle */}
         <PrefetchRoutes />
         <AuthProvider initialAuthed={initialAuthed} initialName={initialName}>
