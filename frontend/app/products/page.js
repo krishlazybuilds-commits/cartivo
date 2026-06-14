@@ -10,6 +10,9 @@ import { formatPrice } from "../lib/format";
 export const metadata = {
   title: "Shop — Cartivo",
   description: "Browse the Cartivo catalog.",
+  alternates: {
+    canonical: "/products",
+  },
 };
 
 export default async function ProductsPage({ searchParams }) {

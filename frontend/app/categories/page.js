@@ -6,6 +6,9 @@ import { apiFetch } from "../lib/api";
 export const metadata = {
   title: "Categories — Cartivo",
   description: "Browse Cartivo product categories.",
+  alternates: {
+    canonical: "/categories",
+  },
 };
 
 export default async function CategoriesPage() {

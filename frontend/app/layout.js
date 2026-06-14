@@ -27,6 +27,9 @@ const fraunces = Fraunces({
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  alternates: {
+    canonical: "/",
+  },
   title: "Cartivo — Shop the latest tech",
   description:
     "Shop laptops, smartphones, audio, wearables and more at Cartivo. Secure Stripe checkout, guest ordering, and shipping costs shown upfront.",

@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Themes — Cartivo",
   description: "Beautiful storefront themes for your Cartivo shop.",
+  alternates: {
+    canonical: "/themes",
+  },
 };
 
 export default function ThemesPage() {

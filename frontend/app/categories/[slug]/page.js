@@ -15,6 +15,9 @@ export async function generateMetadata({ params }) {
     return {
       title: `${category.name} — Cartivo`,
       description: category.description?.slice(0, 150) || `Browse ${category.name} products on Cartivo.`,
+      alternates: {
+        canonical: `/categories/${params.slug}`,
+      },
     };
   } catch {
     return { title: "Category — Cartivo" };

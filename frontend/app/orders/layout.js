@@ -1,6 +1,9 @@
 export const metadata = {
   title: "Orders — Cartivo",
   description: "View and track your Cartivo orders.",
+  alternates: {
+    canonical: "/orders",
+  },
 };
 
 export default function OrdersLayout({ children }) {

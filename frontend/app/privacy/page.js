@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Privacy Policy — Cartivo",
   description: "How Cartivo collects, uses, and protects your personal data.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

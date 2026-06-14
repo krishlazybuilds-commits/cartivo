@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Security — Cartivo",
   description: "How Cartivo keeps your account and payment information secure.",
+  alternates: {
+    canonical: "/security",
+  },
 };
 
 export default function SecurityPage() {

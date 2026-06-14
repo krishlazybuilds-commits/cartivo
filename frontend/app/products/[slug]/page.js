@@ -47,6 +47,9 @@ export async function generateMetadata({ params }) {
     return {
       title: `${product.name} — Cartivo`,
       description: product.description?.slice(0, 150) || "Cartivo product",
+      alternates: {
+        canonical: `/products/${params.slug}`,
+      },
     };
   } catch {
     return { title: "Product — Cartivo" };

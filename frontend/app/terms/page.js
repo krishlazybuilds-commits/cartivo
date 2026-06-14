@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Terms of Service — Cartivo",
   description: "Terms and conditions governing the use of the Cartivo platform.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

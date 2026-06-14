@@ -4,6 +4,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "About — Cartivo",
   description: "Learn about Cartivo, our mission, and the team behind the platform.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {

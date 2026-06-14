@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Roadmap — Cartivo",
   description: "See what's next for the Cartivo platform.",
+  alternates: {
+    canonical: "/roadmap",
+  },
 };
 
 export default function RoadmapPage() {

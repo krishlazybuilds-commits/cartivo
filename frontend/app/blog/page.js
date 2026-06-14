@@ -3,6 +3,9 @@ import Reveal from "../components/Reveal";
 export const metadata = {
   title: "Blog — Cartivo",
   description: "Tips, updates, and stories from the Cartivo team.",
+  alternates: {
+    canonical: "/blog",
+  },
 };
 
 export default function BlogPage() {
