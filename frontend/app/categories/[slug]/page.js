@@ -12,11 +12,26 @@ export async function generateMetadata({ params }) {
     const category = await apiFetch(`/categories/${params.slug}/`, {
       next: { tags: ["categories", `category-${params.slug}`] },
     });
+    const title = `${category.name} — Cartivo`;
+    const description = category.description?.slice(0, 155) || `Browse ${category.name} products on Cartivo.`;
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
     return {
-      title: `${category.name} — Cartivo`,
-      description: category.description?.slice(0, 150) || `Browse ${category.name} products on Cartivo.`,
+      title,
+      description,
       alternates: {
         canonical: `/categories/${params.slug}`,
+      },
+      openGraph: {
+        title,
+        description,
+        type: "website",
+        url: `${SITE_URL}/categories/${params.slug}`,
+      },
+      twitter: {
+        card: "summary",
+        title,
+        description,
       },
     };
   } catch {
