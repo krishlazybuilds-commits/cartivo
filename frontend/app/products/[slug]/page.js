@@ -22,20 +22,39 @@ function buildProductJsonLd(product) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
+    image: product.image ? [product.image] : [],
+    description: product.description || `Buy ${product.name} at Cartivo.`,
+    sku: product.sku || `SKU-${product.id}`,
+    brand: {
+      "@type": "Brand",
+      name: "Cartivo",
+    },
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/products/${product.slug}`,
       priceCurrency: "USD",
       price: Number(product.price).toFixed(2),
+      itemCondition: "https://schema.org/NewCondition",
       availability: product.in_stock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
+      seller: {
+        "@type": "Organization",
+        name: "Cartivo",
+      },
     },
   };
-  if (product.sku) data.sku = product.sku;
-  if (product.description) data.description = product.description;
-  if (product.image) data.image = product.image;
-  if (product.category_name) data.category = product.category_name;
+
+  if (product.review_count > 0) {
+    data.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: product.avg_rating,
+      reviewCount: product.review_count,
+      bestRating: "5",
+      worstRating: "1",
+    };
+  }
+
   return data;
 }
 

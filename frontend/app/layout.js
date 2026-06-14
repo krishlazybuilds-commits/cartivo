@@ -12,6 +12,7 @@ import LandingIntro from "./components/LandingIntro";
 import AuthIntro from "./components/AuthIntro";
 import TransitionProvider from "./components/TransitionProvider";
 import PrefetchRoutes from "./components/PrefetchRoutes";
+import JsonLd from "./components/JsonLd";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -61,9 +62,23 @@ export default function RootLayout({ children }) {
   } catch {
     initialName = "";
   }
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Cartivo",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    logo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/logo.png`, // Assuming there's a logo
+    sameAs: [
+      "https://twitter.com/cartivo",
+      "https://github.com/cartivo",
+    ],
+  };
+
   return (
     <html lang="en" style={{ background: "#ffffff" }}>
       <body className={`${jakarta.variable} ${fraunces.variable}`} style={{ background: "#ffffff" }}>
+        <JsonLd data={organizationJsonLd} />
         {/*
           Inline script runs synchronously before the first paint.
           It reads sessionStorage + prefers-reduced-motion and sets
