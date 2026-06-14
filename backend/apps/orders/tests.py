@@ -42,7 +42,7 @@ class CheckoutTests(APITestCase):
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(res.data["status"], "pending")
-        self.assertEqual(Decimal(res.data["total"]), Decimal("20.00"))
+        self.assertEqual(Decimal(res.data["total"]), Decimal("34.99"))
 
         # Stock decremented.
         self.product.refresh_from_db()
@@ -239,11 +239,16 @@ class StripeWebhookIdempotencyTests(APITestCase):
         )
 
     @staticmethod
-    def _event(order_id, event_id="evt_1", event_type="checkout.session.completed"):
+    def _event(order_id, event_id="evt_1", event_type="checkout.session.completed", amount_total=1000):
         return {
             "id": event_id,
             "type": event_type,
-            "data": {"object": {"metadata": {"order_id": str(order_id)}}},
+            "data": {
+                "object": {
+                    "metadata": {"order_id": str(order_id)},
+                    "amount_total": amount_total,
+                }
+            },
         }
 
     def _post(self, event):

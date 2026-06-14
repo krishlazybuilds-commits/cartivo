@@ -45,5 +45,6 @@ export default function Breadcrumbs({ items = [] }) {
         })}
       </ol>
     </nav>
+    </>
   );
 }
