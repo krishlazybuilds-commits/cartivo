@@ -398,6 +398,23 @@ def _handle_checkout_completed(event):
     if not order_id:
         return
 
+    # Security check: verify the paid amount matches our order total.
+    # Prevents processing a payment for a different amount than expected.
+    order = Order.objects.filter(pk=order_id).first()
+    if not order:
+        logger.error("Stripe session %s matched non-existent order %s", session.get("id"), order_id)
+        return
+
+    # Stripe amounts are in cents.
+    expected_cents = int(order.total * 100)
+    actual_cents = session.get("amount_total")
+    if actual_cents != expected_cents:
+        logger.critical(
+            "Payment amount mismatch for order %s: expected %s cents, got %s",
+            order_id, expected_cents, actual_cents
+        )
+        return
+
     updated = Order.objects.filter(
         pk=order_id, status=Order.Status.PENDING
     ).update(

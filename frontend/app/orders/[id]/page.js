@@ -94,7 +94,7 @@ export default function OrderDetailPage() {
                 <article className="order-card" style={{ maxWidth: 640 }}>
                 <header className="order-head">
                   <div>
-                    <strong>Order #{order.id}</strong>
+                    <strong>Order {order.order_number?.slice(0, 8).toUpperCase() || `#${order.id}`}</strong>
                     <span className="product-cat"> {formatDate(order.created_at)}</span>
                   </div>
                   <span className={`order-status status-${order.status}`}>{order.status}</span>
@@ -109,9 +109,33 @@ export default function OrderDetailPage() {
                   ))}
                 </ul>
 
-                <div className="cart-total">
-                  <span>Total</span>
-                  <strong>{formatPrice(order.total)}</strong>
+                <div className="cart-summary" style={{ marginTop: "1rem", display: "grid", gap: "0.25rem", fontSize: "0.95rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Subtotal</span>
+                    <span>{formatPrice(order.items.reduce((acc, item) => acc + parseFloat(item.subtotal), 0))}</span>
+                  </div>
+                  {parseFloat(order.discount) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--success, #16a34a)" }}>
+                      <span>Discount {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                      <span>-{formatPrice(order.discount)}</span>
+                    </div>
+                  )}
+                  {parseFloat(order.shipping_cost) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span>Shipping</span>
+                      <span>{formatPrice(order.shipping_cost)}</span>
+                    </div>
+                  )}
+                  {parseFloat(order.tax_amount) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span>Tax</span>
+                      <span>{formatPrice(order.tax_amount)}</span>
+                    </div>
+                  )}
+                  <div className="cart-total" style={{ marginTop: "0.5rem", borderTop: "1px solid var(--line)", paddingTop: "0.5rem" }}>
+                    <span>Total</span>
+                    <strong>{formatPrice(order.total)}</strong>
+                  </div>
                 </div>
 
                 <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--line)", paddingTop: "1.5rem" }}>

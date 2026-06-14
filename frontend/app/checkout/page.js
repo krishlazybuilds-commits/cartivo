@@ -8,7 +8,7 @@ import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { authFetch } from "../lib/auth";
-import { fetchShippingEstimate } from "../lib/api";
+import { API_URL, fetchShippingEstimate } from "../lib/api";
 import { formatPrice } from "../lib/format";
 
 const EMPTY = {
@@ -27,6 +27,9 @@ export default function CheckoutPage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponData, setCouponData] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Checkout requires an account. Send guests to sign in (and back here after).
   useEffect(() => {
@@ -50,6 +53,30 @@ export default function CheckoutPage() {
     loadEstimate();
   }, [loadEstimate]);
 
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/coupons/validate/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, subtotal: cart.total }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setCouponData(data);
+      } else {
+        setError(data.message || "Invalid coupon code.");
+        setCouponData(null);
+      }
+    } catch {
+      setError("Failed to validate coupon.");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
@@ -59,7 +86,10 @@ export default function CheckoutPage() {
     try {
       order = await authFetch("/orders/", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          coupon_code: couponData ? couponData.code : "",
+        }),
       });
       await refresh();
     } catch (err) {
@@ -81,6 +111,7 @@ export default function CheckoutPage() {
   if (authLoading || !user) return null;
 
   const isEmpty = !cart || cart.items.length === 0;
+  const finalTotal = estimate ? (estimate.total - (couponData?.discount_amount || 0)) : cart.total;
 
   return (
     <>
@@ -138,8 +169,35 @@ export default function CheckoutPage() {
                     </select>
                   </label>
 
-                  <button className="btn btn-primary" type="submit" disabled={submitting}>
-                    {submitting ? "Redirecting to payment…" : `Pay · ${formatPrice(cart.total)}`}
+                  <div className="coupon-field" style={{ marginTop: "1rem" }}>
+                    <label style={{ marginBottom: "0.5rem" }}>Coupon code</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        placeholder="Enter code"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponCode.trim()}
+                        style={{ padding: "0 1.5rem" }}
+                      >
+                        {validatingCoupon ? "…" : "Apply"}
+                      </button>
+                    </div>
+                    {couponData && (
+                      <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "var(--success, #16a34a)" }}>
+                        {couponData.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <button className="btn btn-primary" type="submit" disabled={submitting} style={{ marginTop: "1.5rem" }}>
+                    {submitting ? "Redirecting to payment…" : `Pay · ${formatPrice(finalTotal)}`}
                   </button>
                 </form>
 
@@ -161,26 +219,30 @@ export default function CheckoutPage() {
                     <strong>{formatPrice(cart.total)}</strong>
                   </div>
 
-                  {/* Shipping & tax estimate */}
-                  {estimate && (
-                    <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.2rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Shipping</span>
-                        <span>{estimate.shipping === 0 ? "Free" : formatPrice(estimate.shipping)}</span>
+                  <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.2rem" }}>
+                    {couponData && (
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "var(--success, #16a34a)" }}>
+                        <span>Discount ({couponData.code})</span>
+                        <span>-{formatPrice(couponData.discount_amount)}</span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Tax (est.)</span>
-                        <span>{formatPrice(estimate.tax)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid var(--border, #ddd)", paddingTop: "0.25rem", marginTop: "0.25rem" }}>
-                        <span>Est. total</span>
-                        <span>{formatPrice(estimate.total)}</span>
-                      </div>
-                      <p style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
-                        {estimate.note}
-                      </p>
+                    )}
+                    {estimate && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Shipping</span>
+                          <span>{estimate.shipping === 0 ? "Free" : formatPrice(estimate.shipping)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Tax (est.)</span>
+                          <span>{formatPrice(estimate.tax)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid var(--line)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+                      <span>Total</span>
+                      <span>{formatPrice(finalTotal)}</span>
                     </div>
-                  )}
+                  </div>
                 </aside>
               </div>
             )}
