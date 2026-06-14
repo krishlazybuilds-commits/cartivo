@@ -106,6 +106,8 @@ class Order(models.Model):
         default=Status.PENDING,
     )
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # Discount applied via coupon. Stored as a snapshot so the order total is
     # self-contained even if the coupon is later modified or deleted.
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -148,7 +150,7 @@ class Order(models.Model):
 
     def recalculate_total(self):
         subtotal = sum((item.subtotal for item in self.items.all()), start=Decimal("0"))
-        self.total = max(subtotal - self.discount, Decimal("0"))
+        self.total = max(subtotal - self.discount + self.shipping_cost + self.tax_amount, Decimal("0"))
         return self.total
 
     def __str__(self) -> str:

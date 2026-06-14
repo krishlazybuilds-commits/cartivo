@@ -22,6 +22,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Address
+from .tasks import send_password_reset_email_task
 from .serializers import (
     AddressSerializer,
     AdminUserSerializer,
@@ -450,22 +451,7 @@ class PasswordResetRequestView(APIView):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             reset_url = f"{frontend_base}/reset-password?uid={uid}&token={token}"
-            try:
-                send_mail(
-                    subject="Reset your Cartivo password",
-                    message=(
-                        f"Hi {user.first_name or user.email},\n\n"
-                        f"Click the link below to reset your password. "
-                        f"This link expires in 24 hours.\n\n"
-                        f"{reset_url}\n\n"
-                        f"If you didn't request this, ignore this email.\n\n"
-                        f"— The Cartivo Team"
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                )
-            except Exception:
-                logger.exception("Failed to send password reset email to user %s", user.pk)
+            send_password_reset_email_task.delay(user.pk, reset_url)
         return generic_response
 
 

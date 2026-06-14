@@ -235,19 +235,28 @@ class OrderViewSet(
                     quantity=item.quantity,
                 ))
             OrderItem.objects.bulk_create(order_items)
+
+            # --- Calculate shipping, tax, and total ---------------------------
+            # Use the same logic as the estimation endpoint to persist final
+            # costs to the order snapshot.
+            subtotal = sum((item.unit_price * item.quantity for item in order_items), Decimal("0"))
+            estimate = calculate_estimate(order.shipping_country, float(subtotal))
+            order.shipping_cost = Decimal(str(estimate["shipping"]))
+            order.tax_amount = Decimal(str(estimate["tax"]))
+
             # Apply coupon discount if provided.
-            subtotal = order.recalculate_total()
             if coupon:
-                valid, reason = coupon.is_valid(subtotal + order.discount)
+                valid, reason = coupon.is_valid(subtotal)
                 if not valid:
                     transaction.set_rollback(True)
                     return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
-                order.discount = coupon.calculate_discount(subtotal + order.discount)
+                order.discount = coupon.calculate_discount(subtotal)
                 order.coupon = coupon
-                order.total = max(subtotal - order.discount, 0)
                 coupon.times_used = F("times_used") + 1
                 coupon.save(update_fields=["times_used"])
-            order.save(update_fields=["total", "discount", "coupon"])
+
+            order.recalculate_total()
+            order.save(update_fields=["total", "discount", "coupon", "shipping_cost", "tax_amount"])
             cart.items.all().delete()
 
         serializer = self.get_serializer(order)
@@ -283,17 +292,52 @@ class OrderViewSet(
             for item in order.items.select_related("product")
         ]
 
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=line_items,
-            mode="payment",
-            success_url=f"{frontend_base}/orders?placed={order.id}&paid=1",
-            cancel_url=f"{frontend_base}/orders/{order.id}",
-            metadata={"order_id": order.id},
+        # Add shipping and tax as line items so they appear in the Stripe
+        # receipt and the total matches order.total.
+        if order.shipping_cost > 0:
+            line_items.append({
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": int(order.shipping_cost * 100),
+                    "product_data": {"name": "Shipping"},
+                },
+                "quantity": 1,
+            })
+        if order.tax_amount > 0:
+            line_items.append({
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": int(order.tax_amount * 100),
+                    "product_data": {"name": "Tax"},
+                },
+                "quantity": 1,
+            })
+
+        session_kwargs = {
+            "payment_method_types": ["card"],
+            "line_items": line_items,
+            "mode": "payment",
+            "success_url": f"{frontend_base}/orders?placed={order.id}&paid=1",
+            "cancel_url": f"{frontend_base}/orders/{order.id}",
+            "metadata": {"order_id": order.id},
             # Propagate order_id onto the PaymentIntent (and its charge) so
             # payment_failed / charge.refunded events can be matched back.
-            payment_intent_data={"metadata": {"order_id": order.id}},
-        )
+            "payment_intent_data": {"metadata": {"order_id": order.id}},
+        }
+
+        if order.discount > 0:
+            # Create a one-time Stripe coupon for the order's discount amount.
+            # This ensures the customer is charged order.total while preserving
+            # the full-price item breakdown in the Stripe UI/receipt.
+            coupon = stripe.Coupon.create(
+                amount_off=int(order.discount * 100),
+                currency="usd",
+                duration="once",
+                name=f"Discount for Order {order.order_number_short}",
+            )
+            session_kwargs["discounts"] = [{"coupon": coupon.id}]
+
+        session = stripe.checkout.Session.create(**session_kwargs)
         # Persist the session id so checkout.session.expired can be correlated.
         Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
         return Response({"url": session.url})

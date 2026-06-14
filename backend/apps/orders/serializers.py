@@ -37,6 +37,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "status",
             "total",
             "discount",
+            "shipping_cost",
+            "tax_amount",
             "coupon_code",
             "shipping_full_name",
             "shipping_address",
@@ -47,7 +49,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "items",
             "created_at",
         )
-        read_only_fields = ("id", "order_number", "status", "total", "discount", "coupon_code", "items", "created_at")
+        read_only_fields = ("id", "order_number", "status", "total", "discount", "shipping_cost", "tax_amount", "coupon_code", "items", "created_at")
 
 
 class CheckoutSerializer(serializers.Serializer):
