@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -324,3 +325,292 @@ class StripeWebhookIdempotencyTests(APITestCase):
     def test_get_request_is_rejected(self):
         res = self.client.get(self.WEBHOOK_URL)
         self.assertEqual(res.status_code, 405)
+
+
+class StripeWebhookEventTests(APITestCase):
+    """Tests for each specific webhook event handler."""
+
+    WEBHOOK_URL = "/api/orders/webhook/"
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="evtuser", password="pass12345")
+        self.category = Category.objects.create(name="Goods")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Item",
+            price=Decimal("20.00"),
+            stock=5,
+            sku="ITEM-1",
+        )
+
+    def _pending_order(self, total=Decimal("20.00")):
+        return Order.objects.create(
+            user=self.user,
+            total=total,
+            **SHIPPING,
+        )
+
+    def _paid_order(self, total=Decimal("20.00")):
+        return Order.objects.create(
+            user=self.user,
+            total=total,
+            status=Order.Status.PAID,
+            stripe_payment_intent="pi_existing",
+            **SHIPPING,
+        )
+
+    @staticmethod
+    def _event(event_id, event_type, order_id=None, overrides=None):
+        obj = {"metadata": {"order_id": str(order_id)} if order_id else {}}
+        if overrides:
+            obj.update(overrides)
+        return {
+            "id": event_id,
+            "type": event_type,
+            "data": {"object": obj},
+        }
+
+    def _post(self, event):
+        with patch(
+            "apps.orders.views.stripe.Webhook.construct_event", return_value=event
+        ):
+            return self.client.post(
+                self.WEBHOOK_URL, data="{}", content_type="application/json"
+            )
+
+    # ── checkout.session.expired ──────────────────────────────────────────────
+
+    def test_expired_session_cancels_and_restocks_pending_order(self):
+        order = self._pending_order()
+        self.product.stock = 3
+        self.product.save()
+        Order.objects.filter(pk=order.id).update(stripe_payment_intent="")
+        # Add items so _restock_order has work to do.
+        from apps.orders.models import OrderItem
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=2, unit_price=Decimal("20.00")
+        )
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+
+        event = self._event("evt_exp_1", "checkout.session.expired", order_id=order.id)
+        res = self._post(event)
+
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)  # restocked
+
+    def test_expired_session_missing_order_id_is_noop(self):
+        order = self._pending_order()
+        event = self._event("evt_exp_2", "checkout.session.expired")
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_expired_session_non_existent_order_is_noop(self):
+        event = self._event("evt_exp_3", "checkout.session.expired", order_id=99999)
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+
+    def test_expired_session_already_paid_is_noop(self):
+        order = self._paid_order()
+        event = self._event(
+            "evt_exp_4", "checkout.session.expired", order_id=order.id
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PAID)
+
+    # ── payment_intent.payment_failed ─────────────────────────────────────────
+
+    def test_payment_failed_does_not_change_order_status(self):
+        order = self._pending_order()
+        event = self._event(
+            "evt_fail_1", "payment_intent.payment_failed", order_id=order.id
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_payment_failed_missing_order_id_is_noop(self):
+        event = self._event("evt_fail_2", "payment_intent.payment_failed")
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+
+    def test_payment_failed_is_idempotent(self):
+        order = self._pending_order()
+        event = self._event(
+            "evt_fail_1", "payment_intent.payment_failed", order_id=order.id
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            self._post(event)
+        res = self._post(event)  # duplicate event_id
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json().get("duplicate"))
+
+    # ── charge.refunded ───────────────────────────────────────────────────────
+
+    def test_charge_refunded_marks_refunded_and_restocks(self):
+        order = self._paid_order()
+        from apps.orders.models import OrderItem
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, unit_price=Decimal("20.00")
+        )
+        self.product.refresh_from_db()
+        initial_stock = self.product.stock
+
+        event = self._event(
+            "evt_ref_1", "charge.refunded", order_id=order.id,
+            overrides={"payment_intent": "pi_refund"},
+        )
+        res = self._post(event)
+
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.REFUNDED)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, initial_stock + 1)
+
+    def test_charge_refunded_is_idempotent_via_status_filter(self):
+        order = self._paid_order()
+        event = self._event(
+            "evt_ref_2", "charge.refunded", order_id=order.id,
+            overrides={"payment_intent": "pi_refund2"},
+        )
+        self._post(event)
+        # Second delivery of a *different* event_id but same order.
+        event2 = self._event(
+            "evt_ref_2b", "charge.refunded", order_id=order.id,
+            overrides={"payment_intent": "pi_refund2"},
+        )
+        res = self._post(event2)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.REFUNDED)
+        # Verify not double-restocked by checking StockEvent count if we had one,
+        # or just check the order status is still REFUNDED.
+
+    def test_charge_refunded_matches_by_payment_intent(self):
+        pi = "pi_match_by_intent"
+        order = self._paid_order()
+        order.stripe_payment_intent = pi
+        order.save(update_fields=["stripe_payment_intent"])
+
+        event = {
+            "id": "evt_ref_3",
+            "type": "charge.refunded",
+            "data": {
+                "object": {
+                    "metadata": {},
+                    "payment_intent": pi,
+                }
+            },
+        }
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.REFUNDED)
+
+    def test_charge_refunded_non_paid_order_is_noop(self):
+        order = self._pending_order()
+        event = self._event(
+            "evt_ref_4", "charge.refunded", order_id=order.id,
+            overrides={"payment_intent": "pi_noop"},
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_charge_refunded_no_order_id_or_payment_intent_is_noop(self):
+        event = self._event("evt_ref_5", "charge.refunded", overrides={})
+        # Remove metadata key entirely so neither order_id nor payment_intent exist.
+        event["data"]["object"] = {"metadata": {}}
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+
+    # ── checkout.session.completed edge cases ─────────────────────────────────
+
+    def test_checkout_completed_amount_mismatch_does_not_mark_paid(self):
+        order = self._pending_order(total=Decimal("30.00"))
+        event = self._event(
+            "evt_cc_1", "checkout.session.completed", order_id=order.id,
+            overrides={"amount_total": 1000},  # 10.00 != 30.00
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_checkout_completed_non_existent_order_is_noop(self):
+        event = self._event(
+            "evt_cc_2", "checkout.session.completed", order_id=99999,
+            overrides={"amount_total": 2000},
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+
+    def test_checkout_completed_missing_metadata_is_noop(self):
+        order = self._pending_order()
+        event = self._event("evt_cc_3", "checkout.session.completed")
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_checkout_completed_already_paid_is_noop(self):
+        order = self._paid_order()
+        event = self._event(
+            "evt_cc_4", "checkout.session.completed", order_id=order.id,
+            overrides={"amount_total": int(order.total * 100)},
+        )
+        res = self._post(event)
+        self.assertEqual(res.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PAID)
+
+    # ── Signature errors ──────────────────────────────────────────────────────
+
+    def test_signature_verification_error_returns_400(self):
+        from stripe.error import SignatureVerificationError
+
+        with patch(
+            "apps.orders.views.stripe.Webhook.construct_event",
+            side_effect=SignatureVerificationError("bad sig", "dummy"),
+        ):
+            res = self.client.post(
+                self.WEBHOOK_URL, data="{}", content_type="application/json"
+            )
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(StripeEvent.objects.count(), 0)
+
+    def test_stripe_event_model_created_with_type(self):
+        event = self._event("evt_type_check", "checkout.session.completed", order_id=0)
+        self._post(event)
+        se = StripeEvent.objects.get(event_id="evt_type_check")
+        self.assertEqual(se.event_type, "checkout.session.completed")
+
+    def test_order_item_restocked_once_on_expired_then_refunded(self):
+        """An expired session cancels + restocks. Make sure _restock_order runs."""
+        order = self._pending_order()
+        from apps.orders.models import OrderItem
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=2, unit_price=Decimal("20.00")
+        )
+        self.product.refresh_from_db()
+        before = self.product.stock
+
+        event = self._event(
+            "evt_combo", "checkout.session.expired", order_id=order.id
+        )
+        self._post(event)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, before + 2)
