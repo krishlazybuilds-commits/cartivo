@@ -137,14 +137,14 @@ export default function AdminUsersPage() {
             {stats && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
                 {[
-                  { label: "All-time revenue", value: `$${Number(stats.all_time.revenue).toFixed(2)}` },
-                  { label: "All-time orders", value: stats.all_time.orders },
-                  { label: "Revenue (30 days)", value: `$${Number(stats.last_30_days.revenue).toFixed(2)}` },
-                  { label: "Orders (30 days)", value: stats.last_30_days.orders },
-                  { label: "Pending", value: stats.by_status.pending ?? 0 },
-                  { label: "Paid", value: stats.by_status.paid ?? 0 },
-                  { label: "Shipped", value: stats.by_status.shipped ?? 0 },
-                  { label: "Delivered", value: stats.by_status.delivered ?? 0 },
+                  { label: "All-time revenue", value: `$${Number(stats?.all_time?.revenue ?? 0).toFixed(2)}` },
+                  { label: "All-time orders", value: stats?.all_time?.orders ?? 0 },
+                  { label: "Revenue (30 days)", value: `$${Number(stats?.last_30_days?.revenue ?? 0).toFixed(2)}` },
+                  { label: "Orders (30 days)", value: stats?.last_30_days?.orders ?? 0 },
+                  { label: "Pending", value: stats?.by_status?.pending ?? 0 },
+                  { label: "Paid", value: stats?.by_status?.paid ?? 0 },
+                  { label: "Shipped", value: stats?.by_status?.shipped ?? 0 },
+                  { label: "Delivered", value: stats?.by_status?.delivered ?? 0 },
                 ].map(({ label, value }) => (
                   <div key={label} className="order-card" style={{ textAlign: "center", padding: "1rem" }}>
                     <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{value}</div>

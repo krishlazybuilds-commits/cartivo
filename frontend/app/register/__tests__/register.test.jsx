@@ -9,6 +9,7 @@ const { mockUseAuth, mockRouter } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
+  useSearchParams: () => ({ get: () => null }),
 }));
 
 vi.mock("next/link", () => ({

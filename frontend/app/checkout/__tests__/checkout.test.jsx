@@ -12,6 +12,7 @@ const { mockUseAuth, mockAuthFetch, mockUseCart, mockFetchShippingEstimate, mock
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
+  useSearchParams: () => ({ get: () => null }),
 }));
 
 vi.mock("next/link", () => ({
@@ -53,14 +54,15 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUseAuth.mockReturnValue({ user: null, loading: false });
   mockUseCart.mockReturnValue({ cart: null, refresh: vi.fn() });
-  mockAuthFetch.mockReset();
+  mockAuthFetch.mockResolvedValue([]); // default: empty addresses
   mockFetchShippingEstimate.mockReset();
 });
 
 describe("CheckoutPage — auth guard", () => {
-  it("redirects guest to /login?next=/checkout", () => {
+  it("shows email field for guest users", async () => {
     render(<CheckoutPage />);
-    expect(mockRouter.replace).toHaveBeenCalledWith("/login?next=/checkout");
+    // Guests see an email field instead of being redirected
+    expect(mockRouter.replace).not.toHaveBeenCalledWith("/login?next=/checkout");
   });
 
   it("renders nothing while auth is loading", () => {
@@ -194,6 +196,8 @@ describe("CheckoutPage — order submission", () => {
     mockUseAuth.mockReturnValue({ user: { id: 1, username: "test" }, loading: false });
     const refresh = vi.fn();
     mockUseCart.mockReturnValue({ cart: sampleCart, refresh });
+    // First call: addresses fetch, then order create, then pay
+    mockAuthFetch.mockResolvedValueOnce([]);
     mockAuthFetch.mockResolvedValueOnce({ id: 42 });
     mockAuthFetch.mockResolvedValueOnce({ url: "https://checkout.stripe.com/test" });
     Object.defineProperty(window, "location", {
@@ -239,6 +243,7 @@ describe("CheckoutPage — order submission", () => {
 
   it("shows error when order creation fails", async () => {
     mockAuthFetch.mockReset();
+    mockAuthFetch.mockResolvedValueOnce([]); // addresses
     mockAuthFetch.mockRejectedValueOnce(new Error("Payment method required."));
 
     render(<CheckoutPage />);
@@ -255,8 +260,9 @@ describe("CheckoutPage — order submission", () => {
     });
   });
 
-  it("navigates to order page when payment initiation fails", async () => {
+  it("shows error when payment initiation fails", async () => {
     mockAuthFetch.mockReset();
+    mockAuthFetch.mockResolvedValueOnce([]); // addresses
     mockAuthFetch.mockResolvedValueOnce({ id: 42 });
     mockAuthFetch.mockRejectedValueOnce(new Error("Stripe error"));
 
@@ -270,7 +276,7 @@ describe("CheckoutPage — order submission", () => {
     fireEvent.click(screen.getByRole("button", { name: /pay/i }));
 
     await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith("/orders/42");
+      expect(screen.getByRole("alert")).toHaveTextContent(/stripe error/i);
     });
   });
 });

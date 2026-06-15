@@ -81,7 +81,7 @@ export default function AddToCart({ productId, productName, productPrice, inStoc
         <>
           <div className="qty-selector">
             <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
-            <span className="qty-value" aria-live="polite">{quantity}</span>
+            <span className="qty-value" aria-live="polite" aria-label={`Quantity: ${quantity}`}>{quantity}</span>
             <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.min(q + 1, effectiveStock))} aria-label="Increase quantity">+</button>
           </div>
           <button

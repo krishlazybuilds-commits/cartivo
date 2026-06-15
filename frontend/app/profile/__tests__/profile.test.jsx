@@ -19,6 +19,7 @@ const { mockRouter, mockUseAuth, mockAuthFetch, mockLogout } = vi.hoisted(() => 
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
+  useSearchParams: () => ({ get: () => null }),
 }));
 
 vi.mock("../../lib/auth", () => ({
@@ -96,7 +97,8 @@ describe("ProfilePage — personal info form", () => {
     mockUseAuth.mockReturnValue(authedMock());
     render(<ProfilePage />);
     expect(await screen.findByDisplayValue("janedoe")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("jane@example.com")).toBeInTheDocument();
+    // Email is shown as read-only text, not an input field
+    expect(screen.getByText("jane@example.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Jane")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Doe")).toBeInTheDocument();
     expect(screen.getByDisplayValue("+1234567890")).toBeInTheDocument();
@@ -111,7 +113,12 @@ describe("ProfilePage — personal info form", () => {
     await waitFor(() => {
       expect(mockAuthFetch).toHaveBeenCalledWith("/auth/me/", {
         method: "PATCH",
-        body: JSON.stringify(sampleUser),
+        body: JSON.stringify({
+          username: sampleUser.username,
+          first_name: sampleUser.first_name,
+          last_name: sampleUser.last_name,
+          phone: sampleUser.phone,
+        }),
       });
     });
   });

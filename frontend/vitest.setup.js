@@ -7,3 +7,10 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
+
+// Default mock for next/navigation — individual test files can override as needed.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => ({ get: () => null }),
+}));

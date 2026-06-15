@@ -75,7 +75,7 @@ describe("AddToCart — add to cart button", () => {
     render(<AddToCart {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
     await waitFor(() => {
-      expect(mockAddItem).toHaveBeenCalledWith(1, 1, { name: "Test Product", price: "19.99" });
+      expect(mockAddItem).toHaveBeenCalledWith(1, 1, { name: "Test Product", price: "19.99", variantId: null });
     });
   });
 
@@ -137,7 +137,7 @@ describe("AddToCart — quantity + add integration", () => {
     fireEvent.click(screen.getByRole("button", { name: /increase/i }));
     fireEvent.click(screen.getByText("Add to cart"));
     await waitFor(() => {
-      expect(mockAddItem).toHaveBeenCalledWith(1, 4, { name: "Test Product", price: "19.99" });
+      expect(mockAddItem).toHaveBeenCalledWith(1, 4, { name: "Test Product", price: "19.99", variantId: null });
     });
   });
 });
