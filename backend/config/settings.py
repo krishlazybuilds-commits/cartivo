@@ -30,8 +30,10 @@ def env_list(key: str, default: str = "") -> list[str]:
 
 # --- Core security -----------------------------------------------------------
 # Resolve DEBUG first so the SECRET_KEY guard below can tell local development
-# apart from production.
-DEBUG = env_bool("DJANGO_DEBUG", True)
+# apart from production. Defaults to False so an unset DJANGO_DEBUG fails safe
+# (production mode) instead of silently serving debug error pages that leak
+# stack traces, settings, and SQL. Local dev opts in via DJANGO_DEBUG=True.
+DEBUG = env_bool("DJANGO_DEBUG", False)
 
 # SECRET_KEY must be supplied via the environment. In local development (DEBUG
 # on) we fall back to an obviously-insecure placeholder for convenience, but in
