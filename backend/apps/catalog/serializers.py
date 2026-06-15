@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, Product, ProductVariant, Review, WishlistItem
+from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -8,6 +8,13 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ("id", "name", "slug", "description", "parent", "created_at")
         read_only_fields = ("id", "slug", "created_at")
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ("id", "image", "alt", "order")
+        read_only_fields = ("id",)
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
@@ -26,6 +33,7 @@ class ProductSerializer(serializers.ModelSerializer):
     avg_rating = serializers.FloatField(read_only=True, default=None)
     review_count = serializers.IntegerField(read_only=True, default=0)
     variants = ProductVariantSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -45,6 +53,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "avg_rating",
             "review_count",
             "variants",
+            "images",
             "created_at",
             "updated_at",
         )

@@ -8,6 +8,7 @@ import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/StarRating";
 import ProductReviews from "../../components/ProductReviews";
 import JsonLd from "../../components/JsonLd";
+import GalleryImages from "../../components/GalleryImages";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
@@ -127,7 +128,9 @@ export default async function ProductDetailPage({ params }) {
             <Reveal>
             <article className="product-detail">
               <div className="product-detail-image">
-                {product.image ? (
+                {product.images?.length > 0 ? (
+                  <GalleryImages images={product.images} mainImage={product.image} name={product.name} />
+                ) : product.image ? (
                   <Image src={product.image} alt={product.name} width={600} height={450} className="product-img" priority />
                 ) : (
                   <span className="product-image-ph large" aria-hidden="true">

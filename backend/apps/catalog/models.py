@@ -93,6 +93,27 @@ class Product(models.Model):
         return self.name
 
 
+class ProductImage(models.Model):
+    """Additional images for a product gallery."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(
+        upload_to="products/",
+        validators=[
+            FileExtensionValidator(["jpg", "jpeg", "png", "webp"]),
+            validate_image_size,
+        ],
+    )
+    alt = models.CharField(max_length=200, blank=True)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Display order (lower = first)")
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self) -> str:
+        return f"Image {self.id} for {self.product.name}"
+
+
 class ProductVariant(models.Model):
     """A specific variant of a product (e.g. Size: L, Color: Red).
 

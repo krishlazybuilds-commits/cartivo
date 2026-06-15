@@ -2,8 +2,8 @@ from django.db.models import Avg, Count
 from rest_framework import viewsets
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 
-from .models import Category, Product, ProductVariant, Review, WishlistItem
-from .serializers import CategorySerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WishlistItemSerializer
+from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
+from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WishlistItemSerializer
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -27,7 +27,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("price", "created_at", "name")
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category").prefetch_related("variants").annotate(
+        qs = Product.objects.select_related("category").prefetch_related("variants", "images").annotate(
             avg_rating=Avg("reviews__rating"),
             review_count=Count("reviews"),
         )
@@ -100,3 +100,21 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
+
+
+class ProductImageViewSet(viewsets.ModelViewSet):
+    """Staff-only: manage additional product images. Anyone can read."""
+    serializer_class = ProductImageSerializer
+    filterset_fields = ("product",)
+
+    def get_queryset(self):
+        return ProductImage.objects.select_related("product").all()
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticatedOrReadOnly()]
+        return [IsAdminUser()]
+
+    def get_parsers(self):
+        from rest_framework.parsers import MultiPartParser, JSONParser
+        return [MultiPartParser(), JSONParser()]

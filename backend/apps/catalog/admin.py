@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import Category, Product, ProductVariant
+from .models import Category, Product, ProductImage, ProductVariant
+
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -21,4 +26,4 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "category")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "sku")
-    inlines = [ProductVariantInline]
+    inlines = [ProductImageInline, ProductVariantInline]
