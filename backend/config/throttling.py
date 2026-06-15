@@ -30,3 +30,15 @@ class PaymentThrottle(UserRateThrottle):
     """Tighter limit for payment-session creation (hits Stripe)."""
 
     scope = "payment"
+
+
+class CouponAnonThrottle(WriteRateThrottle):
+    """Rate-limit coupon validation to prevent brute-force enumeration."""
+
+    scope = "coupon"
+
+
+class ShippingEstimateAnonThrottle(WriteRateThrottle):
+    """Rate-limit shipping estimate requests."""
+
+    scope = "shipping_estimate"

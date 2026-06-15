@@ -17,7 +17,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
-from config.throttling import OrderWriteThrottle, PaymentThrottle
+from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
@@ -51,7 +51,7 @@ class ShippingEstimateView(APIView):
     estimated total on the cart and product pages before checkout.
     """
     permission_classes = [AllowAny]
-    throttle_classes = []  # public read; no auth throttle needed
+    throttle_classes = [ShippingEstimateAnonThrottle]
 
     @extend_schema(
         request=ShippingEstimateSerializer,
@@ -82,7 +82,7 @@ class ValidateCouponView(APIView):
     the discount before the user submits the checkout form.
     """
     permission_classes = [AllowAny]
-    throttle_classes = []
+    throttle_classes = [CouponAnonThrottle]
 
     @extend_schema(
         request=ValidateCouponSerializer,
