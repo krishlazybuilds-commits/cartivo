@@ -192,6 +192,14 @@ export default function AdminCatalogPage() {
   const [vsaving, setVsaving] = useState(false);
   const [vToDelete, setVToDelete] = useState(null);
 
+  // Image gallery management state
+  const [imageProduct, setImageProduct] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [imgFile, setImgFile] = useState(null);
+  const [imgAlt, setImgAlt] = useState("");
+  const [imgSaving, setImgSaving] = useState(false);
+  const [imgToDelete, setImgToDelete] = useState(null);
+
   async function openVariants(product) {
     if (variantProduct?.id === product.id) { setVariantProduct(null); return; }
     setVariantProduct(product);
@@ -242,6 +250,40 @@ export default function AdminCatalogPage() {
     setVToDelete(null);
     await authFetch(`/variants/${v.id}/`, { method: "DELETE" }).catch(() => {});
     setVariants((prev) => prev.filter((x) => x.id !== v.id));
+  }
+
+  async function openImages(product) {
+    if (imageProduct?.id === product.id) { setImageProduct(null); return; }
+    setImageProduct(product);
+    setImgFile(null); setImgAlt("");
+    const data = await authFetch(`/product-images/?product=${product.id}`).catch(() => ({ results: [] }));
+    setGalleryImages(data.results ?? data);
+  }
+
+  async function uploadImage(e) {
+    e.preventDefault();
+    if (!imgFile) return;
+    setImgSaving(true);
+    const fd = new FormData();
+    fd.append("product", imageProduct.id);
+    fd.append("image", imgFile);
+    if (imgAlt) fd.append("alt", imgAlt);
+    try {
+      const created = await authFetch("/product-images/", { method: "POST", body: fd });
+      setGalleryImages((prev) => [...prev, created]);
+      setImgFile(null); setImgAlt("");
+    } catch (err) {
+      setError(extractError(err.data, err.message));
+    } finally {
+      setImgSaving(false);
+    }
+  }
+
+  async function confirmDeleteImage() {
+    const img = imgToDelete;
+    setImgToDelete(null);
+    await authFetch(`/product-images/${img.id}/`, { method: "DELETE" }).catch(() => {});
+    setGalleryImages((prev) => prev.filter((x) => x.id !== img.id));
   }
 
   if (authLoading || !user || !user.is_staff) return null;
@@ -346,6 +388,9 @@ export default function AdminCatalogPage() {
                             <button type="button" className="btn btn-ghost" onClick={() => openVariants(p)}>
                               Variants
                             </button>{" "}
+                            <button type="button" className="btn btn-ghost" onClick={() => openImages(p)}>
+                              Images
+                            </button>{" "}
                             <button type="button" className="btn btn-ghost" onClick={() => openEdit(p)}>
                               Edit
                             </button>{" "}
@@ -416,6 +461,46 @@ export default function AdminCatalogPage() {
                         ))}
                       </tbody>
                     </table>
+                  )}
+                </div>
+              )}
+
+              {/* Inline images panel */}
+              {imageProduct && (
+                <div className="order-card" style={{ marginTop: "1.5rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                    <h4 style={{ margin: 0 }}>Gallery images — {imageProduct.name}</h4>
+                  </div>
+                  <form onSubmit={uploadImage} style={{ display: "flex", gap: ".75rem", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "1.25rem" }}>
+                    <label style={{ flex: 1, minWidth: 160 }}>
+                      Image file
+                      <input type="file" accept="image/jpeg,image/png,image/webp" required onChange={e => setImgFile(e.target.files?.[0] ?? null)} style={{ marginTop: ".3rem" }} />
+                    </label>
+                    <label style={{ flex: 1, minWidth: 140 }}>
+                      Alt text <span style={{ opacity: .5, fontSize: ".8em" }}>(optional)</span>
+                      <input value={imgAlt} onChange={e => setImgAlt(e.target.value)} placeholder="Descriptive text" style={{ marginTop: ".3rem" }} />
+                    </label>
+                    <button className="btn btn-primary" type="submit" disabled={imgSaving || !imgFile}>
+                      {imgSaving ? "Uploading…" : "Upload"}
+                    </button>
+                  </form>
+                  {galleryImages.length === 0 ? (
+                    <p style={{ opacity: .6, fontSize: ".88rem" }}>No gallery images yet.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: ".75rem" }}>
+                      {galleryImages.map((img) => (
+                        <div key={img.id} style={{ position: "relative", width: 80, height: 80 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.image} alt={img.alt || ""} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border, #e5e7eb)" }} />
+                          <button
+                            type="button"
+                            onClick={() => setImgToDelete(img)}
+                            style={{ position: "absolute", top: -6, right: -6, background: "var(--error, #dc2626)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, cursor: "pointer", fontSize: 12, lineHeight: "20px", textAlign: "center", padding: 0 }}
+                            aria-label="Delete image"
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -520,6 +605,15 @@ export default function AdminCatalogPage() {
         destructive
         onConfirm={confirmDeleteVariant}
         onCancel={() => setVToDelete(null)}
+      />
+      <ConfirmDialog
+        open={!!imgToDelete}
+        title="Delete image?"
+        message="Permanently delete this gallery image?"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDeleteImage}
+        onCancel={() => setImgToDelete(null)}
       />
     </>
   );
