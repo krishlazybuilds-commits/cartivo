@@ -88,9 +88,9 @@ describe("ProductReviews — review list", () => {
     mockFetchReviews(sampleReviews);
     render(<ProductReviews productId={1} />);
     await waitFor(() => {
-      expect(screen.getByTestId("star-rating")).toHaveAttribute("data-count", "2");
+      expect(screen.getAllByTestId("star-rating")[0]).toHaveAttribute("data-count", "2");
     });
-    expect(screen.getByTestId("star-rating")).toHaveAttribute("data-value", "4");
+    expect(screen.getAllByTestId("star-rating")[0]).toHaveAttribute("data-value", "4");
   });
 
   it("does not show aggregate rating when count is 0", async () => {
