@@ -18,8 +18,8 @@ RUN DJANGO_SECRET_KEY=build-only DJANGO_DEBUG=False python manage.py collectstat
 
 EXPOSE 8000
 
-# Start Gunicorn only. Database migrations are NOT run here: when the backend
-# is scaled to multiple containers, each would otherwise run `migrate`
-# concurrently and race. Migrations are applied by a dedicated one-shot step
-# (see the `migrate` service in docker-compose.yml) before the app starts.
+# Run as non-root for defense in depth.
+RUN adduser --disabled-password --no-create-home appuser
+USER appuser
+
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
