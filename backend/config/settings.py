@@ -57,6 +57,36 @@ elif not DEBUG and SECRET_KEY == INSECURE_SECRET_KEY:
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# Fail fast if DEBUG is on while serving a non-local host. DEBUG mode leaks
+# tracebacks/settings/SQL and disables the secure-cookie/HSTS hardening below,
+# so booting it against a real domain is almost always an accidental
+# deployment misconfiguration. Anything not in the local allow-list (including
+# the "*" wildcard) is treated as non-local. Skipped during tests, and
+# overridable via ALLOW_DEBUG_NON_LOCAL=True for the rare intentional case
+# (e.g. debugging on a remote box).
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "0.0.0.0", "testserver", ""}
+
+
+def _is_local_host(host: str) -> bool:
+    host = host.strip()
+    return host in _LOCAL_HOSTS or host.endswith(".local")
+
+
+if (
+    DEBUG
+    and "test" not in sys.argv
+    and not env_bool("ALLOW_DEBUG_NON_LOCAL", False)
+    and any(not _is_local_host(host) for host in ALLOWED_HOSTS)
+):
+    raise ImproperlyConfigured(
+        "DEBUG is True but DJANGO_ALLOWED_HOSTS contains a non-local host "
+        f"({', '.join(ALLOWED_HOSTS)}). DEBUG mode leaks tracebacks, settings, "
+        "and SQL, and disables secure cookies/HSTS — it must never run against "
+        "a deployed host. Set DJANGO_DEBUG=False for deployment (use "
+        ".env.production), or set ALLOW_DEBUG_NON_LOCAL=True to override this "
+        "guard intentionally."
+    )
+
 
 # --- Applications ------------------------------------------------------------
 DJANGO_APPS = [
