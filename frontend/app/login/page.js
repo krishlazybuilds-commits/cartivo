@@ -28,7 +28,8 @@ function LoginForm() {
     try {
       await login(username, password);
       toast("Signed in successfully", "success");
-      router.push(searchParams.get("next") || "/products");
+      const next = searchParams.get("next");
+      router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/products");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,7 +52,7 @@ function LoginForm() {
         {submitting ? "Signing in…" : "Sign in"}
       </button>
       <div className="auth-divider"><span>or</span></div>
-      <GoogleButton action="Sign in" next={searchParams.get("next") || "/products"} />
+      <GoogleButton action="Sign in" next={(() => { const n = searchParams.get("next"); return n && n.startsWith("/") && !n.startsWith("//") ? n : "/products"; })()} />
       <p className="auth-alt">No account? <Link href="/register">Create one</Link></p>
       <p className="auth-alt"><Link href="/forgot-password">Forgot password?</Link></p>
     </form>
