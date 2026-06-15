@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import Reveal from "../components/Reveal";
@@ -9,11 +9,12 @@ import PasswordInput from "../components/PasswordInput";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
-export default function ProfilePage() {
+function ProfileForm() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [info, setInfo] = useState({ username: "", email: "", first_name: "", last_name: "", phone: "" });
+  const [info, setInfo] = useState({ username: "", first_name: "", last_name: "", phone: "" });
   const [infoMsg, setInfoMsg] = useState(null);
   const [infoErr, setInfoErr] = useState(null);
   const [infoSaving, setInfoSaving] = useState(false);
@@ -23,15 +24,39 @@ export default function ProfilePage() {
   const [pwErr, setPwErr] = useState(null);
   const [pwSaving, setPwSaving] = useState(false);
 
+  // Email change state
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailMsg, setEmailMsg] = useState(null);
+  const [emailErr, setEmailErr] = useState(null);
+  const [emailSaving, setEmailSaving] = useState(false);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteErr, setDeleteErr] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Handle email confirmation link: /profile?email_uid=...&email_token=...
+  useEffect(() => {
+    const uid = searchParams.get("email_uid");
+    const token = searchParams.get("email_token");
+    if (!uid || !token) return;
+    authFetch("/auth/me/email/confirm/", {
+      method: "POST",
+      body: JSON.stringify({ uid, token }),
+    })
+      .then(() => {
+        setEmailMsg("Email updated successfully.");
+        // Remove query params without reload.
+        router.replace("/profile");
+      })
+      .catch((err) => setEmailErr(extractError(err.data, err.message)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
     if (user) setInfo({
       username: user.username ?? "",
-      email: user.email ?? "",
       first_name: user.first_name ?? "",
       last_name: user.last_name ?? "",
       phone: user.phone ?? "",
@@ -63,6 +88,21 @@ export default function ProfilePage() {
       setPwErr(extractError(err.data, err.message));
     } finally {
       setPwSaving(false);
+    }
+  }
+
+  async function requestEmailChange(e) {
+    e.preventDefault();
+    setEmailErr(null); setEmailMsg(null); setEmailSaving(true);
+    try {
+      await authFetch("/auth/me/email/", { method: "POST", body: JSON.stringify({ email: newEmail }) });
+      setEmailMsg(`Confirmation sent to ${newEmail}. Check your inbox.`);
+      setShowEmailForm(false);
+      setNewEmail("");
+    } catch (err) {
+      setEmailErr(extractError(err.data, err.message));
+    } finally {
+      setEmailSaving(false);
     }
   }
 
@@ -114,10 +154,6 @@ export default function ProfilePage() {
                     </label>
                   </div>
                   <label>
-                    Email
-                    <input type="email" value={info.email} onChange={e => setInfo(p => ({ ...p, email: e.target.value }))} />
-                  </label>
-                  <label>
                     Phone
                     <input type="tel" value={info.phone} onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} />
                   </label>
@@ -127,6 +163,46 @@ export default function ProfilePage() {
                     {infoSaving ? "Saving…" : "Save changes"}
                   </button>
                 </form>
+              </div>
+
+              {/* Email change */}
+              <div className="order-card">
+                <h3 style={{ marginBottom: "1.25rem" }}>Email address</h3>
+                <p style={{ marginBottom: "1rem", opacity: 0.8 }}>
+                  Current: <strong>{user.email}</strong>
+                </p>
+                {emailMsg && <p className="auth-success" style={{ marginBottom: "0.75rem" }}>{emailMsg}</p>}
+                {emailErr && <p className="auth-error" style={{ marginBottom: "0.75rem" }}>{emailErr}</p>}
+                {!showEmailForm ? (
+                  <button className="btn btn-ghost" type="button" onClick={() => { setShowEmailForm(true); setEmailErr(null); setEmailMsg(null); }}>
+                    Change email
+                  </button>
+                ) : (
+                  <form onSubmit={requestEmailChange} style={{ display: "grid", gap: "0.75rem" }}>
+                    <label>
+                      New email address
+                      <input
+                        type="email"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        required
+                        autoFocus
+                        placeholder="new@example.com"
+                      />
+                    </label>
+                    <p style={{ fontSize: "0.8rem", opacity: 0.6 }}>
+                      A confirmation link will be sent to the new address.
+                    </p>
+                    <div style={{ display: "flex", gap: "0.75rem" }}>
+                      <button className="btn btn-primary" type="submit" disabled={emailSaving}>
+                        {emailSaving ? "Sending…" : "Send confirmation"}
+                      </button>
+                      <button className="btn btn-ghost" type="button" onClick={() => setShowEmailForm(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
 
               {/* Password change */}
@@ -188,5 +264,13 @@ export default function ProfilePage() {
         onCancel={() => setShowDeleteConfirm(false)}
       />
     </>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfileForm />
+    </Suspense>
   );
 }
