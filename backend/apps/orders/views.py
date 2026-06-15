@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import stripe
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models as django_models, transaction
 from django.db.models import F
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -45,6 +45,64 @@ def _restock_order(order):
         Product.objects.filter(pk=item.product_id).update(
             stock=F("stock") + item.quantity
         )
+
+
+class DashboardView(APIView):
+    """Staff-only sales analytics summary."""
+    permission_classes = [permissions.IsAdminUser]
+
+    @extend_schema(summary="Admin dashboard stats", tags=["orders"])
+    def get(self, request):
+        from django.db.models import Sum, Count
+        from django.utils import timezone
+        import datetime
+
+        now = timezone.now()
+        thirty_days_ago = now - datetime.timedelta(days=30)
+
+        paid_statuses = [Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED]
+
+        totals = Order.objects.filter(status__in=paid_statuses).aggregate(
+            revenue=Sum("total"),
+            orders=Count("id"),
+        )
+        monthly = Order.objects.filter(
+            status__in=paid_statuses, created_at__gte=thirty_days_ago
+        ).aggregate(
+            revenue=Sum("total"),
+            orders=Count("id"),
+        )
+
+        status_counts = {
+            s: Order.objects.filter(status=s).count()
+            for s in [st.value for st in Order.Status]
+        }
+
+        top_products = (
+            OrderItem.objects
+            .filter(order__status__in=paid_statuses)
+            .values("product__name")
+            .annotate(units=Sum("quantity"), revenue=Sum(
+                django_models.ExpressionWrapper(
+                    django_models.F("unit_price") * django_models.F("quantity"),
+                    output_field=django_models.DecimalField()
+                )
+            ))
+            .order_by("-units")[:5]
+        )
+
+        return Response({
+            "all_time": {
+                "revenue": totals["revenue"] or 0,
+                "orders": totals["orders"] or 0,
+            },
+            "last_30_days": {
+                "revenue": monthly["revenue"] or 0,
+                "orders": monthly["orders"] or 0,
+            },
+            "by_status": status_counts,
+            "top_products": list(top_products),
+        })
 
 
 class CouponViewSet(viewsets.ModelViewSet):

@@ -21,6 +21,8 @@ export default function AdminUsersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  const [stats, setStats] = useState(null);
+
   const [users, setUsers] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -63,7 +65,10 @@ export default function AdminUsersPage() {
   }, [page, query]);
 
   useEffect(() => {
-    if (isAdmin) loadUsers();
+    if (isAdmin) {
+      loadUsers();
+      authFetch("/orders/dashboard/").then(setStats).catch(() => {});
+    }
   }, [isAdmin, loadUsers]);
 
   async function patchUser(target, body) {
@@ -128,6 +133,49 @@ export default function AdminUsersPage() {
             </Reveal>
 
             <AdminTabs />
+
+            {stats && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+                {[
+                  { label: "All-time revenue", value: `$${Number(stats.all_time.revenue).toFixed(2)}` },
+                  { label: "All-time orders", value: stats.all_time.orders },
+                  { label: "Revenue (30 days)", value: `$${Number(stats.last_30_days.revenue).toFixed(2)}` },
+                  { label: "Orders (30 days)", value: stats.last_30_days.orders },
+                  { label: "Pending", value: stats.by_status.pending ?? 0 },
+                  { label: "Paid", value: stats.by_status.paid ?? 0 },
+                  { label: "Shipped", value: stats.by_status.shipped ?? 0 },
+                  { label: "Delivered", value: stats.by_status.delivered ?? 0 },
+                ].map(({ label, value }) => (
+                  <div key={label} className="order-card" style={{ textAlign: "center", padding: "1rem" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{value}</div>
+                    <div style={{ fontSize: "0.78rem", opacity: 0.6, marginTop: "0.25rem" }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {stats?.top_products?.length > 0 && (
+              <div className="order-card" style={{ marginBottom: "2rem" }}>
+                <h3 style={{ marginBottom: "0.75rem", fontSize: "0.95rem" }}>Top products by units sold</h3>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "left", padding: "0.4rem 0.6rem" }}>Product</th>
+                      <th style={{ textAlign: "right", padding: "0.4rem 0.6rem" }}>Units</th>
+                      <th style={{ textAlign: "right", padding: "0.4rem 0.6rem" }}>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.top_products.map((p) => (
+                      <tr key={p.product__name} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
+                        <td style={{ padding: "0.4rem 0.6rem" }}>{p.product__name}</td>
+                        <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>{p.units}</td>
+                        <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>${Number(p.revenue).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <div className="admin-search">
               <input
