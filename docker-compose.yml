@@ -1,6 +1,13 @@
 # Local/production-like orchestration for Cartivo: Postgres + Django + Next.js.
 # Usage: docker compose up --build
 # Provide secrets via backend/.env (gitignored). See backend/.env.example.
+#
+# NOTE: backend/.env is for LOCAL DEVELOPMENT only (it sets DJANGO_DEBUG=True).
+# Real deployments MUST supply a production env file with DJANGO_DEBUG=False
+# (see backend/.env.production.example) — e.g. point env_file at
+# ./backend/.env.production, or inject the values via your deployment platform /
+# secrets manager. DEBUG mode leaks tracebacks/settings and disables secure
+# cookies/HSTS, and the app refuses to boot in DEBUG against a non-local host.
 
 # Shared S3-compatible media storage settings, pointed at the bundled MinIO.
 # These make uploads survive across multiple backend containers. Swap the
@@ -84,6 +91,8 @@ services:
   # `migrate` concurrently and race. Exits when migrations finish.
   migrate:
     build: ./backend
+    # LOCAL DEV ONLY: backend/.env sets DJANGO_DEBUG=True. For deployment,
+    # supply a production env file (DJANGO_DEBUG=False), e.g. ./backend/.env.production.
     env_file: ./backend/.env
     environment:
       DB_ENGINE: django.db.backends.postgresql
@@ -97,6 +106,8 @@ services:
 
   backend:
     build: ./backend
+    # LOCAL DEV ONLY: backend/.env sets DJANGO_DEBUG=True. For deployment,
+    # supply a production env file (DJANGO_DEBUG=False), e.g. ./backend/.env.production.
     env_file: ./backend/.env
     environment:
       <<: *s3-env
@@ -128,6 +139,8 @@ services:
   # side-effects) off the request cycle, with automatic retries.
   worker:
     build: ./backend
+    # LOCAL DEV ONLY: backend/.env sets DJANGO_DEBUG=True. For deployment,
+    # supply a production env file (DJANGO_DEBUG=False), e.g. ./backend/.env.production.
     env_file: ./backend/.env
     environment:
       <<: *s3-env
@@ -151,6 +164,8 @@ services:
   # to release reserved stock). Run a single instance to avoid duplicate ticks.
   beat:
     build: ./backend
+    # LOCAL DEV ONLY: backend/.env sets DJANGO_DEBUG=True. For deployment,
+    # supply a production env file (DJANGO_DEBUG=False), e.g. ./backend/.env.production.
     env_file: ./backend/.env
     environment:
       DB_ENGINE: django.db.backends.postgresql
