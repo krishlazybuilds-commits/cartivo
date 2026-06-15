@@ -36,6 +36,7 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [refundFilter, setRefundFilter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -56,6 +57,7 @@ export default function AdminOrdersPage() {
       const params = new URLSearchParams({ page: String(page) });
       if (query) params.set("search", query);
       if (statusFilter) params.set("status", statusFilter);
+      if (refundFilter) params.set("has_refund_request", "true");
       const data = await authFetch(`/orders/?${params.toString()}`);
       const results = data.results ?? data;
       setOrders(results);
@@ -65,7 +67,7 @@ export default function AdminOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, query, statusFilter]);
+  }, [page, query, statusFilter, refundFilter]);
 
   useEffect(() => {
     if (user?.is_staff) loadOrders();
@@ -110,7 +112,7 @@ export default function AdminOrdersPage() {
 
           <AdminTabs />
 
-          <div className="admin-search" style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <div className="admin-search" style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
             <input
               type="search"
               placeholder="Search by order number or customer"
@@ -129,6 +131,15 @@ export default function AdminOrdersPage() {
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem", cursor: "pointer", userSelect: "none", height: "38px" }}>
+              <input
+                type="checkbox"
+                checked={refundFilter}
+                onChange={(e) => { setRefundFilter(e.target.checked); setPage(1); }}
+                style={{ width: "auto", margin: 0 }}
+              />
+              Refund requests only
+            </label>
           </div>
 
           {error && <p className="auth-error" role="alert">{error}</p>}
@@ -163,13 +174,27 @@ export default function AdminOrdersPage() {
                           <td style={{ padding: "0.6rem", fontFamily: "monospace", fontSize: "0.9em" }}>
                             {String(o.order_number ?? o.id).slice(0, 8).toUpperCase()}
                           </td>
-                          <td style={{ padding: "0.6rem" }}>{customer}</td>
+                          <td style={{ padding: "0.6rem" }}>
+                            <div>{customer}</div>
+                            {o.refund_request_reason && (
+                              <div style={{ fontSize: "0.78rem", color: "#ef4444", marginTop: "0.3rem", padding: "0.4rem 0.6rem", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "4px", maxWidth: "250px", whiteSpace: "normal" }}>
+                                <span style={{ fontWeight: 600 }}>Refund Reason:</span> &ldquo;{o.refund_request_reason}&rdquo;
+                              </div>
+                            )}
+                          </td>
                           <td style={{ padding: "0.6rem" }}>{formatDate(o.created_at)}</td>
                           <td style={{ padding: "0.6rem" }}>${Number(o.total).toFixed(2)}</td>
                           <td style={{ padding: "0.6rem" }}>
-                            <span className={`product-stock${["cancelled", "refunded"].includes(o.status) ? " out" : o.status === "delivered" ? "" : ""}`}>
-                              {STATUS_LABELS[o.status] ?? o.status}
-                            </span>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-start" }}>
+                              <span className={`product-stock${["cancelled", "refunded"].includes(o.status) ? " out" : o.status === "delivered" ? "" : ""}`}>
+                                {STATUS_LABELS[o.status] ?? o.status}
+                              </span>
+                              {o.refund_request_reason && o.status !== "refunded" && (
+                                <span className="product-stock out" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                                  Refund Requested
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: "0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
                             {next.map((s) => (

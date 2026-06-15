@@ -240,11 +240,31 @@ class OrderViewSet(
             return Order.objects.none()
         # Staff see all orders; regular users see only their own.
         if self.request.user.is_staff:
-            return (
+            qs = (
                 Order.objects.prefetch_related("items__product")
                 .select_related("user")
                 .order_by("-created_at")
             )
+            # Apply filters
+            status_param = self.request.query_params.get("status")
+            if status_param:
+                qs = qs.filter(status=status_param)
+
+            has_refund_request = self.request.query_params.get("has_refund_request")
+            if has_refund_request == "true":
+                qs = qs.exclude(refund_request_reason="")
+
+            search_param = self.request.query_params.get("search")
+            if search_param:
+                search_param = search_param.strip()
+                from django.db.models import Q
+                qs = qs.filter(
+                    Q(order_number__icontains=search_param) |
+                    Q(shipping_full_name__icontains=search_param) |
+                    Q(guest_email__icontains=search_param) |
+                    Q(user__username__icontains=search_param)
+                )
+            return qs
         return (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items__product")
