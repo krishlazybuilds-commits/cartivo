@@ -5,74 +5,95 @@ import { useState } from "react";
 import { useCart } from "../lib/cart";
 import { useToast } from "../lib/toast";
 
-export default function AddToCart({ productId, productName, productPrice, inStock }) {
+export default function AddToCart({ productId, productName, productPrice, inStock, variants = [] }) {
   const { addItem } = useCart();
   const toast = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [status, setStatus] = useState("idle"); // idle | adding | added | error
+  const [variantId, setVariantId] = useState(
+    variants.length === 1 ? variants[0].id : null
+  );
+  const [addStatus, setAddStatus] = useState("idle");
 
-  function decrement() {
-    setQuantity((q) => Math.max(1, q - 1));
-  }
+  const activeVariants = variants.filter((v) => v.is_active);
+  const selectedVariant = activeVariants.find((v) => v.id === variantId) ?? null;
 
-  function increment() {
-    setQuantity((q) => q + 1);
-  }
+  // Effective stock / price for the current selection
+  const effectiveStock = selectedVariant ? selectedVariant.stock : (activeVariants.length === 0 ? Infinity : 0);
+  const effectivePrice = selectedVariant
+    ? (selectedVariant.price ?? productPrice)
+    : productPrice;
+  const hasVariants = activeVariants.length > 0;
+  const canAdd = inStock && (!hasVariants || selectedVariant) && effectiveStock > 0;
 
   async function handleAdd() {
-    setStatus("adding");
+    if (hasVariants && !selectedVariant) {
+      toast("Please select an option first", "error");
+      return;
+    }
+    setAddStatus("adding");
     try {
-      // Pass product metadata so the guest cart can display name + price.
-      await addItem(productId, quantity, { name: productName, price: productPrice });
-      setStatus("added");
+      await addItem(productId, quantity, {
+        name: productName,
+        price: effectivePrice,
+        variantId: selectedVariant?.id ?? null,
+      });
+      setAddStatus("added");
       toast(`Added ${quantity} to cart`, "success");
-      setTimeout(() => setStatus("idle"), 2000);
+      setTimeout(() => setAddStatus("idle"), 2000);
     } catch (err) {
-      setStatus("error");
+      setAddStatus("error");
       toast(err.message || "Couldn't add to cart", "error");
     }
   }
 
-  if (!inStock) {
-    return (
-      <button className="btn btn-ghost" disabled type="button">
-        Out of stock
-      </button>
-    );
-  }
-
   return (
     <div className="add-to-cart">
-      <div className="qty-selector">
-        <button
-          type="button"
-          className="qty-btn"
-          onClick={decrement}
-          disabled={quantity <= 1}
-          aria-label="Decrease quantity"
-        >
-          −
-        </button>
-        <span className="qty-value" aria-live="polite" aria-label={`Quantity: ${quantity}`}>
-          {quantity}
-        </span>
-        <button
-          type="button"
-          className="qty-btn"
-          onClick={increment}
-          aria-label="Increase quantity"
-        >
-          +
-        </button>
-      </div>
-      <button
-        className="btn btn-primary"
-        onClick={handleAdd}
-        disabled={status === "adding"}
-        type="button"
-      >
-        {status === "adding" ? "Adding…" : status === "added" ? "Added ✓" : "Add to cart"}
-      </button>
+      {hasVariants && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+          {activeVariants.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={`btn btn-ghost${variantId === v.id ? " active" : ""}`}
+              style={{
+                opacity: v.stock === 0 ? 0.4 : 1,
+                fontWeight: variantId === v.id ? 700 : undefined,
+                outline: variantId === v.id ? "2px solid var(--accent, #000)" : undefined,
+              }}
+              disabled={v.stock === 0}
+              onClick={() => setVariantId(v.id)}
+              aria-pressed={variantId === v.id}
+            >
+              {v.name}
+              {v.price !== null && v.price !== productPrice && (
+                <span style={{ marginLeft: "0.4em", fontSize: "0.85em", opacity: 0.7 }}>
+                  ${Number(v.price).toFixed(2)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!canAdd && !hasVariants ? (
+        <button className="btn btn-ghost" disabled type="button">Out of stock</button>
+      ) : (
+        <>
+          <div className="qty-selector">
+            <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
+            <span className="qty-value" aria-live="polite">{quantity}</span>
+            <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.min(q + 1, effectiveStock))} aria-label="Increase quantity">+</button>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleAdd}
+            disabled={!canAdd || addStatus === "adding"}
+            type="button"
+          >
+            {addStatus === "adding" ? "Adding…" : addStatus === "added" ? "Added ✓" : "Add to cart"}
+          </button>
+        </>
+      )}
     </div>
   );
 }

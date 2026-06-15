@@ -78,9 +78,11 @@ export function CartProvider({ children }) {
           setLoading(true);
           for (const item of guestItems) {
             try {
+              const body = { product: item.product_id, quantity: item.quantity };
+              if (item.variant_id) body.variant = item.variant_id;
               await authFetch("/cart-items/", {
                 method: "POST",
-                body: JSON.stringify({ product: item.product_id, quantity: item.quantity }),
+                body: JSON.stringify(body),
               });
             } catch {
               // Best-effort; carry on with remaining items.
@@ -97,31 +99,36 @@ export function CartProvider({ children }) {
     }
   }, [user, refreshServer, refreshGuest]);
 
-  // --- addItem ---------------------------------------------------------------
   const addItem = useCallback(
     async (productId, quantity = 1, productData = {}) => {
       if (user) {
+        const body = { product: productId, quantity };
+        if (productData.variantId) body.variant = productData.variantId;
         await authFetch("/cart-items/", {
           method: "POST",
-          body: JSON.stringify({ product: productId, quantity }),
+          body: JSON.stringify(body),
         });
         await refreshServer();
       } else {
         // Guest: store in localStorage.
         const items = readGuestCart();
-        const existing = items.find((i) => i.product_id === productId);
+        const guestKey = productData.variantId ? `guest-${productId}-${productData.variantId}` : `guest-${productId}`;
+        const existing = items.find((i) => i.id === guestKey);
         if (existing) {
           existing.quantity += quantity;
           existing.subtotal = existing.unit_price * existing.quantity;
         } else {
           const price = productData.price ?? 0;
           items.push({
-            id: `guest-${productId}`,
+            id: guestKey,
             product_id: productId,
-            product_name: productData.name ?? `Product #${productId}`,
+            product_name: productData.variantId
+              ? `${productData.name} — ${productData.variantName ?? "Option"}`
+              : (productData.name ?? `Product #${productId}`),
             unit_price: price,
             quantity,
             subtotal: price * quantity,
+            variant_id: productData.variantId ?? null,
           });
         }
         writeGuestCart(items);

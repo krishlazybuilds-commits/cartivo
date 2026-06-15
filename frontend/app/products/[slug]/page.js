@@ -154,7 +154,7 @@ export default async function ProductDetailPage({ params }) {
               <p className="product-sku">SKU: {product.sku}</p>
               <div style={{ marginTop: "1.5rem" }}>
                 <div className="product-actions">
-                  <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} />
+                  <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} variants={product.variants ?? []} />
                   <WishlistButton productId={product.id} withLabel />
                 </div>
               </div>
