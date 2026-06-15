@@ -661,6 +661,40 @@ _EVENT_HANDLERS = {
 }
 
 
+class GuestOrderLookupView(APIView):
+    """Look up a guest order by email + order number (first 8 chars of UUID)."""
+    permission_classes = [AllowAny]
+    throttle_classes = [OrderWriteThrottle]
+
+    @extend_schema(
+        summary="Guest order lookup",
+        tags=["orders"],
+        responses={200: OrderSerializer},
+    )
+    def get(self, request):
+        email = request.query_params.get("email", "").strip().lower()
+        order_number = request.query_params.get("order_number", "").strip().upper()
+        if not email or not order_number:
+            return Response({"detail": "email and order_number are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order = (
+            Order.objects.filter(guest_email__iexact=email, user=None)
+            .prefetch_related("items__product")
+            .first()
+        )
+        # Match against the full UUID or the 8-char short form.
+        if order and not (
+            str(order.order_number).upper() == order_number or
+            str(order.order_number)[:8].upper() == order_number
+        ):
+            order = None
+
+        if not order:
+            return Response({"detail": "No order found with that email and order number."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(OrderSerializer(order).data)
+
+
 class GuestCheckoutView(APIView):
     """Create an order for a guest (no account required).
 

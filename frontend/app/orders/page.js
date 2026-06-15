@@ -63,9 +63,12 @@ function OrdersContent() {
             )}
 
             {!user && !authLoading ? (
-              <p className="center">
-                Please <Link href="/login">sign in</Link> to view your orders.
-              </p>
+              <div className="center">
+                <p>Please <Link href="/login">sign in</Link> to view your orders.</p>
+                <p style={{ marginTop: ".5rem" }}>
+                  Checked out as a guest? <Link href="/orders/lookup">Track your order</Link>.
+                </p>
+              </div>
             ) : loading ? (
               <OrdersListSkeleton />
             ) : error ? (
