@@ -1,27 +1,41 @@
 "use client";
 
 import { useState } from "react";
+import { API_URL } from "../lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * Footer newsletter signup. Validates the email client-side and shows a
- * confirmation state. NOTE: there is no newsletter backend yet — wire this to
- * a real subscribe endpoint when one exists.
- */
 export default function NewsletterForm() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!EMAIL_RE.test(email.trim())) {
       setError("Please enter a valid email address.");
       return;
     }
     setError("");
-    setDone(true);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/newsletter/subscribe/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 201) {
+        setError(data.detail || "Subscription failed. Please try again.");
+      } else {
+        setDone(true);
+      }
+    } catch {
+      setError("Subscription failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (done) {
@@ -42,9 +56,10 @@ export default function NewsletterForm() {
           placeholder="Enter your email"
           aria-label="Email address"
           aria-invalid={!!error}
+          disabled={submitting}
         />
-        <button type="submit" className="btn btn-primary">
-          Subscribe
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? "…" : "Subscribe"}
         </button>
       </div>
       {error && <span className="newsletter-error">{error}</span>}

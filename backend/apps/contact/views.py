@@ -12,6 +12,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework import status
 
+from .models import NewsletterSubscriber
+
 logger = logging.getLogger(__name__)
 
 # Reasonable upper bounds to prevent abuse / oversized payloads.
@@ -77,3 +79,28 @@ def contact(request):
         )
 
     return Response({"detail": "Message sent."}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["contact"],
+    summary="Subscribe to newsletter",
+    request=inline_serializer("NewsletterRequest", fields={"email": drf_serializers.EmailField()}),
+    responses={200: inline_serializer("NewsletterResponse", fields={"detail": drf_serializers.CharField()})},
+)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ContactRateThrottle])
+def subscribe(request):
+    email = request.data.get("email", "").strip().lower()
+    if not email:
+        return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        validate_email(email)
+    except ValidationError:
+        return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # get_or_create is idempotent — re-subscribing the same address is a no-op.
+    _, created = NewsletterSubscriber.objects.get_or_create(email=email)
+    if not created:
+        return Response({"detail": "You're already subscribed."})
+    return Response({"detail": "Subscribed!"}, status=status.HTTP_201_CREATED)
