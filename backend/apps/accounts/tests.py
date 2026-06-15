@@ -1,4 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.test import override_settings
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APITestCase
 from unittest.mock import patch
@@ -318,3 +322,181 @@ class GoogleLoginTests(APITestCase):
 
         user = User.objects.get(email="conflict@example.com")
         self.assertEqual(user.username, "conflict1")
+
+
+class PasswordResetRequestTests(APITestCase):
+    URL = "/api/auth/password-reset/"
+
+    def test_returns_200_for_empty_email(self):
+        res = self.client.post(self.URL, {"email": ""}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["detail"], "If that email exists, a reset link has been sent.")
+
+    def test_returns_200_for_missing_email_field(self):
+        res = self.client.post(self.URL, {}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_returns_200_for_invalid_email_format(self):
+        res = self.client.post(self.URL, {"email": "not-an-email"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["detail"], "If that email exists, a reset link has been sent.")
+
+    def test_returns_200_for_nonexistent_email(self):
+        res = self.client.post(self.URL, {"email": "nobody@example.com"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    @patch("apps.accounts.views.send_password_reset_email_task.delay")
+    def test_does_not_send_email_for_nonexistent_email(self, mock_delay):
+        self.client.post(self.URL, {"email": "nobody@example.com"}, format="json")
+        mock_delay.assert_not_called()
+
+    @patch("apps.accounts.views.send_password_reset_email_task.delay")
+    def test_sends_email_for_existing_user(self, mock_delay):
+        User.objects.create_user(username="alice", email="alice@example.com")
+        self.client.post(self.URL, {"email": "alice@example.com"}, format="json")
+        mock_delay.assert_called_once()
+        args, _ = mock_delay.call_args
+        self.assertEqual(args[0], User.objects.get(username="alice").pk)
+        self.assertIn("/reset-password?uid=", args[1])
+
+    @patch("apps.accounts.views.send_password_reset_email_task.delay")
+    def test_sends_email_case_insensitive(self, mock_delay):
+        User.objects.create_user(username="bob", email="Bob@Example.com")
+        self.client.post(self.URL, {"email": "bob@example.com"}, format="json")
+        mock_delay.assert_called_once()
+
+    @patch("apps.accounts.views.send_password_reset_email_task.delay")
+    def test_sends_to_each_user_when_email_shared(self, mock_delay):
+        User.objects.create_user(username="user1", email="shared@example.com")
+        User.objects.create_user(username="user2", email="shared@example.com")
+        self.client.post(self.URL, {"email": "shared@example.com"}, format="json")
+        self.assertEqual(mock_delay.call_count, 2)
+
+
+class PasswordResetConfirmTests(APITestCase):
+    URL = "/api/auth/password-reset/confirm/"
+    NEW_PASS = "NewStr0ng!Pass"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="resetuser", email="reset@example.com", password="OldPass123!"
+        )
+        self.uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.token = default_token_generator.make_token(self.user)
+
+    def _valid_payload(self):
+        return {"uid": self.uid, "token": self.token, "new_password": self.NEW_PASS}
+
+    def test_requires_all_fields(self):
+        res = self.client.post(self.URL, {"uid": self.uid}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "uid, token and new_password are required.")
+
+    def test_requires_token(self):
+        res = self.client.post(
+            self.URL, {"uid": self.uid, "new_password": self.NEW_PASS}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_requires_new_password(self):
+        res = self.client.post(
+            self.URL, {"uid": self.uid, "token": self.token}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_rejects_invalid_uid(self):
+        res = self.client.post(
+            self.URL, {**self._valid_payload(), "uid": "invalid"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Invalid link.")
+
+    def test_rejects_nonexistent_user_uid(self):
+        # Encode a pk that doesn't exist.
+        bad_uid = urlsafe_base64_encode(force_bytes(99999))
+        res = self.client.post(
+            self.URL, {**self._valid_payload(), "uid": bad_uid}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Invalid link.")
+
+    def test_rejects_invalid_token(self):
+        res = self.client.post(
+            self.URL, {**self._valid_payload(), "token": "wrong-token"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Reset link is invalid or has expired.")
+
+    def test_rejects_weak_password(self):
+        res = self.client.post(
+            self.URL, {**self._valid_payload(), "new_password": "short"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_resets_password_successfully(self):
+        res = self.client.post(self.URL, self._valid_payload(), format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["detail"], "Password reset successful.")
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(self.NEW_PASS))
+
+    def test_token_is_consumed_after_use(self):
+        # First use succeeds.
+        self.client.post(self.URL, self._valid_payload(), format="json")
+        # Same token should now be rejected.
+        res = self.client.post(self.URL, self._valid_payload(), format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Reset link is invalid or has expired.")
+
+
+class ChangePasswordTests(APITestCase):
+    URL = "/api/auth/me/password/"
+    OLD_PASS = "OldStrong123!"
+    NEW_PASS = "NewStr0ng!Pass"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="changer", password=self.OLD_PASS
+        )
+
+    def test_requires_authentication(self):
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": self.NEW_PASS},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_rejects_wrong_current_password(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": "wrongpass", "new_password": self.NEW_PASS},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Current password is incorrect.", str(res.data))
+
+    def test_rejects_weak_new_password(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": "x"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_changes_password_successfully(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": self.NEW_PASS},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["detail"], "Password changed successfully.")
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(self.NEW_PASS))
+        self.assertFalse(self.user.check_password(self.OLD_PASS))
