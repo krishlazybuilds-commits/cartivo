@@ -507,6 +507,63 @@ class OrderViewSet(
         return Response(self.get_serializer(order).data)
 
     @extend_schema(
+        summary="Request a refund",
+        description="Customer submits a refund reason for a PAID or DELIVERED order. Notifies staff by email.",
+        request={"application/json": {"type": "object", "properties": {"reason": {"type": "string"}}, "required": ["reason"]}},
+        responses={200: OrderSerializer},
+        tags=["orders"],
+    )
+    @action(detail=True, methods=["post"], url_path="refund-request")
+    def refund_request(self, request, pk=None):
+        order = self.get_object()
+        if order.status not in (Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED):
+            return Response(
+                {"detail": "Only paid or delivered orders can be refunded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if order.refund_request_reason:
+            return Response(
+                {"detail": "A refund request has already been submitted for this order."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response({"detail": "A reason is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.refund_request_reason = reason
+        order.save(update_fields=["refund_request_reason"])
+
+        # Email staff.
+        from django.contrib.auth import get_user_model
+        from django.core.mail import send_mail
+        User = get_user_model()
+        staff_emails = list(
+            User.objects.filter(is_staff=True, is_active=True)
+            .exclude(email="")
+            .values_list("email", flat=True)
+        )
+        if staff_emails:
+            customer = order.user.email if order.user else order.guest_email
+            try:
+                send_mail(
+                    subject=f"[Cartivo] Refund request for Order {order.order_number_short}",
+                    message=(
+                        f"Customer: {customer}\n"
+                        f"Order: {order.order_number_short} (#{order.id})\n"
+                        f"Status: {order.status}\n"
+                        f"Total: ${order.total}\n\n"
+                        f"Reason:\n{reason}\n\n"
+                        f"Process the refund in the Stripe dashboard if approved."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=staff_emails,
+                )
+            except Exception:
+                logger.exception("Failed to send refund request email for order %s", order.id)
+
+        return Response(self.get_serializer(order).data)
+
+    @extend_schema(
         summary="Update order status (staff only)",
         description="Allows staff to advance an order through PAID → SHIPPED → DELIVERED, or cancel any non-refunded order.",
         request={"application/json": {"type": "object", "properties": {"status": {"type": "string"}}, "required": ["status"]}},

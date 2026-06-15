@@ -26,6 +26,30 @@ export default function OrderDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
+  const [showRefundForm, setShowRefundForm] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundMsg, setRefundMsg] = useState(null);
+  const [refundErr, setRefundErr] = useState(null);
+
+  async function handleRefundRequest(e) {
+    e.preventDefault();
+    setRefundSubmitting(true);
+    setRefundErr(null);
+    try {
+      const updated = await authFetch(`/orders/${id}/refund-request/`, {
+        method: "POST",
+        body: JSON.stringify({ reason: refundReason }),
+      });
+      setOrder(updated);
+      setRefundMsg("Refund request submitted. Our team will review it shortly.");
+      setShowRefundForm(false);
+    } catch (err) {
+      setRefundErr(err.message);
+    } finally {
+      setRefundSubmitting(false);
+    }
+  }
 
   async function handlePay() {
     setPaying(true);
@@ -172,6 +196,46 @@ export default function OrderDetailPage() {
                         {cancelling ? "Cancelling…" : "Cancel order"}
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {["paid", "shipped", "delivered"].includes(order.status) && (
+                  <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--line)", paddingTop: "1.5rem" }}>
+                    {order.refund_request_reason ? (
+                      <p style={{ fontSize: ".875rem", opacity: .7 }}>
+                        ✓ Refund request submitted. Our team will be in touch.
+                      </p>
+                    ) : (
+                      <>
+                        {refundMsg && <p className="auth-success" style={{ marginBottom: ".75rem" }}>{refundMsg}</p>}
+                        {!showRefundForm ? (
+                          <button className="btn btn-ghost" type="button" onClick={() => setShowRefundForm(true)}>
+                            Request a refund
+                          </button>
+                        ) : (
+                          <form onSubmit={handleRefundRequest} style={{ display: "grid", gap: ".75rem" }}>
+                            <label style={{ fontSize: ".9rem" }}>
+                              Reason for refund
+                              <textarea
+                                rows={3}
+                                value={refundReason}
+                                onChange={e => setRefundReason(e.target.value)}
+                                required
+                                placeholder="Please describe why you'd like a refund…"
+                                style={{ marginTop: ".4rem", width: "100%", resize: "vertical" }}
+                              />
+                            </label>
+                            {refundErr && <p className="auth-error">{refundErr}</p>}
+                            <div style={{ display: "flex", gap: ".75rem" }}>
+                              <button className="btn btn-primary" type="submit" disabled={refundSubmitting}>
+                                {refundSubmitting ? "Submitting…" : "Submit request"}
+                              </button>
+                              <button className="btn btn-ghost" type="button" onClick={() => setShowRefundForm(false)}>Cancel</button>
+                            </div>
+                          </form>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </article>

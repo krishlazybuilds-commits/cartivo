@@ -132,6 +132,8 @@ class Order(models.Model):
     stripe_payment_intent = models.CharField(
         max_length=255, blank=True, default="", db_index=True
     )
+    # Customer-submitted refund request reason. Non-empty signals a pending request.
+    refund_request_reason = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
