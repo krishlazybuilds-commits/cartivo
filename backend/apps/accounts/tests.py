@@ -40,7 +40,7 @@ class RegistrationTests(APITestCase):
     def test_password_is_hashed(self):
         self.client.post(
             "/api/auth/register/",
-            {"username": "secure", "password": "strongpass123"},
+            {"username": "secure", "password": "strongpass123", "email": "secure@example.com"},
             format="json",
         )
         user = User.objects.get(username="secure")
@@ -50,7 +50,9 @@ class RegistrationTests(APITestCase):
 
 class AuthTokenTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="member", password="strongpass123")
+        self.user = User.objects.create_user(
+            username="member", password="strongpass123", email="member@example.com"
+        )
 
     def test_login_sets_auth_cookies(self):
         res = self.client.post(
@@ -89,10 +91,11 @@ class AdminUserManagementTests(APITestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="strongpass123", is_staff=True
+            username="admin", password="strongpass123", is_staff=True,
+            email="admin@example.com"
         )
         self.member = User.objects.create_user(
-            username="member", password="strongpass123"
+            username="member", password="strongpass123", email="member@example.com"
         )
 
     def _detail(self, user):
@@ -164,7 +167,7 @@ class AdminUserManagementTests(APITestCase):
 
     def test_non_superuser_admin_cannot_modify_superuser(self):
         superuser = User.objects.create_superuser(
-            username="root", password="strongpass123"
+            username="root", password="strongpass123", email="root@example.com"
         )
         self.client.force_authenticate(self.admin)
         res = self.client.patch(
@@ -367,10 +370,11 @@ class PasswordResetRequestTests(APITestCase):
 
     @patch("apps.accounts.views.send_password_reset_email_task.delay")
     def test_sends_to_each_user_when_email_shared(self, mock_delay):
+        # Email uniqueness is now enforced; only one user can hold an email.
+        # Verify the reset email is sent to exactly that one user.
         User.objects.create_user(username="user1", email="shared@example.com")
-        User.objects.create_user(username="user2", email="shared@example.com")
         self.client.post(self.URL, {"email": "shared@example.com"}, format="json")
-        self.assertEqual(mock_delay.call_count, 2)
+        self.assertEqual(mock_delay.call_count, 1)
 
 
 class PasswordResetConfirmTests(APITestCase):
@@ -457,7 +461,7 @@ class ChangePasswordTests(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            username="changer", password=self.OLD_PASS
+            username="changer", password=self.OLD_PASS, email="changer@example.com"
         )
 
     def test_requires_authentication(self):

@@ -21,6 +21,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .authentication import enforce_csrf
 from .models import Address
 from .tasks import send_password_reset_email_task
 from .serializers import (
@@ -198,6 +199,8 @@ class GoogleLoginView(APIView):
         responses={200: inline_serializer("GoogleLoginResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        enforce_csrf(request)
+
         client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "")
         if not client_id:
             return Response(
@@ -234,7 +237,10 @@ class GoogleLoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        user = self._get_or_create_user(idinfo, email)
+        try:
+            user = self._get_or_create_user(idinfo, email)
+        except ValidationError as exc:
+            return Response({"detail": exc.detail}, status=status.HTTP_409_CONFLICT)
 
         if not user.is_active:
             return Response(
@@ -251,14 +257,28 @@ class GoogleLoginView(APIView):
     def _get_or_create_user(idinfo, email):
         """Match an existing account by email, or provision a new one.
 
-        Email isn't unique on the User model, so we match the first account with
-        this email. New Google users get a unique username derived from the
-        email local part and an unusable password (they sign in via Google only,
-        but can set a password later through the reset flow if they wish).
+        Safety rules to prevent account-takeover via pre-registration squatting:
+
+        1. If an account with this email exists and has NO usable password, it
+           is a Google-only account — safe to return it directly.
+        2. If an account with this email exists and HAS a usable password, we
+           refuse to silently merge the sessions.  A ValidationError (HTTP 409)
+           is raised so the caller can tell the user to sign in with their
+           password and link Google from their profile instead.
+        3. If no account exists, a new one is created with an unusable password
+           (Google-only sign-in) and a unique username derived from the email
+           local part.
         """
-        existing = User.objects.filter(email__iexact=email).order_by("date_joined").first()
+        existing = User.objects.filter(email__iexact=email).first()
         if existing:
-            return existing
+            if not existing.has_usable_password():
+                # Google-only account — safe to reuse.
+                return existing
+            # Password account exists — block silent takeover.
+            raise ValidationError(
+                "An account with this email already exists. "
+                "Sign in with your password, then link Google from your profile."
+            )
 
         base_username = email.split("@")[0][:140] or "user"
         username = base_username
@@ -297,6 +317,7 @@ class LoginView(APIView):
         responses={200: inline_serializer("LoginResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        enforce_csrf(request)
         serializer = TokenObtainPairSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
@@ -327,6 +348,7 @@ class RefreshView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        enforce_csrf(request)
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if not raw_refresh:
             return Response(
@@ -376,6 +398,7 @@ class LogoutView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        enforce_csrf(request)
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if raw_refresh:
             try:
