@@ -61,13 +61,21 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "password", "first_name", "last_name", "phone")
+        extra_kwargs = {"email": {"required": True}}
 
     def validate(self, attrs):
+        # Reject if the email is already registered (case-insensitive).
+        email = attrs.get("email", "")
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError(
+                {"email": "A user with this email already exists."}
+            )
+
         # Run Django's configured password validators (length, common-password,
         # numeric, and similarity to user attributes) at registration time.
         candidate = User(
             username=attrs.get("username", ""),
-            email=attrs.get("email", ""),
+            email=email,
             first_name=attrs.get("first_name", ""),
             last_name=attrs.get("last_name", ""),
         )
