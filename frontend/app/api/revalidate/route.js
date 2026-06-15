@@ -20,7 +20,7 @@ export async function POST(request) {
   const { tag, secret } = await request.json();
 
   const expectedSecret = process.env.REVALIDATION_SECRET;
-  if (expectedSecret && secret !== expectedSecret) {
+  if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json({ revalidated: false, message: "Invalid secret" }, { status: 401 });
   }
 
