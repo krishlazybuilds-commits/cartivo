@@ -192,6 +192,7 @@ class AdminUserManagementTests(APITestCase):
          self.assertTrue(res.data["is_staff"])
 
 
+@override_settings(GOOGLE_OAUTH_CLIENT_ID="test-client-id.apps.googleusercontent.com")
 class GoogleLoginTests(APITestCase):
     URL = "/api/auth/google/"
 
