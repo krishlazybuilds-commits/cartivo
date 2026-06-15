@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import AuthPanel from "../components/AuthPanel";
@@ -66,9 +66,10 @@ function PasswordInput({ value, onChange, autoComplete, required }) {
   );
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [sliding, setSliding] = useState(false);
   const [form, setForm] = useState({
@@ -168,6 +169,11 @@ export default function RegisterPage() {
                 <button className="btn btn-primary" type="submit">Continue</button>
                 <div className="auth-divider"><span>or</span></div>
                 <GoogleButton action="Sign up" />
+                {searchParams.get("next") === "/checkout" && (
+                  <Link href="/checkout" className="btn btn-ghost" style={{ textAlign: "center", display: "block" }}>
+                    Continue as guest
+                  </Link>
+                )}
                 <p className="auth-alt">Already have an account? <Link href="/login">Sign in</Link></p>
               </form>
             </>
@@ -210,5 +216,13 @@ export default function RegisterPage() {
       </div>
       <AuthPanel />
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

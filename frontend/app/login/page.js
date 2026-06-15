@@ -53,6 +53,11 @@ function LoginForm() {
       </button>
       <div className="auth-divider"><span>or</span></div>
       <GoogleButton action="Sign in" next={(() => { const n = searchParams.get("next"); return n && n.startsWith("/") && !n.startsWith("//") ? n : "/products"; })()} />
+      {searchParams.get("next") === "/checkout" && (
+        <Link href="/checkout" className="btn btn-ghost" style={{ textAlign: "center", display: "block" }}>
+          Continue as guest
+        </Link>
+      )}
       <p className="auth-alt">No account? <Link href="/register">Create one</Link></p>
       <p className="auth-alt"><Link href="/forgot-password">Forgot password?</Link></p>
     </form>
