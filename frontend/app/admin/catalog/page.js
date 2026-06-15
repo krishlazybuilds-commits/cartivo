@@ -184,6 +184,66 @@ export default function AdminCatalogPage() {
     }
   }
 
+  // Variant management state
+  const [variantProduct, setVariantProduct] = useState(null); // product whose variants are open
+  const [variants, setVariants] = useState([]);
+  const [variantForm, setVariantForm] = useState(null); // null | "new" | variant object
+  const [vf, setVf] = useState({ name: "", sku: "", price: "", stock: "0", is_active: true });
+  const [vsaving, setVsaving] = useState(false);
+  const [vToDelete, setVToDelete] = useState(null);
+
+  async function openVariants(product) {
+    if (variantProduct?.id === product.id) { setVariantProduct(null); return; }
+    setVariantProduct(product);
+    setVariantForm(null);
+    const data = await authFetch(`/variants/?product=${product.id}`).catch(() => ({ results: [] }));
+    setVariants(data.results ?? data);
+  }
+
+  function openNewVariant() {
+    setVf({ name: "", sku: "", price: "", stock: "0", is_active: true });
+    setVariantForm("new");
+  }
+
+  function openEditVariant(v) {
+    setVf({ name: v.name, sku: v.sku, price: v.price ?? "", stock: String(v.stock), is_active: v.is_active });
+    setVariantForm(v);
+  }
+
+  async function saveVariant(e) {
+    e.preventDefault();
+    setVsaving(true);
+    const payload = {
+      product: variantProduct.id,
+      name: vf.name,
+      sku: vf.sku,
+      price: vf.price || null,
+      stock: vf.stock,
+      is_active: vf.is_active,
+    };
+    try {
+      if (variantForm === "new") {
+        const created = await authFetch("/variants/", { method: "POST", body: JSON.stringify(payload) });
+        setVariants((prev) => [...prev, created]);
+      } else {
+        const updated = await authFetch(`/variants/${variantForm.id}/`, { method: "PUT", body: JSON.stringify(payload) });
+        setVariants((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      }
+      setVariantForm(null);
+    } catch (err) {
+      setError(extractError(err.data, err.message));
+    } finally {
+      setVsaving(false);
+    }
+  }
+
+  async function confirmDeleteVariant() {
+    const v = vToDelete;
+    setVToDelete(null);
+    await authFetch(`/variants/${v.id}/`, { method: "DELETE" }).catch(() => {});
+    setVariants((prev) => prev.filter((x) => x.id !== v.id));
+  }
+
   if (authLoading || !user || !user.is_staff) return null;
 
   return (
@@ -283,6 +343,9 @@ export default function AdminCatalogPage() {
                             </span>
                           </td>
                           <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                            <button type="button" className="btn btn-ghost" onClick={() => openVariants(p)}>
+                              Variants
+                            </button>{" "}
                             <button type="button" className="btn btn-ghost" onClick={() => openEdit(p)}>
                               Edit
                             </button>{" "}
@@ -294,6 +357,66 @@ export default function AdminCatalogPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Inline variants panel */}
+              {variantProduct && (
+                <div className="order-card" style={{ marginTop: "1.5rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                    <h4 style={{ margin: 0 }}>Variants — {variantProduct.name}</h4>
+                    <button className="btn btn-ghost" type="button" onClick={openNewVariant}>+ Add variant</button>
+                  </div>
+
+                  {variantForm && (
+                    <form onSubmit={saveVariant} style={{ display: "grid", gap: "0.75rem", marginBottom: "1.5rem", padding: "1rem", background: "var(--surface, #f9f9f9)", borderRadius: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                        <label>Name<input value={vf.name} onChange={e => setVf(p => ({...p, name: e.target.value}))} required placeholder="Large / Red" /></label>
+                        <label>SKU<input value={vf.sku} onChange={e => setVf(p => ({...p, sku: e.target.value}))} required /></label>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                        <label>Price override <span style={{opacity:.5, fontSize:".8em"}}>(blank = base price)</span><input type="number" min="0" step="0.01" value={vf.price} onChange={e => setVf(p => ({...p, price: e.target.value}))} /></label>
+                        <label>Stock<input type="number" min="0" value={vf.stock} onChange={e => setVf(p => ({...p, stock: e.target.value}))} required /></label>
+                      </div>
+                      <label style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                        <input type="checkbox" checked={vf.is_active} onChange={e => setVf(p => ({...p, is_active: e.target.checked}))} /> Active
+                      </label>
+                      <div style={{ display: "flex", gap: ".75rem" }}>
+                        <button className="btn btn-primary" type="submit" disabled={vsaving}>{vsaving ? "Saving…" : "Save"}</button>
+                        <button className="btn btn-ghost" type="button" onClick={() => setVariantForm(null)}>Cancel</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {variants.length === 0 ? (
+                    <p style={{ opacity: .6, fontSize: ".88rem" }}>No variants yet.</p>
+                  ) : (
+                    <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: ".4rem .6rem" }}>Name</th>
+                          <th style={{ textAlign: "left", padding: ".4rem .6rem" }}>SKU</th>
+                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Price</th>
+                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Stock</th>
+                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {variants.map((v) => (
+                          <tr key={v.id} style={{ borderTop: "1px solid var(--border, #e5e7eb)", opacity: v.is_active ? 1 : .5 }}>
+                            <td style={{ padding: ".4rem .6rem" }}>{v.name}</td>
+                            <td style={{ padding: ".4rem .6rem", fontFamily: "monospace" }}>{v.sku}</td>
+                            <td style={{ padding: ".4rem .6rem", textAlign: "right" }}>{v.price ? `$${Number(v.price).toFixed(2)}` : "—"}</td>
+                            <td style={{ padding: ".4rem .6rem", textAlign: "right" }}>{v.stock}</td>
+                            <td style={{ padding: ".4rem .6rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                              <button className="btn btn-ghost" type="button" onClick={() => openEditVariant(v)}>Edit</button>{" "}
+                              <button className="btn btn-danger" type="button" onClick={() => setVToDelete(v)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
 
@@ -388,6 +511,15 @@ export default function AdminCatalogPage() {
         destructive
         onConfirm={confirmDeleteCategory}
         onCancel={() => setCatToDelete(null)}
+      />
+      <ConfirmDialog
+        open={!!vToDelete}
+        title="Delete variant?"
+        message={vToDelete ? `Delete variant "${vToDelete.name}"?` : ""}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDeleteVariant}
+        onCancel={() => setVToDelete(null)}
       />
     </>
   );
