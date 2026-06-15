@@ -7,7 +7,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -169,6 +169,13 @@ class OrderViewSet(
         # Guard against schema-generation calls which run with an anonymous user.
         if getattr(self, "swagger_fake_view", False):
             return Order.objects.none()
+        # Staff see all orders; regular users see only their own.
+        if self.request.user.is_staff:
+            return (
+                Order.objects.prefetch_related("items__product")
+                .select_related("user")
+                .order_by("-created_at")
+            )
         return (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items__product")
@@ -383,6 +390,42 @@ class OrderViewSet(
                 )
             order.status = Order.Status.CANCELLED
             order.save(update_fields=["status"])
+        return Response(self.get_serializer(order).data)
+
+    @extend_schema(
+        summary="Update order status (staff only)",
+        description="Allows staff to advance an order through PAID → SHIPPED → DELIVERED, or cancel any non-refunded order.",
+        request={"application/json": {"type": "object", "properties": {"status": {"type": "string"}}, "required": ["status"]}},
+        responses={200: OrderSerializer},
+        tags=["orders"],
+    )
+    @action(detail=True, methods=["patch"], url_path="status", permission_classes=[permissions.IsAdminUser])
+    def update_status(self, request, pk=None):
+        order = self.get_object()
+        new_status = request.data.get("status", "").lower()
+
+        valid_statuses = {s.value for s in Order.Status}
+        if new_status not in valid_statuses:
+            return Response(
+                {"detail": f"Invalid status. Choose from: {', '.join(valid_statuses)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Define allowed transitions for safety.
+        allowed_transitions = {
+            Order.Status.PAID: [Order.Status.SHIPPED, Order.Status.CANCELLED],
+            Order.Status.SHIPPED: [Order.Status.DELIVERED, Order.Status.CANCELLED],
+        }
+        current = order.status
+        allowed = allowed_transitions.get(current, [])
+        if Order.Status(new_status) not in allowed:
+            return Response(
+                {"detail": f"Cannot transition from '{current}' to '{new_status}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.status = new_status
+        order.save(update_fields=["status"])
         return Response(self.get_serializer(order).data)
 
 
