@@ -23,6 +23,7 @@ from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
     CheckoutSerializer,
     CouponResponseSerializer,
+    GuestCheckoutSerializer,
     OrderSerializer,
     ShippingEstimateSerializer,
     ShippingEstimateResponseSerializer,
@@ -501,6 +502,150 @@ _EVENT_HANDLERS = {
     "payment_intent.payment_failed": _handle_payment_failed,
     "charge.refunded": _handle_charge_refunded,
 }
+
+
+class GuestCheckoutView(APIView):
+    """Create an order for a guest (no account required).
+
+    The guest submits their cart items in the request body along with a valid
+    email and shipping details. Returns the Stripe Checkout URL so the frontend
+    can redirect immediately without a second request.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [OrderWriteThrottle]
+
+    @extend_schema(
+        request=GuestCheckoutSerializer,
+        responses={201: {"type": "object", "properties": {"url": {"type": "string"}, "order_id": {"type": "integer"}}}},
+        summary="Guest checkout",
+        description="Place an order and get a Stripe Checkout URL without an account.",
+        tags=["orders"],
+    )
+    def post(self, request):
+        ser = GuestCheckoutSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        coupon = None
+        coupon_code = data.get("coupon_code", "").strip()
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code)
+            except Coupon.DoesNotExist:
+                return Response({"detail": "Invalid coupon code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        product_ids = [i["product_id"] for i in data["items"]]
+        with transaction.atomic():
+            locked_products = {
+                p.id: p
+                for p in Product.objects.select_for_update().filter(id__in=product_ids)
+            }
+            missing = set(product_ids) - locked_products.keys()
+            if missing:
+                return Response(
+                    {"detail": f"Product(s) not found: {', '.join(str(i) for i in missing)}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            for item in data["items"]:
+                product = locked_products[item["product_id"]]
+                if not product.is_active:
+                    return Response(
+                        {"detail": f"'{product.name}' is no longer available."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if item["quantity"] > product.stock:
+                    return Response(
+                        {"detail": f"Insufficient stock for '{product.name}'. Available: {product.stock}."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            order = Order.objects.create(
+                user=None,
+                guest_email=data["guest_email"],
+                shipping_full_name=data["shipping_full_name"],
+                shipping_address=data["shipping_address"],
+                shipping_city=data["shipping_city"],
+                shipping_postal_code=data["shipping_postal_code"],
+                shipping_country=data["shipping_country"],
+            )
+            order_items = []
+            for item in data["items"]:
+                product = locked_products[item["product_id"]]
+                product.stock = F("stock") - item["quantity"]
+                product.save(update_fields=["stock"])
+                order_items.append(OrderItem(
+                    order=order,
+                    product=product,
+                    unit_price=product.price,
+                    quantity=item["quantity"],
+                ))
+            OrderItem.objects.bulk_create(order_items)
+
+            subtotal = sum((i.unit_price * i.quantity for i in order_items), Decimal("0"))
+            estimate = calculate_estimate(order.shipping_country, float(subtotal))
+            order.shipping_cost = Decimal(str(estimate["shipping"]))
+            order.tax_amount = Decimal(str(estimate["tax"]))
+
+            if coupon:
+                valid, reason = coupon.is_valid(subtotal)
+                if not valid:
+                    transaction.set_rollback(True)
+                    return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
+                order.discount = coupon.calculate_discount(subtotal)
+                order.coupon = coupon
+                coupon.times_used = F("times_used") + 1
+                coupon.save(update_fields=["times_used"])
+
+            order.recalculate_total()
+            order.save(update_fields=["total", "discount", "coupon", "shipping_cost", "tax_amount"])
+
+        send_order_confirmation_task.delay(order.id)
+
+        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        line_items = [
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": int(item.unit_price * 100),
+                    "product_data": {"name": item.product.name},
+                },
+                "quantity": item.quantity,
+            }
+            for item in order_items
+        ]
+        if order.shipping_cost > 0:
+            line_items.append({
+                "price_data": {"currency": "usd", "unit_amount": int(order.shipping_cost * 100), "product_data": {"name": "Shipping"}},
+                "quantity": 1,
+            })
+        if order.tax_amount > 0:
+            line_items.append({
+                "price_data": {"currency": "usd", "unit_amount": int(order.tax_amount * 100), "product_data": {"name": "Tax"}},
+                "quantity": 1,
+            })
+
+        session_kwargs = {
+            "payment_method_types": ["card"],
+            "line_items": line_items,
+            "mode": "payment",
+            "customer_email": order.guest_email,
+            "success_url": f"{frontend_base}/orders?placed={order.id}&paid=1",
+            "cancel_url": f"{frontend_base}/checkout",
+            "metadata": {"order_id": order.id},
+            "payment_intent_data": {"metadata": {"order_id": order.id}},
+        }
+        if order.discount > 0:
+            stripe_coupon = stripe.Coupon.create(
+                amount_off=int(order.discount * 100),
+                currency="usd",
+                duration="once",
+                name=f"Discount for Order {order.order_number_short}",
+            )
+            session_kwargs["discounts"] = [{"coupon": stripe_coupon.id}]
+
+        session = stripe.checkout.Session.create(**session_kwargs)
+        Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
+        return Response({"url": session.url, "order_id": order.id}, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(

@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const { cart, refresh } = useCart();
   const router = useRouter();
   const [form, setForm] = useState(EMPTY);
+  const [guestEmail, setGuestEmail] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
@@ -31,23 +32,17 @@ export default function CheckoutPage() {
   const [couponData, setCouponData] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  // Checkout requires an account. Send guests to sign in (and back here after).
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login?next=/checkout");
-    }
-  }, [authLoading, user, router]);
-
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
   // Refresh estimate when country or cart total changes.
+  const cartTotal = cart?.total;
   const loadEstimate = useCallback(async () => {
-    if (!cart?.total || !form.shipping_country) return;
-    const result = await fetchShippingEstimate(form.shipping_country, cart.total);
+    if (!cartTotal || !form.shipping_country) return;
+    const result = await fetchShippingEstimate(form.shipping_country, cartTotal);
     setEstimate(result);
-  }, [cart?.total, form.shipping_country]);
+  }, [cartTotal, form.shipping_country]);
 
   useEffect(() => {
     loadEstimate();
@@ -61,7 +56,7 @@ export default function CheckoutPage() {
       const res = await fetch(`${API_URL}/coupons/validate/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode, subtotal: cart.total }),
+        body: JSON.stringify({ code: couponCode, subtotal: cartTotal }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -82,36 +77,63 @@ export default function CheckoutPage() {
     setError(null);
     setSubmitting(true);
 
-    let order;
     try {
-      order = await authFetch("/orders/", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          coupon_code: couponData ? couponData.code : "",
-        }),
-      });
-      await refresh();
+      if (user) {
+        // Authenticated: create order from server-side cart, then get pay URL.
+        const order = await authFetch("/orders/", {
+          method: "POST",
+          body: JSON.stringify({ ...form, coupon_code: couponData?.code ?? "" }),
+        });
+        await refresh();
+        const { url } = await authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
+        window.location.href = url;
+      } else {
+        // Guest: submit cart items directly in the request body.
+        if (!guestEmail.trim()) {
+          setError("Please enter your email address.");
+          setSubmitting(false);
+          return;
+        }
+        const items = (cart?.items ?? []).map((i) => ({
+          product_id: i.product_id ?? i.product,
+          quantity: i.quantity,
+        }));
+        if (items.length === 0) {
+          setError("Your cart is empty.");
+          setSubmitting(false);
+          return;
+        }
+        const res = await fetch(`${API_URL}/orders/guest-checkout/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            guest_email: guestEmail.trim(),
+            items,
+            coupon_code: couponData?.code ?? "",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.detail || "Checkout failed.");
+          setSubmitting(false);
+          return;
+        }
+        window.location.href = data.url;
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Something went wrong.");
       setSubmitting(false);
-      return;
-    }
-
-    // Redirect to Stripe Checkout.
-    try {
-      const { url } = await authFetch(`/orders/${order.id}/pay/`, { method: "POST" });
-      window.location.href = url;
-    } catch {
-      // Order created but payment couldn't start — let user retry from order page.
-      router.push(`/orders/${order.id}`);
     }
   }
 
-  if (authLoading || !user) return null;
+  // Wait for auth to resolve before rendering so we don't flash the wrong form state.
+  if (authLoading) return null;
 
   const isEmpty = !cart || cart.items.length === 0;
-  const finalTotal = estimate ? (estimate.total - (couponData?.discount_amount || 0)) : cart.total;
+  const finalTotal = estimate
+    ? estimate.total - (couponData?.discount_amount || 0)
+    : (cartTotal ?? 0);
 
   return (
     <>
@@ -136,6 +158,25 @@ export default function CheckoutPage() {
                     <p className="auth-error" role="alert">
                       {error}
                     </p>
+                  )}
+
+                  {!user && (
+                    <>
+                      <label>
+                        Email address
+                        <input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          required
+                        />
+                      </label>
+                      <p style={{ fontSize: "0.8rem", marginTop: "-0.5rem", marginBottom: "1rem", opacity: 0.6 }}>
+                        Your order confirmation will be sent here.{" "}
+                        <Link href={`/login?next=/checkout`}>Sign in</Link> to use your account.
+                      </p>
+                    </>
                   )}
 
                   <label>
@@ -216,7 +257,7 @@ export default function CheckoutPage() {
 
                   <div className="cart-total" style={{ marginTop: "0.75rem" }}>
                     <span>Subtotal</span>
-                    <strong>{formatPrice(cart.total)}</strong>
+                    <strong>{formatPrice(cartTotal)}</strong>
                   </div>
 
                   <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.2rem" }}>

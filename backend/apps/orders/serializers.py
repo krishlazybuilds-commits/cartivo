@@ -68,6 +68,28 @@ class CheckoutSerializer(serializers.Serializer):
     coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
 
 
+class GuestCartItemSerializer(serializers.Serializer):
+    """A single cart line submitted by a guest at checkout."""
+    product_id = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(min_value=1, max_value=100)
+
+
+class GuestCheckoutSerializer(serializers.Serializer):
+    """Validates a guest checkout request.
+
+    Guests submit their cart contents in the request body (no server-side cart).
+    A valid email is required for the order confirmation.
+    """
+    guest_email = serializers.EmailField()
+    items = GuestCartItemSerializer(many=True, min_length=1)
+    shipping_full_name = serializers.CharField(max_length=200)
+    shipping_address = serializers.CharField(max_length=255)
+    shipping_city = serializers.CharField(max_length=120)
+    shipping_postal_code = serializers.CharField(max_length=20)
+    shipping_country = serializers.CharField(max_length=120)
+    coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+
+
 # ---------------------------------------------------------------------------
 # Shipping / tax estimate
 # ---------------------------------------------------------------------------
