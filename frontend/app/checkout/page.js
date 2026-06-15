@@ -31,6 +31,25 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+
+  // Load saved addresses for authenticated users.
+  useEffect(() => {
+    if (!user) return;
+    authFetch("/auth/addresses/")
+      .then((data) => setSavedAddresses(data.results ?? data))
+      .catch(() => {});
+  }, [user]);
+
+  function fillFromAddress(addr) {
+    setForm({
+      shipping_full_name: addr.full_name,
+      shipping_address: addr.address,
+      shipping_city: addr.city,
+      shipping_postal_code: addr.postal_code,
+      shipping_country: addr.country,
+    });
+  }
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -177,6 +196,25 @@ export default function CheckoutPage() {
                         <Link href={`/login?next=/checkout`}>Sign in</Link> to use your account.
                       </p>
                     </>
+                  )}
+
+                  {user && savedAddresses.length > 0 && (
+                    <div style={{ marginBottom: "0.5rem" }}>
+                      <label style={{ marginBottom: "0.4rem" }}>Saved addresses</label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ fontSize: "0.82rem" }}
+                            onClick={() => fillFromAddress(addr)}
+                          >
+                            {addr.label || addr.city} — {addr.full_name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   <label>
