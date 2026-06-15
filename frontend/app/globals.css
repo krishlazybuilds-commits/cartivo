@@ -3662,3 +3662,227 @@ html[data-intro="play"] .li-counter-block {
   justify-content: center;
   width: 100%;
 }
+
+/* --- Blog ---------------------------------------------------------------- */
+.blog-grid {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+@media (min-width: 700px) {
+  .blog-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1000px) {
+  .blog-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.blog-card {
+  background: var(--soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.blog-card a {
+  display: block;
+  height: 100%;
+}
+
+.blog-card-body {
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.blog-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--slate);
+}
+
+.blog-card-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--accent);
+  color: var(--ink);
+  border-radius: 4px;
+}
+
+.blog-card h3 {
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.blog-card p {
+  font-size: 0.92rem;
+  color: var(--slate);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.blog-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+}
+
+/* --- Blog post detail ----------------------------------------------------- */
+.blog-post-container {
+  max-width: 720px;
+}
+
+.blog-post-head {
+  margin-bottom: 2.5rem;
+}
+
+.blog-post-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--slate);
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.blog-post-back:hover {
+  color: var(--accent-deep);
+}
+
+.blog-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--slate);
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.blog-post-head h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.blog-post-excerpt {
+  font-size: 1.1rem;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+.blog-post-content {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+
+.blog-post-content h2 {
+  font-size: 1.6rem;
+  margin: 2rem 0 0.75rem;
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+.blog-post-content h3 {
+  font-size: 1.25rem;
+  margin: 1.5rem 0 0.5rem;
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+.blog-post-content p {
+  margin-bottom: 1rem;
+}
+
+.blog-post-content a {
+  color: var(--accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.blog-post-content a:hover {
+  color: var(--ink);
+}
+
+.blog-post-content strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.blog-post-content ul,
+.blog-post-content ol {
+  margin: 0 0 1rem 1.5rem;
+}
+
+.blog-post-content li {
+  margin-bottom: 0.35rem;
+}
+
+.blog-post-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.75rem 1.25rem;
+  margin: 1.5rem 0;
+  background: var(--soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-style: italic;
+  color: var(--slate);
+}
+
+.blog-post-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.92rem;
+}
+
+.blog-post-content th,
+.blog-post-content td {
+  border: 1px solid var(--cloud);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.blog-post-content th {
+  background: var(--soft);
+  font-weight: 600;
+}
+
+.blog-post-content code {
+  background: var(--soft);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.blog-post-content hr {
+  border: none;
+  border-top: 1px solid var(--cloud);
+  margin: 2rem 0;
+}

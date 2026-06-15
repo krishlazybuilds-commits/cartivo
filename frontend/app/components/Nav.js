@@ -15,6 +15,7 @@ const LINKS = [
   { label: "Shop", href: "/products" },
   { label: "Categories", href: "/#categories" },
   { label: "Features", href: "/#features" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export default function Nav() {
