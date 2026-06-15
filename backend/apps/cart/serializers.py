@@ -27,6 +27,14 @@ class CartItemSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "added_at")
 
+    def get_fields(self):
+        fields = super().get_fields()
+        # Prevent reassigning a cart line to a different product on update;
+        # product should only be settable when adding a new item to the cart.
+        if self.instance is not None:
+            fields["product"].read_only = True
+        return fields
+
     def validate_quantity(self, value):
         if value < 1:
             raise serializers.ValidationError("Quantity must be at least 1.")
