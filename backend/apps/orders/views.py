@@ -23,6 +23,7 @@ from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
     CheckoutSerializer,
     CouponResponseSerializer,
+    CouponSerializer,
     GuestCheckoutSerializer,
     OrderSerializer,
     ShippingEstimateSerializer,
@@ -43,6 +44,15 @@ def _restock_order(order):
         Product.objects.filter(pk=item.product_id).update(
             stock=F("stock") + item.quantity
         )
+
+
+class CouponViewSet(viewsets.ModelViewSet):
+    """Staff-only CRUD for coupons."""
+    queryset = Coupon.objects.all().order_by("-created_at")
+    serializer_class = CouponSerializer
+    permission_classes = [permissions.IsAdminUser]
+    search_fields = ("code",)
+    filterset_fields = ("is_active", "discount_type")
 
 
 class ShippingEstimateView(APIView):

@@ -1,12 +1,13 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import GuestCheckoutView, OrderViewSet, ShippingEstimateView, ValidateCouponView, stripe_webhook
+from .views import CouponViewSet, GuestCheckoutView, OrderViewSet, ShippingEstimateView, ValidateCouponView, stripe_webhook
 
 app_name = "orders"
 
 router = DefaultRouter()
 router.register("orders", OrderViewSet, basename="order")
+router.register("coupons", CouponViewSet, basename="coupon")
 
 urlpatterns = [
     path("orders/webhook/", stripe_webhook, name="stripe-webhook"),

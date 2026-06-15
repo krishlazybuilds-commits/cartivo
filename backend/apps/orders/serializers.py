@@ -5,6 +5,16 @@ from rest_framework import serializers
 from .models import Coupon, Order, OrderItem
 
 
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = (
+            "id", "code", "discount_type", "value", "min_order_amount",
+            "max_uses", "times_used", "valid_from", "valid_until", "is_active", "created_at",
+        )
+        read_only_fields = ("id", "times_used", "created_at")
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     subtotal = serializers.DecimalField(
