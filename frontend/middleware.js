@@ -37,17 +37,30 @@ export function middleware(request) {
     return NextResponse.redirect(productsUrl);
   }
 
-  return NextResponse.next();
+  // Generate a per-request nonce for Content-Security-Policy.
+  // Exposed via x-nonce so layout.js can apply it to the inline script.
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' js.stripe.com accounts.google.com`,
+    "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+    "img-src 'self' blob: data: localhost:8000 127.0.0.1:8000",
+    "font-src 'self' fonts.gstatic.com",
+    "connect-src 'self' localhost:8000 127.0.0.1:8000 api.stripe.com accounts.google.com",
+    "frame-src 'self' js.stripe.com accounts.google.com",
+    "upgrade-insecure-requests",
+  ].join("; ");
+  const response = NextResponse.next({
+    request: { headers: new Headers({ ...Object.fromEntries(request.headers), "x-nonce": nonce }) },
+  });
+  response.headers.set("x-nonce", nonce);
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {
   matcher: [
-    "/orders/:path*",
-    "/profile/:path*",
-    "/admin/:path*",
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
+    // Run on all routes except Next.js internals and static files.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?)).*)",
   ],
 };

@@ -44,10 +44,8 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
-          {
-            key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' js.stripe.com accounts.google.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; img-src 'self' blob: data: localhost:8000 127.0.0.1:8000; font-src 'self' fonts.gstatic.com; connect-src 'self' localhost:8000 127.0.0.1:8000 api.stripe.com accounts.google.com; frame-src 'self' js.stripe.com accounts.google.com; upgrade-insecure-requests;",
-          },
+          // Content-Security-Policy is set per-request in middleware.js
+          // with a nonce to avoid 'unsafe-inline'.
         ],
       },
     ];
