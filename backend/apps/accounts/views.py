@@ -23,7 +23,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .authentication import enforce_csrf
 from .models import Address
-from .tasks import send_password_reset_email_task
+from .tasks import send_password_reset_email_task, send_email_change_task
 from .serializers import (
     AddressSerializer,
     AdminUserSerializer,
@@ -543,3 +543,83 @@ class AddressViewSet(viewsets.ModelViewSet):
         # If marked as default, unset other defaults.
         if instance.is_default:
             Address.objects.filter(user=self.request.user).exclude(pk=instance.pk).update(is_default=False)
+
+
+@extend_schema(tags=["auth"], summary="Request email change")
+class EmailChangeRequestView(APIView):
+    """Send a confirmation link to the requested new email address."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=inline_serializer("EmailChangeRequest", fields={"email": drf_serializers.EmailField()}),
+        responses={200: inline_serializer("EmailChangeRequestResponse", fields={"detail": drf_serializers.CharField()})},
+    )
+    def post(self, request):
+        new_email = request.data.get("email", "").strip().lower()
+        if not new_email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_email(new_email)
+        except DjangoValidationError:
+            return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_email == request.user.email.lower():
+            return Response({"detail": "That is already your current email."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email__iexact=new_email).exclude(pk=request.user.pk).exists():
+            return Response({"detail": "That email is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.pending_email = new_email
+        request.user.save(update_fields=["pending_email"])
+
+        uid = urlsafe_base64_encode(force_bytes(request.user.pk))
+        token = default_token_generator.make_token(request.user)
+        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        confirm_url = f"{frontend_base}/profile?email_uid={uid}&email_token={token}"
+        send_email_change_task.delay(request.user.pk, confirm_url)
+        return Response({"detail": "Confirmation email sent. Check your new inbox."})
+
+
+@extend_schema(tags=["auth"], summary="Confirm email change")
+class EmailChangeConfirmView(APIView):
+    """Validate the token and apply the pending email change."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=inline_serializer("EmailChangeConfirmRequest", fields={
+            "uid": drf_serializers.CharField(),
+            "token": drf_serializers.CharField(),
+        }),
+        responses={200: inline_serializer("EmailChangeConfirmResponse", fields={"detail": drf_serializers.CharField()})},
+    )
+    def post(self, request):
+        uid = request.data.get("uid", "")
+        token = request.data.get("token", "")
+        if not all([uid, token]):
+            return Response({"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pk = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=pk)
+        except (User.DoesNotExist, ValueError):
+            return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Only the authenticated user can confirm their own change.
+        if user.pk != request.user.pk:
+            return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"detail": "Link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.pending_email:
+            return Response({"detail": "No pending email change."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email__iexact=user.pending_email).exclude(pk=user.pk).exists():
+            user.pending_email = ""
+            user.save(update_fields=["pending_email"])
+            return Response({"detail": "That email is already in use."}, status=status.HTTP_409_CONFLICT)
+
+        user.email = user.pending_email
+        user.pending_email = ""
+        user.save(update_fields=["email", "pending_email"])
+        return Response({"detail": "Email updated successfully."})

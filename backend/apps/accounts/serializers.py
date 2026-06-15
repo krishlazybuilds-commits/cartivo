@@ -20,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
         )
-        read_only_fields = ("id", "date_joined", "is_staff", "is_superuser")
+        read_only_fields = ("id", "email", "date_joined", "is_staff", "is_superuser")
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

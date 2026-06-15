@@ -8,6 +8,8 @@ class User(AbstractUser):
     # username, password, first/last name, etc. come from AbstractUser.
     email = models.EmailField("email address", blank=False, unique=True)
     phone = models.CharField(max_length=20, blank=True)
+    # Holds a requested new email until the user confirms it via a link.
+    pending_email = models.EmailField(blank=True, default="")
 
     def __str__(self) -> str:
         return self.username
