@@ -102,6 +102,28 @@ class MeView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+    @extend_schema(
+        summary="Delete own account",
+        request=None,
+        responses={204: None},
+    )
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        # Blacklist the current refresh token so existing sessions are invalidated.
+        raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
+        if raw_refresh:
+            try:
+                RefreshToken(raw_refresh).blacklist()
+            except (TokenError, AttributeError):
+                pass
+        # Deactivate instead of hard-delete to preserve order/review history integrity.
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie(settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        response.delete_cookie(settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        return response
+
 
 @extend_schema_view(
     list=extend_schema(tags=["admin"], summary="List users"),

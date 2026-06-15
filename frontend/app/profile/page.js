@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import Reveal from "../components/Reveal";
 import PasswordInput from "../components/PasswordInput";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
 export default function ProfilePage() {
@@ -21,6 +22,10 @@ export default function ProfilePage() {
   const [pwMsg, setPwMsg] = useState(null);
   const [pwErr, setPwErr] = useState(null);
   const [pwSaving, setPwSaving] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteErr, setDeleteErr] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -62,6 +67,19 @@ export default function ProfilePage() {
   }
 
   if (authLoading || !user) return null;
+
+  async function deleteAccount() {
+    setDeleting(true);
+    setDeleteErr(null);
+    try {
+      await authFetch("/auth/me/", { method: "DELETE" });
+      await logout();
+      router.push("/");
+    } catch (err) {
+      setDeleteErr(extractError(err.data, err.message));
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
@@ -136,12 +154,39 @@ export default function ProfilePage() {
                 <Link href="/orders" className="btn btn-ghost">View orders</Link>
                 <button className="btn btn-ghost" type="button" onClick={logout}>Sign out</button>
               </div>
+
+              {/* Danger zone */}
+              <div className="order-card" style={{ borderColor: "var(--error, #dc2626)" }}>
+                <h3 style={{ marginBottom: "0.5rem" }}>Danger zone</h3>
+                <p style={{ fontSize: "0.875rem", marginBottom: "1rem", opacity: 0.7 }}>
+                  Permanently deactivate your account. Your order and review history will be preserved.
+                </p>
+                {deleteErr && <p className="auth-error">{deleteErr}</p>}
+                <button
+                  className="btn btn-danger"
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete account
+                </button>
+              </div>
             </div>
             </Reveal>
 
           </div>
         </section>
       </main>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete your account?"
+        message="This will permanently deactivate your account. You won't be able to sign in again. Your order history will be preserved."
+        confirmLabel="Delete account"
+        destructive
+        onConfirm={deleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </>
   );
 }
