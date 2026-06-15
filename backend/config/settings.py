@@ -7,6 +7,7 @@ Configuration is environment-driven via a .env file (see .env.example).
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 import os
 import sys
@@ -28,11 +29,30 @@ def env_list(key: str, default: str = "") -> list[str]:
 
 
 # --- Core security -----------------------------------------------------------
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-change-me-in-production",
-)
+# Resolve DEBUG first so the SECRET_KEY guard below can tell local development
+# apart from production.
 DEBUG = env_bool("DJANGO_DEBUG", True)
+
+# SECRET_KEY must be supplied via the environment. In local development (DEBUG
+# on) we fall back to an obviously-insecure placeholder for convenience, but in
+# production (DEBUG off) an unset or placeholder key is a hard error: the app
+# refuses to boot with a guessable key rather than doing so silently.
+INSECURE_SECRET_KEY = "django-insecure-change-me-in-production"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = INSECURE_SECRET_KEY
+    else:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY environment variable must be set when DEBUG is False."
+        )
+elif not DEBUG and SECRET_KEY == INSECURE_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is set to the insecure development placeholder. "
+        "Generate a strong key for production, e.g. "
+        'python -c "import secrets; print(secrets.token_urlsafe(50))".'
+    )
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 
