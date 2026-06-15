@@ -314,17 +314,23 @@ class OrderViewSet(
                 shipping_country=data["shipping_country"],
             )
             order_items = []
+            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
+            low_stock_product_ids = []
             for item in cart_items:
                 product = locked_products[item.product_id]
                 if item.variant_id:
                     variant = locked_variants[item.variant_id]
+                    remaining = variant.stock - item.quantity  # numeric (set before F())
                     variant.stock = F("stock") - item.quantity
                     variant.save(update_fields=["stock"])
                     unit_price = variant.effective_price
                 else:
+                    remaining = product.stock - item.quantity  # numeric (set before F())
                     product.stock = F("stock") - item.quantity
                     product.save(update_fields=["stock"])
                     unit_price = product.price
+                if remaining <= threshold:
+                    low_stock_product_ids.append(item.product_id)
                 order_items.append(OrderItem(
                     order=order,
                     product=product,
@@ -334,14 +340,10 @@ class OrderViewSet(
             OrderItem.objects.bulk_create(order_items)
 
             # --- Low-stock alerts ------------------------------------------------
-            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
-            for item in cart_items:
-                product = locked_products[item.product_id]
-                remaining = product.stock - item.quantity
-                if remaining <= threshold:
-                    transaction.on_commit(
-                        lambda pid=item.product_id: send_low_stock_alert_task.delay(pid)
-                    )
+            for pid in low_stock_product_ids:
+                transaction.on_commit(
+                    lambda p=pid: send_low_stock_alert_task.delay(p)
+                )
 
             # --- Calculate shipping, tax, and total ---------------------------
             # Use the same logic as the estimation endpoint to persist final
@@ -817,10 +819,15 @@ class GuestCheckoutView(APIView):
                 shipping_country=data["shipping_country"],
             )
             order_items = []
+            low_stock_product_ids = []
+            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
             for item in data["items"]:
                 product = locked_products[item["product_id"]]
+                remaining = product.stock - item["quantity"]  # numeric (before F())
                 product.stock = F("stock") - item["quantity"]
                 product.save(update_fields=["stock"])
+                if remaining <= threshold:
+                    low_stock_product_ids.append(item["product_id"])
                 order_items.append(OrderItem(
                     order=order,
                     product=product,
@@ -830,14 +837,10 @@ class GuestCheckoutView(APIView):
             OrderItem.objects.bulk_create(order_items)
 
             # Low-stock alerts
-            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
-            for item in data["items"]:
-                product = locked_products[item["product_id"]]
-                remaining = product.stock - item["quantity"]
-                if remaining <= threshold:
-                    transaction.on_commit(
-                        lambda pid=item["product_id"]: send_low_stock_alert_task.delay(pid)
-                    )
+            for pid in low_stock_product_ids:
+                transaction.on_commit(
+                    lambda p=pid: send_low_stock_alert_task.delay(p)
+                )
 
             subtotal = sum((i.unit_price * i.quantity for i in order_items), Decimal("0"))
             estimate = calculate_estimate(order.shipping_country, float(subtotal))

@@ -22,7 +22,7 @@ SHIPPING = {
 
 class CheckoutTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="buyer", password="pass12345")
+        self.user = User.objects.create_user(username="buyer", password="pass12345", email="buyer@test.com")
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -92,7 +92,7 @@ class CheckoutTests(APITestCase):
         self._add_to_cart(1)
         self.client.post("/api/orders/", SHIPPING, format="json")
 
-        other = User.objects.create_user(username="other", password="pass12345")
+        other = User.objects.create_user(username="other", password="pass12345", email="other@test.com")
         self.client.force_authenticate(other)
         res = self.client.get("/api/orders/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -102,7 +102,7 @@ class CheckoutTests(APITestCase):
 
 class CancelOrderTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="canceller", password="pass12345")
+        self.user = User.objects.create_user(username="canceller", password="pass12345", email="canceller@test.com")
         self.category = Category.objects.create(name="Gizmos")
         self.product = Product.objects.create(
             category=self.category,
@@ -145,7 +145,7 @@ class CancelOrderTests(APITestCase):
 
     def test_cannot_cancel_another_users_order(self):
         order_id = self._place_order(1)
-        other = User.objects.create_user(username="intruder", password="pass12345")
+        other = User.objects.create_user(username="intruder", password="pass12345", email="intruder@test.com")
         self.client.force_authenticate(other)
         res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
@@ -153,7 +153,7 @@ class CancelOrderTests(APITestCase):
 
 class ExpirePendingOrdersCommandTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="staleuser", password="pass12345")
+        self.user = User.objects.create_user(username="staleuser", password="pass12345", email="staleuser@test.com")
         self.category = Category.objects.create(name="Widgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -222,7 +222,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
     WEBHOOK_URL = "/api/orders/webhook/"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="payer", password="pass12345")
+        self.user = User.objects.create_user(username="payer", password="pass12345", email="payer@test.com")
         self.category = Category.objects.create(name="Things")
         self.product = Product.objects.create(
             category=self.category,
@@ -333,7 +333,7 @@ class StripeWebhookEventTests(APITestCase):
     WEBHOOK_URL = "/api/orders/webhook/"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="evtuser", password="pass12345")
+        self.user = User.objects.create_user(username="evtuser", password="pass12345", email="evtuser@test.com")
         self.category = Category.objects.create(name="Goods")
         self.product = Product.objects.create(
             category=self.category,

@@ -61,8 +61,8 @@ class CatalogReadTests(APITestCase):
 class CatalogWriteTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Gadgets")
-        self.user = User.objects.create_user(username="normal", password="pass12345")
-        self.admin = User.objects.create_superuser(username="admin", password="pass12345")
+        self.user = User.objects.create_user(username="normal", password="pass12345", email="normal@test.com")
+        self.admin = User.objects.create_superuser(username="admin", password="pass12345", email="admin@test.com")
         self.payload = {
             "category": self.category.id,
             "name": "New Widget",
@@ -92,10 +92,10 @@ class CatalogWriteTests(APITestCase):
 class WishlistTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="wisher", password="strongpass123"
+            username="wisher", password="strongpass123", email="wisher@test.com"
         )
         self.other = User.objects.create_user(
-            username="other", password="strongpass123"
+            username="other", password="strongpass123", email="other-wish@test.com"
         )
         self.cat = Category.objects.create(name="Test Category")
         self.prod = Product.objects.create(

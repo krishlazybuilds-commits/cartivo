@@ -12,7 +12,7 @@ User = get_user_model()
 
 class CartTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="shopper", password="pass12345")
+        self.user = User.objects.create_user(username="shopper", password="pass12345", email="shopper@test.com")
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,

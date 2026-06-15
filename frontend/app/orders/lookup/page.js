@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 
-import Reveal from "../components/Reveal";
-import { API_URL } from "../lib/api";
-import { formatPrice } from "../lib/format";
+import Reveal from "../../components/Reveal";
+import { API_URL } from "../../lib/api";
+import { formatPrice } from "../../lib/format";
 
 const STATUS_LABELS = {
   pending: "Pending payment",

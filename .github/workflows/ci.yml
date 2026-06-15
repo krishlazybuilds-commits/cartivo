@@ -84,7 +84,9 @@ jobs:
         run: pip install -r backend/requirements.txt
 
       - name: pip-audit
-        run: pip-audit -r backend/requirements.txt
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
