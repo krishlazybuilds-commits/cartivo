@@ -25,10 +25,10 @@ const steps = [
 ];
 
 const facts = [
-  { label: "Product categories", value: "6" },
-  { label: "Free shipping over", value: "$500" },
-  { label: "Guest checkout", value: "Yes" },
-  { label: "Secure payments", value: "Stripe" },
+  { label: "Product categories", value: "6", icon: "tag" },
+  { label: "Free shipping over", value: "$500", icon: "truck" },
+  { label: "Guest checkout", value: "Yes", icon: "userCheck" },
+  { label: "Secure payments", value: "Stripe", icon: "shield" },
 ];
 
 export default function HowItWorks() {
@@ -57,10 +57,15 @@ export default function HowItWorks() {
           </ul>
         </Reveal>
         <Reveal className="split-visual" delay={120}>
+          <div className="split-visual-glow" />
+          <div className="split-visual-accent" />
           {facts.map((f) => (
             <div className="vrow" key={f.label}>
-              <span>{f.label}</span>
-              <b>{f.value}</b>
+              <span className="vrow-icon">
+                <Icon name={f.icon} size={17} />
+              </span>
+              <span className="vrow-label">{f.label}</span>
+              <b className="vrow-value">{f.value}</b>
             </div>
           ))}
         </Reveal>
