@@ -477,6 +477,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
+# --- Catalog -----------------------------------------------------------------
+# Products at or below this stock level trigger a low-stock alert email to admins.
+LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "5"))
+
 # --- Site media assets -------------------------------------------------------
 # Background video for the auth pages, served via /api/auth-video/ (a redirect).
 # Defaults to a free, license-clear scenery clip (Pexels). For production,

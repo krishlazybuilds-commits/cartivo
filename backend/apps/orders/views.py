@@ -32,6 +32,7 @@ from .serializers import (
     calculate_estimate,
 )
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
+from apps.catalog.tasks import send_low_stock_alert_task
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +255,16 @@ class OrderViewSet(
                     quantity=item.quantity,
                 ))
             OrderItem.objects.bulk_create(order_items)
+
+            # --- Low-stock alerts ------------------------------------------------
+            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
+            for item in cart_items:
+                product = locked_products[item.product_id]
+                remaining = product.stock - item.quantity
+                if remaining <= threshold:
+                    transaction.on_commit(
+                        lambda pid=item.product_id: send_low_stock_alert_task.delay(pid)
+                    )
 
             # --- Calculate shipping, tax, and total ---------------------------
             # Use the same logic as the estimation endpoint to persist final
@@ -633,6 +644,16 @@ class GuestCheckoutView(APIView):
                     quantity=item["quantity"],
                 ))
             OrderItem.objects.bulk_create(order_items)
+
+            # Low-stock alerts
+            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
+            for item in data["items"]:
+                product = locked_products[item["product_id"]]
+                remaining = product.stock - item["quantity"]
+                if remaining <= threshold:
+                    transaction.on_commit(
+                        lambda pid=item["product_id"]: send_low_stock_alert_task.delay(pid)
+                    )
 
             subtotal = sum((i.unit_price * i.quantity for i in order_items), Decimal("0"))
             estimate = calculate_estimate(order.shipping_country, float(subtotal))
