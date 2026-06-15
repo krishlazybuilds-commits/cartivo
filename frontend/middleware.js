@@ -44,7 +44,8 @@ export function middleware(request) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' js.stripe.com accounts.google.com`,
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
-    "img-src 'self' blob: data: localhost:8000 127.0.0.1:8000",
+    "img-src 'self' blob: data: localhost:8000 127.0.0.1:8000" +
+      (process.env.NEXT_PUBLIC_MEDIA_HOST ? ` ${process.env.NEXT_PUBLIC_MEDIA_HOST}` : ""),
     "font-src 'self' fonts.gstatic.com",
     "connect-src 'self' localhost:8000 127.0.0.1:8000 api.stripe.com accounts.google.com",
     "frame-src 'self' js.stripe.com accounts.google.com",

@@ -2,21 +2,14 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "127.0.0.1",
-        port: "8000",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "8000",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "9000",
-      },
+      // Local dev (HTTP)
+      { protocol: "http", hostname: "127.0.0.1", port: "8000" },
+      { protocol: "http", hostname: "localhost", port: "8000" },
+      { protocol: "http", hostname: "localhost", port: "9000" },
+      // Production / staging (HTTPS) — hostname set via NEXT_PUBLIC_MEDIA_HOST
+      ...(process.env.NEXT_PUBLIC_MEDIA_HOST
+        ? [{ protocol: "https", hostname: process.env.NEXT_PUBLIC_MEDIA_HOST }]
+        : []),
     ],
   },
   async headers() {
