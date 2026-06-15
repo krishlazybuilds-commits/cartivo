@@ -368,6 +368,21 @@ class OrderViewSet(
 
         frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
 
+        # Get or create a Stripe Customer for this user so returning customers
+        # have their details pre-filled and Stripe can track payment history.
+        user = request.user
+        if user.stripe_customer_id:
+            stripe_customer_id = user.stripe_customer_id
+        else:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=f"{user.first_name} {user.last_name}".strip() or user.username,
+                metadata={"user_id": user.pk},
+            )
+            stripe_customer_id = customer.id
+            user.stripe_customer_id = stripe_customer_id
+            user.save(update_fields=["stripe_customer_id"])
+
         line_items = [
             {
                 "price_data": {
@@ -405,6 +420,7 @@ class OrderViewSet(
             "payment_method_types": ["card"],
             "line_items": line_items,
             "mode": "payment",
+            "customer": stripe_customer_id,
             "success_url": f"{frontend_base}/orders?placed={order.id}&paid=1",
             "cancel_url": f"{frontend_base}/orders/{order.id}",
             "metadata": {"order_id": order.id},

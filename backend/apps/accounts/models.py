@@ -10,6 +10,8 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     # Holds a requested new email until the user confirms it via a link.
     pending_email = models.EmailField(blank=True, default="")
+    # Stripe Customer ID — created on first payment, reused for returning customers.
+    stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
 
     def __str__(self) -> str:
         return self.username
