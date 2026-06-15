@@ -2,8 +2,8 @@ from django.db.models import Avg, Count
 from rest_framework import viewsets
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 
-from .models import Category, Product, Review, WishlistItem
-from .serializers import CategorySerializer, ProductSerializer, ReviewSerializer, WishlistItemSerializer
+from .models import Category, Product, ProductVariant, Review, WishlistItem
+from .serializers import CategorySerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WishlistItemSerializer
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -27,7 +27,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("price", "created_at", "name")
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category").annotate(
+        qs = Product.objects.select_related("category").prefetch_related("variants").annotate(
             avg_rating=Avg("reviews__rating"),
             review_count=Count("reviews"),
         )
@@ -86,3 +86,17 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class ProductVariantViewSet(viewsets.ModelViewSet):
+    """Variants for a product. Staff can create/update/delete; anyone can read."""
+    serializer_class = ProductVariantSerializer
+    filterset_fields = ("product", "is_active")
+
+    def get_queryset(self):
+        return ProductVariant.objects.select_related("product").all()
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticatedOrReadOnly()]
+        return [IsAdminUser()]

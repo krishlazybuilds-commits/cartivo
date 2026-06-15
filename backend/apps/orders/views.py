@@ -276,23 +276,35 @@ class OrderViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
         with transaction.atomic():
-            cart_items = list(cart.items.select_related("product"))
+            cart_items = list(cart.items.select_related("product", "variant"))
             locked_products = {
                 p.id: p
                 for p in Product.objects.select_for_update().filter(
                     id__in=[item.product_id for item in cart_items]
                 )
             }
+            from apps.catalog.models import ProductVariant
+            variant_ids = [item.variant_id for item in cart_items if item.variant_id]
+            locked_variants = {
+                v.id: v
+                for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+            } if variant_ids else {}
+
             for item in cart_items:
-                product = locked_products[item.product_id]
-                if item.quantity > product.stock:
-                    return Response(
-                        {"detail": (
-                            f"Insufficient stock for '{product.name}'. "
-                            f"Available: {product.stock}."
-                        )},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                if item.variant_id:
+                    variant = locked_variants[item.variant_id]
+                    if item.quantity > variant.stock:
+                        return Response(
+                            {"detail": f"Insufficient stock for '{item.product.name} — {variant.name}'. Available: {variant.stock}."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                else:
+                    product = locked_products[item.product_id]
+                    if item.quantity > product.stock:
+                        return Response(
+                            {"detail": f"Insufficient stock for '{product.name}'. Available: {product.stock}."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
             order = Order.objects.create(
                 user=request.user,
                 shipping_full_name=data["shipping_full_name"],
@@ -304,12 +316,19 @@ class OrderViewSet(
             order_items = []
             for item in cart_items:
                 product = locked_products[item.product_id]
-                product.stock = F("stock") - item.quantity
-                product.save(update_fields=["stock"])
+                if item.variant_id:
+                    variant = locked_variants[item.variant_id]
+                    variant.stock = F("stock") - item.quantity
+                    variant.save(update_fields=["stock"])
+                    unit_price = variant.effective_price
+                else:
+                    product.stock = F("stock") - item.quantity
+                    product.save(update_fields=["stock"])
+                    unit_price = product.price
                 order_items.append(OrderItem(
                     order=order,
                     product=product,
-                    unit_price=product.price,
+                    unit_price=unit_price,
                     quantity=item.quantity,
                 ))
             OrderItem.objects.bulk_create(order_items)

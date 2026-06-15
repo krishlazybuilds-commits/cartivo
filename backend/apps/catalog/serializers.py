@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, Product, Review, WishlistItem
+from .models import Category, Product, ProductVariant, Review, WishlistItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -10,11 +10,22 @@ class CategorySerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "slug", "created_at")
 
 
+class ProductVariantSerializer(serializers.ModelSerializer):
+    effective_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    in_stock = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = ("id", "name", "sku", "price", "effective_price", "stock", "in_stock", "is_active")
+        read_only_fields = ("id", "effective_price", "in_stock")
+
+
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     in_stock = serializers.BooleanField(read_only=True)
     avg_rating = serializers.FloatField(read_only=True, default=None)
     review_count = serializers.IntegerField(read_only=True, default=0)
+    variants = ProductVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -33,6 +44,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "in_stock",
             "avg_rating",
             "review_count",
+            "variants",
             "created_at",
             "updated_at",
         )

@@ -93,6 +93,47 @@ class Product(models.Model):
         return self.name
 
 
+class ProductVariant(models.Model):
+    """A specific variant of a product (e.g. Size: L, Color: Red).
+
+    When a product has variants, stock and pricing are managed per-variant.
+    The base product's stock field is ignored when variants exist.
+    """
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="variants",
+    )
+    # Human-readable option combination, e.g. "Large / Red" or "256GB / Black"
+    name = models.CharField(max_length=200)
+    sku = models.CharField(max_length=64, unique=True)
+    # Optional price override; if null, the base product price is used.
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(stock__gte=0),
+                name="variant_stock_non_negative",
+            ),
+        ]
+
+    @property
+    def effective_price(self):
+        return self.price if self.price is not None else self.product.price
+
+    @property
+    def in_stock(self) -> bool:
+        return self.stock > 0
+
+    def __str__(self) -> str:
+        return f"{self.product.name} — {self.name}"
+
+
 class Review(models.Model):
     """Product review with a 1–5 star rating.
 

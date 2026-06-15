@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from apps.catalog.models import Product
+from apps.catalog.models import Product, ProductVariant
 
 
 class Cart(models.Model):
@@ -26,26 +26,33 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(
-        Cart,
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="cart_items")
+    variant = models.ForeignKey(
+        ProductVariant,
         on_delete=models.CASCADE,
-        related_name="items",
-    )
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="cart_items",
     )
     quantity = models.PositiveIntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("cart", "product")
+        # A cart can hold the same product with different variants as separate lines.
+        unique_together = ("cart", "product", "variant")
         ordering = ["-added_at"]
 
     @property
+    def unit_price(self):
+        if self.variant:
+            return self.variant.effective_price
+        return self.product.price
+
+    @property
     def subtotal(self):
-        return self.product.price * self.quantity
+        return self.unit_price * self.quantity
 
     def __str__(self) -> str:
-        return f"{self.quantity} x {self.product.name}"
+        suffix = f" ({self.variant.name})" if self.variant_id else ""
+        return f"{self.quantity} x {self.product.name}{suffix}"

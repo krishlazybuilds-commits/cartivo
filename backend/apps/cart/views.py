@@ -72,15 +72,16 @@ class CartItemViewSet(
     def perform_create(self, serializer):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
         product = serializer.validated_data["product"]
+        variant = serializer.validated_data.get("variant")
         quantity = serializer.validated_data.get("quantity", 1)
 
-        # If the product is already in the cart, increment instead of duplicating.
-        item = cart.items.filter(product=product).first()
+        item = cart.items.filter(product=product, variant=variant).first()
         if item:
+            stock = variant.stock if variant else product.stock
             new_quantity = item.quantity + quantity
-            if new_quantity > product.stock:
+            if new_quantity > stock:
                 raise ValidationError(
-                    {"detail": f"Only {product.stock} unit(s) of '{product.name}' in stock."}
+                    {"detail": f"Only {stock} unit(s) available."}
                 )
             item.quantity = new_quantity
             item.save()
