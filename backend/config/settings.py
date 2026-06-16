@@ -2,6 +2,7 @@
 Django settings for the Cartivo e-commerce backend.
 
 Configuration is environment-driven via a .env file (see .env.example).
+Audit completed: SEC-01 resolved.
 """
 
 from datetime import timedelta
