@@ -47,6 +47,20 @@ class CatalogReadTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
 
+    def test_search_products_fuzzy_typo_tolerance(self):
+        # Test that search is typo tolerant (e.g. "widgt" matches "Cool Widget")
+        res = self.client.get("/api/products/?search=widgt")
+        results = res.data["results"] if "results" in res.data else res.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["name"], "Cool Widget")
+
+    def test_search_products_stemming(self):
+        # Test that search handles stemming (e.g. "widgets" matches "Cool Widget")
+        res = self.client.get("/api/products/?search=widgets")
+        results = res.data["results"] if "results" in res.data else res.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["name"], "Cool Widget")
+
     def test_filter_by_category(self):
         other = Category.objects.create(name="Other")
         Product.objects.create(

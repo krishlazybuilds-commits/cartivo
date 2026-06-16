@@ -1,7 +1,10 @@
 from django.db.models import Avg, Count
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 
+from .filters import PostgresSearchFilter
 from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
 from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WishlistItemSerializer
 
@@ -22,6 +25,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     lookup_field = "slug"
+    filter_backends = (DjangoFilterBackend, PostgresSearchFilter, OrderingFilter)
     filterset_fields = ("category", "is_active")
     search_fields = ("name", "description", "sku")
     ordering_fields = ("price", "created_at", "name")
