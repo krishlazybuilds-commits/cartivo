@@ -10,6 +10,7 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 import os
+import secrets
 import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,14 +37,16 @@ def env_list(key: str, default: str = "") -> list[str]:
 DEBUG = env_bool("DJANGO_DEBUG", False)
 
 # SECRET_KEY must be supplied via the environment. In local development (DEBUG
-# on) we fall back to an obviously-insecure placeholder for convenience, but in
-# production (DEBUG off) an unset or placeholder key is a hard error: the app
-# refuses to boot with a guessable key rather than doing so silently.
+# on) we generate a strong, random key dynamically for convenience and security,
+# but in production (DEBUG off) an unset or placeholder key is a hard error:
+# the app refuses to boot rather than doing so silently.
 INSECURE_SECRET_KEY = "django-insecure-change-me-in-production"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if DEBUG:
-        SECRET_KEY = INSECURE_SECRET_KEY
+        # Generate a strong, random key dynamically for local development so we never
+        # fall back to a guessable static string, while still allowing seamless zero-config startup.
+        SECRET_KEY = secrets.token_urlsafe(50)
     else:
         raise ImproperlyConfigured(
             "DJANGO_SECRET_KEY environment variable must be set when DEBUG is False."
