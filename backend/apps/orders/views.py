@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 import stripe
 from django.conf import settings
@@ -20,6 +19,7 @@ from apps.catalog.models import Product
 from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
+from .services import CheckoutError, resolve_coupon, create_order_and_items, build_stripe_line_items
 from .serializers import (
     CheckoutSerializer,
     CouponResponseSerializer,
@@ -32,7 +32,6 @@ from .serializers import (
     calculate_estimate,
 )
 from .tasks import send_order_confirmation_task, send_payment_confirmed_task
-from apps.catalog.tasks import send_low_stock_alert_task
 
 logger = logging.getLogger(__name__)
 
@@ -278,117 +277,45 @@ class OrderViewSet(
         checkout.is_valid(raise_exception=True)
         data = checkout.validated_data
 
-        # --- Resolve coupon (optional) ----------------------------------------
-        coupon = None
-        coupon_code = data.get("coupon_code", "").strip()
-        if coupon_code:
-            try:
-                coupon = Coupon.objects.get(code__iexact=coupon_code)
-            except Coupon.DoesNotExist:
-                return Response(
-                    {"detail": "Invalid coupon code."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        try:
+            coupon = resolve_coupon(data.get("coupon_code", ""))
+        except CheckoutError as e:
+            return Response({"detail": e.detail}, status=e.status_code)
 
-        # --- Checkout from the authenticated user's server-side cart ----------
         cart = Cart.objects.filter(user=request.user).first()
         if not cart or not cart.items.exists():
             return Response(
                 {"detail": "Your cart is empty."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        with transaction.atomic():
-            cart_items = list(cart.items.select_related("product", "variant"))
-            locked_products = {
-                p.id: p
-                for p in Product.objects.select_for_update().filter(
-                    id__in=[item.product_id for item in cart_items]
-                )
+
+        cart_items = cart.items.select_related("product", "variant")
+        items = [
+            {
+                "product_id": ci.product_id,
+                "quantity": ci.quantity,
+                "variant_id": ci.variant_id,
             }
-            from apps.catalog.models import ProductVariant
-            variant_ids = [item.variant_id for item in cart_items if item.variant_id]
-            locked_variants = {
-                v.id: v
-                for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
-            } if variant_ids else {}
+            for ci in cart_items
+        ]
 
-            for item in cart_items:
-                if item.variant_id:
-                    variant = locked_variants[item.variant_id]
-                    if item.quantity > variant.stock:
-                        return Response(
-                            {"detail": f"Insufficient stock for '{item.product.name} — {variant.name}'. Available: {variant.stock}."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                else:
-                    product = locked_products[item.product_id]
-                    if item.quantity > product.stock:
-                        return Response(
-                            {"detail": f"Insufficient stock for '{product.name}'. Available: {product.stock}."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-            order = Order.objects.create(
-                user=request.user,
-                shipping_full_name=data["shipping_full_name"],
-                shipping_address=data["shipping_address"],
-                shipping_city=data["shipping_city"],
-                shipping_postal_code=data["shipping_postal_code"],
-                shipping_country=data["shipping_country"],
+        try:
+            order, _ = create_order_and_items(
+                order_kwargs={
+                    "user": request.user,
+                    "shipping_full_name": data["shipping_full_name"],
+                    "shipping_address": data["shipping_address"],
+                    "shipping_city": data["shipping_city"],
+                    "shipping_postal_code": data["shipping_postal_code"],
+                    "shipping_country": data["shipping_country"],
+                },
+                items=items,
+                coupon=coupon,
             )
-            order_items = []
-            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
-            low_stock_product_ids = []
-            for item in cart_items:
-                product = locked_products[item.product_id]
-                if item.variant_id:
-                    variant = locked_variants[item.variant_id]
-                    remaining = variant.stock - item.quantity  # numeric (set before F())
-                    variant.stock = F("stock") - item.quantity
-                    variant.save(update_fields=["stock"])
-                    unit_price = variant.effective_price
-                else:
-                    remaining = product.stock - item.quantity  # numeric (set before F())
-                    product.stock = F("stock") - item.quantity
-                    product.save(update_fields=["stock"])
-                    unit_price = product.price
-                if remaining <= threshold:
-                    low_stock_product_ids.append(item.product_id)
-                order_items.append(OrderItem(
-                    order=order,
-                    product=product,
-                    unit_price=unit_price,
-                    quantity=item.quantity,
-                ))
-            OrderItem.objects.bulk_create(order_items)
+        except CheckoutError as e:
+            return Response({"detail": e.detail}, status=e.status_code)
 
-            # --- Low-stock alerts ------------------------------------------------
-            for pid in low_stock_product_ids:
-                transaction.on_commit(
-                    lambda p=pid: send_low_stock_alert_task.delay(p)
-                )
-
-            # --- Calculate shipping, tax, and total ---------------------------
-            # Use the same logic as the estimation endpoint to persist final
-            # costs to the order snapshot.
-            subtotal = sum((item.unit_price * item.quantity for item in order_items), Decimal("0"))
-            estimate = calculate_estimate(order.shipping_country, float(subtotal))
-            order.shipping_cost = Decimal(str(estimate["shipping"]))
-            order.tax_amount = Decimal(str(estimate["tax"]))
-
-            # Apply coupon discount if provided.
-            if coupon:
-                valid, reason = coupon.is_valid(subtotal)
-                if not valid:
-                    transaction.set_rollback(True)
-                    return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
-                order.discount = coupon.calculate_discount(subtotal)
-                order.coupon = coupon
-                coupon.times_used = F("times_used") + 1
-                coupon.save(update_fields=["times_used"])
-
-            order.recalculate_total()
-            order.save(update_fields=["total", "discount", "coupon", "shipping_cost", "tax_amount"])
-            cart.items.all().delete()
+        cart.items.all().delete()
 
         serializer = self.get_serializer(order)
         send_order_confirmation_task.delay(order.id)
@@ -426,38 +353,11 @@ class OrderViewSet(
             user.stripe_customer_id = stripe_customer_id
             user.save(update_fields=["stripe_customer_id"])
 
-        line_items = [
-            {
-                "price_data": {
-                    "currency": "usd",
-                    "unit_amount": int(item.unit_price * 100),
-                    "product_data": {"name": item.product.name},
-                },
-                "quantity": item.quantity,
-            }
-            for item in order.items.select_related("product")
-        ]
-
-        # Add shipping and tax as line items so they appear in the Stripe
-        # receipt and the total matches order.total.
-        if order.shipping_cost > 0:
-            line_items.append({
-                "price_data": {
-                    "currency": "usd",
-                    "unit_amount": int(order.shipping_cost * 100),
-                    "product_data": {"name": "Shipping"},
-                },
-                "quantity": 1,
-            })
-        if order.tax_amount > 0:
-            line_items.append({
-                "price_data": {
-                    "currency": "usd",
-                    "unit_amount": int(order.tax_amount * 100),
-                    "product_data": {"name": "Tax"},
-                },
-                "quantity": 1,
-            })
+        line_items = build_stripe_line_items(
+            order.items.select_related("product"),
+            order.shipping_cost,
+            order.tax_amount,
+        )
 
         session_kwargs = {
             "payment_method_types": ["card"],
@@ -798,115 +698,32 @@ class GuestCheckoutView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        coupon = None
-        coupon_code = data.get("coupon_code", "").strip()
-        if coupon_code:
-            try:
-                coupon = Coupon.objects.get(code__iexact=coupon_code)
-            except Coupon.DoesNotExist:
-                return Response({"detail": "Invalid coupon code."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            coupon = resolve_coupon(data.get("coupon_code", ""))
+        except CheckoutError as e:
+            return Response({"detail": e.detail}, status=e.status_code)
 
-        product_ids = [i["product_id"] for i in data["items"]]
-        with transaction.atomic():
-            locked_products = {
-                p.id: p
-                for p in Product.objects.select_for_update().filter(id__in=product_ids)
-            }
-            missing = set(product_ids) - locked_products.keys()
-            if missing:
-                return Response(
-                    {"detail": f"Product(s) not found: {', '.join(str(i) for i in missing)}."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            for item in data["items"]:
-                product = locked_products[item["product_id"]]
-                if not product.is_active:
-                    return Response(
-                        {"detail": f"'{product.name}' is no longer available."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                if item["quantity"] > product.stock:
-                    return Response(
-                        {"detail": f"Insufficient stock for '{product.name}'. Available: {product.stock}."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            order = Order.objects.create(
-                user=None,
-                guest_email=data["guest_email"],
-                shipping_full_name=data["shipping_full_name"],
-                shipping_address=data["shipping_address"],
-                shipping_city=data["shipping_city"],
-                shipping_postal_code=data["shipping_postal_code"],
-                shipping_country=data["shipping_country"],
+        try:
+            order, order_items = create_order_and_items(
+                order_kwargs={
+                    "user": None,
+                    "guest_email": data["guest_email"],
+                    "shipping_full_name": data["shipping_full_name"],
+                    "shipping_address": data["shipping_address"],
+                    "shipping_city": data["shipping_city"],
+                    "shipping_postal_code": data["shipping_postal_code"],
+                    "shipping_country": data["shipping_country"],
+                },
+                items=data["items"],
+                coupon=coupon,
             )
-            order_items = []
-            low_stock_product_ids = []
-            threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
-            for item in data["items"]:
-                product = locked_products[item["product_id"]]
-                remaining = product.stock - item["quantity"]  # numeric (before F())
-                product.stock = F("stock") - item["quantity"]
-                product.save(update_fields=["stock"])
-                if remaining <= threshold:
-                    low_stock_product_ids.append(item["product_id"])
-                order_items.append(OrderItem(
-                    order=order,
-                    product=product,
-                    unit_price=product.price,
-                    quantity=item["quantity"],
-                ))
-            OrderItem.objects.bulk_create(order_items)
-
-            # Low-stock alerts
-            for pid in low_stock_product_ids:
-                transaction.on_commit(
-                    lambda p=pid: send_low_stock_alert_task.delay(p)
-                )
-
-            subtotal = sum((i.unit_price * i.quantity for i in order_items), Decimal("0"))
-            estimate = calculate_estimate(order.shipping_country, float(subtotal))
-            order.shipping_cost = Decimal(str(estimate["shipping"]))
-            order.tax_amount = Decimal(str(estimate["tax"]))
-
-            if coupon:
-                valid, reason = coupon.is_valid(subtotal)
-                if not valid:
-                    transaction.set_rollback(True)
-                    return Response({"detail": reason}, status=status.HTTP_400_BAD_REQUEST)
-                order.discount = coupon.calculate_discount(subtotal)
-                order.coupon = coupon
-                coupon.times_used = F("times_used") + 1
-                coupon.save(update_fields=["times_used"])
-
-            order.recalculate_total()
-            order.save(update_fields=["total", "discount", "coupon", "shipping_cost", "tax_amount"])
+        except CheckoutError as e:
+            return Response({"detail": e.detail}, status=e.status_code)
 
         send_order_confirmation_task.delay(order.id)
 
         frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
-        line_items = [
-            {
-                "price_data": {
-                    "currency": "usd",
-                    "unit_amount": int(item.unit_price * 100),
-                    "product_data": {"name": item.product.name},
-                },
-                "quantity": item.quantity,
-            }
-            for item in order_items
-        ]
-        if order.shipping_cost > 0:
-            line_items.append({
-                "price_data": {"currency": "usd", "unit_amount": int(order.shipping_cost * 100), "product_data": {"name": "Shipping"}},
-                "quantity": 1,
-            })
-        if order.tax_amount > 0:
-            line_items.append({
-                "price_data": {"currency": "usd", "unit_amount": int(order.tax_amount * 100), "product_data": {"name": "Tax"}},
-                "quantity": 1,
-            })
-
+        line_items = build_stripe_line_items(order_items, order.shipping_cost, order.tax_amount)
         session_kwargs = {
             "payment_method_types": ["card"],
             "line_items": line_items,
