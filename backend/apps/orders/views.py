@@ -16,7 +16,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
-from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle
+from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle, OrderLookupThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
 from .services import CheckoutError, resolve_coupon, create_order_and_items, build_stripe_line_items
@@ -645,7 +645,7 @@ _EVENT_HANDLERS = {
 class GuestOrderLookupView(APIView):
     """Look up a guest order by email + order number (first 8 chars of UUID)."""
     permission_classes = [AllowAny]
-    throttle_classes = [OrderWriteThrottle]
+    throttle_classes = [OrderLookupThrottle]
 
     @extend_schema(
         summary="Guest order lookup",

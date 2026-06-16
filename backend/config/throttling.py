@@ -67,3 +67,10 @@ class OrderVelocityThrottle(UserOrAnonRateThrottle):
     """Limit order creation velocity per account/IP (e.g. 5/hour)."""
 
     scope = "order_velocity"
+
+
+class OrderLookupThrottle(UserOrAnonRateThrottle):
+    """Rate-limit guest order lookups to prevent brute-force enumeration."""
+
+    scope = "order_lookup"
+
