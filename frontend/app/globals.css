@@ -1678,9 +1678,9 @@ body::after {
   justify-content: center;
   background: var(--accent);
   color: var(--ink);
-  font-weight: 800;
-  font-size: 1.1rem;
-  line-height: 1;
+}
+.why-avatar svg {
+  display: block;
 }
 .why-author b {
   display: block;
