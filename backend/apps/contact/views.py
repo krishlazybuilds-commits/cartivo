@@ -1,4 +1,5 @@
 import logging
+import re
 
 from django.core.mail import send_mail
 from django.core.validators import validate_email
@@ -49,7 +50,7 @@ class ContactRateThrottle(AnonRateThrottle):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def contact(request):
-    name = request.data.get("name", "").strip()
+    name = re.sub(r"[\r\n]", "", request.data.get("name", "").strip())
     email = normalize_email(request.data.get("email", "").strip())
     message = request.data.get("message", "").strip()
 
