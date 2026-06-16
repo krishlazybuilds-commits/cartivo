@@ -33,7 +33,7 @@ function getCookie(name) {
  * Ensure the csrftoken cookie is present. Hits the backend bootstrap endpoint
  * (which sets the cookie) only when we don't already have one.
  */
-async function ensureCsrfToken() {
+export async function ensureCsrfToken() {
   if (getCookie("csrftoken")) return getCookie("csrftoken");
   await fetch(`${API_URL}/auth/csrf/`, { credentials: "include" });
   return getCookie("csrftoken");

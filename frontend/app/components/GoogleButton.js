@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { useToast } from "../lib/toast";
-import { useAuth } from "../lib/auth";
+import { useAuth, ensureCsrfToken } from "../lib/auth";
 
 /**
  * "Sign in with Google" using Google Identity Services (GIS).
@@ -69,7 +69,9 @@ export default function GoogleButton({ action = "Sign in", next = "/products" })
     if (!CLIENT_ID) return undefined;
     let cancelled = false;
 
-    loadGis()
+    // Ensure CSRF cookie is established before initializing Google Identity Services
+    ensureCsrfToken()
+      .then(() => loadGis())
       .then(() => {
         if (cancelled || !window.google?.accounts?.id || !containerRef.current) return;
         window.google.accounts.id.initialize({
