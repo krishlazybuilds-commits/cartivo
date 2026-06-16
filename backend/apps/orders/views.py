@@ -43,6 +43,28 @@ def _restock_order(order):
     order.restock()
 
 
+def _release_pending_order(order_id):
+    """Cancel + restock a PENDING order whose Stripe session couldn't be created.
+
+    Guest checkout commits the order and decrements stock before the Stripe
+    Checkout Session is created. If that Stripe call fails, the stock would stay
+    reserved against an unpayable order until the 30-min stale-order sweep. This
+    releases it immediately. Atomic + status-filtered to PENDING so it can never
+    disturb an order that has since been paid.
+    """
+    with transaction.atomic():
+        order = (
+            Order.objects.select_for_update()
+            .filter(pk=order_id, status=Order.Status.PENDING)
+            .first()
+        )
+        if order is None:
+            return
+        _restock_order(order)
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=["status"])
+
+
 class DashboardView(APIView):
     """Staff-only sales analytics summary."""
     permission_classes = [permissions.IsAdminUser]
@@ -335,53 +357,68 @@ class OrderViewSet(
 
         frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
 
-        # Get or create a Stripe Customer for this user so returning customers
-        # have their details pre-filled and Stripe can track payment history.
         user = request.user
-        if user.stripe_customer_id:
-            stripe_customer_id = user.stripe_customer_id
-        else:
-            customer = stripe.Customer.create(
-                email=user.email,
-                name=f"{user.first_name} {user.last_name}".strip() or user.username,
-                metadata={"user_id": user.pk},
-            )
-            stripe_customer_id = customer.id
-            user.stripe_customer_id = stripe_customer_id
-            user.save(update_fields=["stripe_customer_id"])
-
         line_items = build_stripe_line_items(
             order.items.select_related("product"),
             order.shipping_cost,
             order.tax_amount,
         )
 
-        session_kwargs = {
-            "payment_method_types": ["card"],
-            "line_items": line_items,
-            "mode": "payment",
-            "customer": stripe_customer_id,
-            "success_url": f"{frontend_base}/orders?placed={order.id}&paid=1",
-            "cancel_url": f"{frontend_base}/orders/{order.id}",
-            "metadata": {"order_id": order.id},
-            # Propagate order_id onto the PaymentIntent (and its charge) so
-            # payment_failed / charge.refunded events can be matched back.
-            "payment_intent_data": {"metadata": {"order_id": order.id}},
-        }
+        # All Stripe network calls are wrapped so a provider error/timeout
+        # surfaces as a clean 502 instead of an unhandled 500. The order stays
+        # PENDING, so the customer can simply retry payment.
+        try:
+            # Get or create a Stripe Customer for this user so returning
+            # customers have their details pre-filled and Stripe can track
+            # payment history.
+            if user.stripe_customer_id:
+                stripe_customer_id = user.stripe_customer_id
+            else:
+                customer = stripe.Customer.create(
+                    email=user.email,
+                    name=f"{user.first_name} {user.last_name}".strip() or user.username,
+                    metadata={"user_id": user.pk},
+                )
+                stripe_customer_id = customer.id
+                user.stripe_customer_id = stripe_customer_id
+                user.save(update_fields=["stripe_customer_id"])
 
-        if order.discount > 0:
-            # Create a one-time Stripe coupon for the order's discount amount.
-            # This ensures the customer is charged order.total while preserving
-            # the full-price item breakdown in the Stripe UI/receipt.
-            coupon = stripe.Coupon.create(
-                amount_off=int(order.discount * 100),
-                currency="usd",
-                duration="once",
-                name=f"Discount for Order {order.order_number_short}",
+            session_kwargs = {
+                "payment_method_types": ["card"],
+                "line_items": line_items,
+                "mode": "payment",
+                "customer": stripe_customer_id,
+                "success_url": f"{frontend_base}/orders?placed={order.id}&paid=1",
+                "cancel_url": f"{frontend_base}/orders/{order.id}",
+                "metadata": {"order_id": order.id},
+                # Propagate order_id onto the PaymentIntent (and its charge) so
+                # payment_failed / charge.refunded events can be matched back.
+                "payment_intent_data": {"metadata": {"order_id": order.id}},
+            }
+
+            if order.discount > 0:
+                # Create a one-time Stripe coupon for the order's discount
+                # amount. This ensures the customer is charged order.total while
+                # preserving the full-price item breakdown in the Stripe
+                # UI/receipt.
+                coupon = stripe.Coupon.create(
+                    amount_off=int(order.discount * 100),
+                    currency="usd",
+                    duration="once",
+                    name=f"Discount for Order {order.order_number_short}",
+                )
+                session_kwargs["discounts"] = [{"coupon": coupon.id}]
+
+            session = stripe.checkout.Session.create(**session_kwargs)
+        except stripe.error.StripeError:
+            logger.exception(
+                "Stripe checkout session creation failed for order %s", order.id
             )
-            session_kwargs["discounts"] = [{"coupon": coupon.id}]
+            return Response(
+                {"detail": "Unable to reach the payment provider. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
-        session = stripe.checkout.Session.create(**session_kwargs)
         # Persist the session id so checkout.session.expired can be correlated.
         Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
         return Response({"url": session.url})
@@ -763,8 +800,6 @@ class GuestCheckoutView(APIView):
         except CheckoutError as e:
             return Response({"detail": e.detail}, status=e.status_code)
 
-        send_order_confirmation_task.delay(order.id)
-
         frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
         line_items = build_stripe_line_items(order_items, order.shipping_cost, order.tax_amount)
         session_kwargs = {
@@ -777,17 +812,34 @@ class GuestCheckoutView(APIView):
             "metadata": {"order_id": order.id},
             "payment_intent_data": {"metadata": {"order_id": order.id}},
         }
-        if order.discount > 0:
-            stripe_coupon = stripe.Coupon.create(
-                amount_off=int(order.discount * 100),
-                currency="usd",
-                duration="once",
-                name=f"Discount for Order {order.order_number_short}",
-            )
-            session_kwargs["discounts"] = [{"coupon": stripe_coupon.id}]
+        # The order + stock decrement are already committed. Guard the Stripe
+        # calls so a provider error/timeout doesn't strand a reserved-stock
+        # PENDING order (and a misleading confirmation email): on failure we
+        # release the order and return a clean 502 the client can retry.
+        try:
+            if order.discount > 0:
+                stripe_coupon = stripe.Coupon.create(
+                    amount_off=int(order.discount * 100),
+                    currency="usd",
+                    duration="once",
+                    name=f"Discount for Order {order.order_number_short}",
+                )
+                session_kwargs["discounts"] = [{"coupon": stripe_coupon.id}]
 
-        session = stripe.checkout.Session.create(**session_kwargs)
+            session = stripe.checkout.Session.create(**session_kwargs)
+        except stripe.error.StripeError:
+            logger.exception(
+                "Stripe checkout session creation failed for guest order %s", order.id
+            )
+            _release_pending_order(order.id)
+            return Response(
+                {"detail": "Unable to reach the payment provider. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
         Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
+        # Only confirm the order once it's actually payable.
+        send_order_confirmation_task.delay(order.id)
         return Response({"url": session.url, "order_id": order.id}, status=status.HTTP_201_CREATED)
 
 

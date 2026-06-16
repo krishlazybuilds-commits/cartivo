@@ -1,5 +1,7 @@
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import stripe
 
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -797,3 +799,132 @@ class StaffRefundWorkflowTests(APITestCase):
         self.assertEqual(self.product.stock, 10)
 
 
+class StripeCheckoutFailureTests(APITestCase):
+    """Stripe calls in the checkout path must fail safe.
+
+    A provider error/timeout should surface as a clean 502 (not an unhandled
+    500), and must never leave a reserved-stock PENDING order behind.
+    """
+
+    GUEST_URL = "/api/orders/guest-checkout/"
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Payables")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Payable Widget",
+            price=Decimal("10.00"),
+            stock=5,
+            sku="PAY-1",
+        )
+
+    def _guest_payload(self, quantity=2):
+        return {
+            "guest_email": "guest@test.com",
+            "items": [{"product_id": self.product.id, "quantity": quantity}],
+            **SHIPPING,
+        }
+
+    def test_guest_checkout_stripe_failure_releases_stock_and_returns_502(self):
+        with patch(
+            "apps.orders.views.send_order_confirmation_task.delay"
+        ) as mock_email, patch(
+            "apps.orders.views.stripe.checkout.Session.create",
+            side_effect=stripe.error.StripeError("timeout"),
+        ):
+            res = self.client.post(
+                self.GUEST_URL, self._guest_payload(2), format="json"
+            )
+
+        # Clean 502 rather than an unhandled 500.
+        self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
+
+        # The order committed before the Stripe call is rolled back (cancelled),
+        # so it no longer holds reserved stock waiting on the 30-min sweep.
+        order = Order.objects.get(guest_email="guest@test.com")
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+
+        # Reserved stock released.
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+        # No misleading "order placed" email for an unpayable order.
+        mock_email.assert_not_called()
+
+    def test_guest_checkout_success_queues_email_and_returns_url(self):
+        fake_session = MagicMock(id="cs_test_123", url="https://stripe.test/checkout")
+        with patch(
+            "apps.orders.views.send_order_confirmation_task.delay"
+        ) as mock_email, patch(
+            "apps.orders.views.stripe.checkout.Session.create",
+            return_value=fake_session,
+        ):
+            res = self.client.post(
+                self.GUEST_URL, self._guest_payload(2), format="json"
+            )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["url"], "https://stripe.test/checkout")
+
+        order = Order.objects.get(guest_email="guest@test.com")
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.assertEqual(order.stripe_session_id, "cs_test_123")
+
+        # Stock stays reserved while the order is awaiting payment.
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+
+        # Confirmation email queued only once the order is payable.
+        mock_email.assert_called_once_with(order.id)
+
+    def test_pay_stripe_failure_returns_502_and_keeps_order_pending(self):
+        user = User.objects.create_user(
+            username="paybuyer", password="pass12345", email="paybuyer@test.com",
+        )
+        user.stripe_customer_id = "cus_existing"
+        user.save(update_fields=["stripe_customer_id"])
+        self.client.force_authenticate(user)
+
+        cart, _ = Cart.objects.get_or_create(user=user)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=2)
+        place = self.client.post("/api/orders/", SHIPPING, format="json")
+        order_id = place.data["id"]
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)  # reserved at order creation
+
+        with patch(
+            "apps.orders.views.stripe.checkout.Session.create",
+            side_effect=stripe.error.StripeError("timeout"),
+        ):
+            res = self.client.post(f"/api/orders/{order_id}/pay/", format="json")
+
+        # Clean 502 rather than an unhandled 500.
+        self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
+
+        # Order is untouched and remains payable for a retry; stock unchanged.
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+
+    def test_pay_stripe_customer_create_failure_returns_502(self):
+        user = User.objects.create_user(
+            username="newpayer", password="pass12345", email="newpayer@test.com",
+        )
+        self.client.force_authenticate(user)
+
+        cart, _ = Cart.objects.get_or_create(user=user)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=1)
+        place = self.client.post("/api/orders/", SHIPPING, format="json")
+        order_id = place.data["id"]
+
+        # No stripe_customer_id yet, so Customer.create is hit first.
+        with patch(
+            "apps.orders.views.stripe.Customer.create",
+            side_effect=stripe.error.StripeError("timeout"),
+        ):
+            res = self.client.post(f"/api/orders/{order_id}/pay/", format="json")
+
+        self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, Order.Status.PENDING)
