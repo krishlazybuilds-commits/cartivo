@@ -2816,36 +2816,34 @@ body::after {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  /* Icon-only default: same height as .btn via matching vertical padding */
+  padding: 0.7rem 0.7rem;
   border: 1px solid var(--line, #e2e8f0);
-  background: #fff;
-  color: var(--slate, #475569);
+  background: transparent;
+  color: var(--ink);
   border-radius: 999px;
   cursor: pointer;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  line-height: 1;
-  transition: color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: color 0.15s ease, border-color 0.15s ease,
+              background 0.15s ease, transform 0.1s ease;
 }
 .wishlist-btn:hover {
   border-color: #f43f5e;
   color: #f43f5e;
+  background: #fff1f2;
 }
 .wishlist-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 .wishlist-btn.active {
-  color: #f43f5e;
   border-color: #f43f5e;
+  background: #fff1f2;
 }
-.wishlist-btn .wishlist-heart {
-  font-size: 1.15rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* Labelled variant on the product detail page — matches .btn exactly */
 .wishlist-btn.with-label {
-  padding: 0.75rem 1.1rem;
+  padding: 0.7rem 1.35rem;
 }
 
 /* Compact heart overlay on product cards */
@@ -2875,10 +2873,6 @@ body::after {
   align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-/* Match the Save button height to the primary btn so they align perfectly. */
-.product-actions .wishlist-btn {
-  padding: 0.7rem 1.35rem;
 }
 
 .wishlist-card .wishlist-card-link {

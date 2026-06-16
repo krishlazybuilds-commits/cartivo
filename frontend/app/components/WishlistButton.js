@@ -2,18 +2,23 @@
 
 import { useWishlist } from "../lib/wishlist";
 
-/**
- * Heart toggle that adds/removes a product from the user's wishlist.
- * Set `withLabel` for the labelled variant (product detail page); leave it off
- * for the compact icon-only variant used on product cards.
- */
+function HeartIcon({ filled }) {
+  return filled ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+}
+
 export default function WishlistButton({ productId, withLabel = false, className = "" }) {
   const { isWishlisted, toggle } = useWishlist();
   const active = isWishlisted(productId);
 
   function handleClick(e) {
-    // Product cards wrap the button in a <Link>; stop the click from
-    // navigating to the product page.
     e.preventDefault();
     e.stopPropagation();
     toggle(productId);
@@ -28,9 +33,7 @@ export default function WishlistButton({ productId, withLabel = false, className
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
       title={active ? "Remove from wishlist" : "Save to wishlist"}
     >
-      <span className="wishlist-heart" aria-hidden="true">
-        {active ? "♥" : "♡"}
-      </span>
+      <HeartIcon filled={active} />
       {withLabel && <span>{active ? "Saved" : "Save"}</span>}
     </button>
   );
