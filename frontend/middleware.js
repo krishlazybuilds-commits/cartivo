@@ -55,6 +55,8 @@ export function middleware(request) {
     "frame-src 'self' js.stripe.com accounts.google.com",
     "form-action 'self'",
     "base-uri 'self'",
+    "object-src 'none'",
+    "worker-src 'self'",
     "upgrade-insecure-requests",
   ].join("; ");
   const response = NextResponse.next({
