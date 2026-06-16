@@ -81,11 +81,11 @@ export default function AddToCart({ productId, productName, productPrice, inStoc
         <>
           <div className="qty-selector">
             <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Decrease quantity">
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none" aria-hidden="true"><rect width="12" height="2" rx="1" fill="currentColor"/></svg>
+              <svg width="10" height="2" viewBox="0 0 10 2" fill="none" aria-hidden="true"><rect width="10" height="1.5" rx="0.75" fill="currentColor"/></svg>
             </button>
             <span className="qty-value" aria-live="polite" aria-label={`Quantity: ${quantity}`}>{quantity}</span>
             <button type="button" className="qty-btn" onClick={() => setQuantity((q) => Math.min(q + 1, effectiveStock))} aria-label="Increase quantity">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="5" width="2" height="12" rx="1" fill="currentColor"/><rect y="5" width="12" height="2" rx="1" fill="currentColor"/></svg>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><rect x="4.25" width="1.5" height="10" rx="0.75" fill="currentColor"/><rect y="4.25" width="10" height="1.5" rx="0.75" fill="currentColor"/></svg>
             </button>
           </div>
           <button
