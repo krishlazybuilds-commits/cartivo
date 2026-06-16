@@ -80,7 +80,7 @@ export default async function RootLayout({ children }) {
   };
 
   return (
-    <html lang="en" style={{ background: "#ffffff" }}>
+    <html lang="en" style={{ background: "#ffffff" }} suppressHydrationWarning>
       <body className={`${jakarta.variable} ${fraunces.variable}`} style={{ background: "#ffffff" }}>
         <JsonLd data={organizationJsonLd} />
         {/*
@@ -89,7 +89,7 @@ export default async function RootLayout({ children }) {
           data-intro="play" or "skip" on <html> so the CSS overlay
           is visible/hidden from byte 1 — no hydration wait needed.
         */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var d=document.documentElement;var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;var p=window.location.pathname;var onHome=p==='/';if(r||!onHome){d.setAttribute('data-intro','skip');}else{d.setAttribute('data-intro','play');}var authRoutes=['/login','/register','/forgot-password','/reset-password'];if(!r&&authRoutes.indexOf(p)!==-1){d.setAttribute('data-auth-intro','play');}}catch(e){d.setAttribute('data-intro','skip');}})();` }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `(function(){try{var d=document.documentElement;var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;var p=window.location.pathname;var onHome=p==='/';if(r||!onHome){d.setAttribute('data-intro','skip');}else{d.setAttribute('data-intro','play');}var authRoutes=['/login','/register','/forgot-password','/reset-password'];if(!r&&authRoutes.indexOf(p)!==-1){d.setAttribute('data-auth-intro','play');}}catch(e){d.setAttribute('data-intro','skip');}})();` }} />
         {/* Static overlay — present in the initial HTML, shown/hidden by CSS keyed on data-intro */}
         <div className="landing-intro" aria-hidden="true">
           {/* Three stacked strips — exit with staggered upward slides */}

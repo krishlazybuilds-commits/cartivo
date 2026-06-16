@@ -72,7 +72,7 @@ export default function Footer() {
               <span className="brand-dot">C</span>
               Cartivo
             </a>
-            <p className="tag">
+            <p className="footer-tag">
               Your store for the latest laptops, audio, phones, wearables and more — with secure checkout and fast delivery.
             </p>
 

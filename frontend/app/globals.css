@@ -1223,11 +1223,12 @@ section {
   background: var(--accent);
   color: var(--ink);
 }
-.footer p.tag {
+.footer .footer-tag {
   color: rgba(255, 255, 255, 0.6);
   margin-top: 14px;
   max-width: 34ch;
   font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 /* Newsletter */
@@ -1672,12 +1673,14 @@ body::after {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--accent);
   color: var(--ink);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 .why-author b {
   display: block;

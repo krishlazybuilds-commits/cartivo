@@ -45,9 +45,19 @@ export function middleware(request) {
   const imgSrc = ["'self'", "blob:", "data:", ...devHosts];
   if (process.env.NEXT_PUBLIC_MEDIA_HOST) imgSrc.push(process.env.NEXT_PUBLIC_MEDIA_HOST);
   const connectSrc = ["'self'", ...devHosts, "api.stripe.com", "accounts.google.com"];
+  // Next.js dev mode compiles modules with eval() for fast refresh and source
+  // maps, so 'unsafe-eval' is required locally. It is omitted in production to
+  // keep the script-src policy strict.
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...(isDev ? ["'unsafe-eval'"] : []),
+    "js.stripe.com",
+    "accounts.google.com",
+  ].join(" ");
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' js.stripe.com accounts.google.com`,
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
     `img-src ${imgSrc.join(" ")}`,
     "font-src 'self' fonts.gstatic.com",
