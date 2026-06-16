@@ -21,9 +21,12 @@ export default function Reveal({ children, as: Tag = "div", delay = 0, className
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setShown(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          setShown(true);
+          observer.unobserve(el);
+        }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.05, rootMargin: "0px 0px -20px 0px" }
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -26,7 +26,7 @@ function fillForm() {
 describe("ContactPage", () => {
   it("renders the heading and form fields", () => {
     render(<ContactPage />);
-    expect(screen.getByRole("heading", { name: /contact us/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /contact me/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
