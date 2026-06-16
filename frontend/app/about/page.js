@@ -3,7 +3,7 @@ import Reveal from "../components/Reveal";
 
 export const metadata = {
   title: "About — Cartivo",
-  description: "Learn about Cartivo, our mission, and the team behind the platform.",
+  description: "Learn about Cartivo, my mission, and the developer behind the platform.",
   alternates: {
     canonical: "/about",
   },
@@ -17,7 +17,7 @@ export default function AboutPage() {
           <div className="container" style={{ maxWidth: 720 }}>
             <Reveal>
               <div className="section-head">
-                <span className="eyebrow">Our story</span>
+                <span className="eyebrow">My story</span>
                 <h2>About Cartivo</h2>
                 <p>Built for independent brands who just want to sell.</p>
               </div>
@@ -28,17 +28,17 @@ export default function AboutPage() {
               <h3>What is Cartivo?</h3>
               <p>Cartivo is a modern e-commerce storefront built to give independent brands a fast, clean shopping experience without the complexity of enterprise platforms. Browse a real product catalog, add items to your cart, and check out — all in seconds.</p>
 
-              <h3>Why we built it</h3>
-              <p>Most small shops are stuck choosing between platforms that are too simple or too expensive. We wanted to build something in between — powerful enough to handle a real store, simple enough that you can set it up in an afternoon.</p>
+              <h3>Why I built it</h3>
+              <p>Most small shops are stuck choosing between platforms that are too simple or too expensive. I wanted to build something in between — powerful enough to handle a real store, simple enough that you can set it up in an afternoon.</p>
 
               <h3>The stack</h3>
               <p>Cartivo is built on a Django REST Framework backend with a Next.js 14 frontend. Payments are handled by Stripe. Authentication uses httpOnly JWT cookies for security. The entire codebase is open and straightforward to extend.</p>
 
               <h3>Early access</h3>
-              <p>Cartivo is currently in early access. The product catalog, orders, and checkout are fully functional. We are actively adding features — pagination, email notifications, and an admin dashboard are on the roadmap.</p>
+              <p>Cartivo is currently in early access. The product catalog, orders, and checkout are fully functional. I am actively adding features — pagination, email notifications, and an admin dashboard are on the roadmap.</p>
 
               <h3>Get in touch</h3>
-              <p>Have a question or want to collaborate? Reach us at <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a> or browse the <Link href="/products">shop</Link> to see it in action.</p>
+              <p>Have a question or want to collaborate? Reach out to me at <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a> or browse the <Link href="/products">shop</Link> to see it in action.</p>
             </div>
             </Reveal>
           </div>

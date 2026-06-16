@@ -40,10 +40,10 @@ export default function SecurityPage() {
               <p>Every time your session is refreshed, the previous refresh token is blacklisted and a new one is issued. This limits the window of exposure if a token were ever compromised.</p>
 
               <h3>Responsible disclosure</h3>
-              <p>If you discover a security vulnerability in Cartivo, please report it responsibly by emailing <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a>. We will acknowledge your report within 48 hours and work to resolve confirmed issues promptly.</p>
+              <p>If you discover a security vulnerability in Cartivo, please report it responsibly by emailing <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a>. I will acknowledge your report within 48 hours and work to resolve confirmed issues promptly.</p>
 
               <h3>Contact</h3>
-              <p>For security-related questions or concerns, contact us at <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a>.</p>
+              <p>For security-related questions or concerns, contact me at <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a>.</p>
             </div>
             </Reveal>
           </div>

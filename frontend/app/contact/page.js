@@ -33,8 +33,8 @@ export default function ContactPage() {
             <Reveal>
               <div className="section-head">
                 <span className="eyebrow">Get in touch</span>
-                <h2>Contact us</h2>
-                <p>Have a question or want to collaborate? Drop us a message.</p>
+                <h2>Contact me</h2>
+                <p>Have a question or want to collaborate? Drop me a message.</p>
               </div>
             </Reveal>
 
@@ -74,7 +74,7 @@ export default function ContactPage() {
               <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
                 {status === "sending" ? "Sending…" : "Send message"}
               </button>
-              {status === "success" && <p style={{ color: "green" }}>Message sent! We&apos;ll get back to you soon.</p>}
+              {status === "success" && <p style={{ color: "green" }}>Message sent! I&apos;ll get back to you soon.</p>}
               {status === "error" && <p style={{ color: "red" }}>Something went wrong. Please try again.</p>}
             </form>
             </Reveal>
