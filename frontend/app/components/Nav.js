@@ -25,9 +25,6 @@ export default function Nav() {
   const pathname = usePathname();
   const [activeSection, setActiveSection] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchRef = useRef(null);
 
   // Scroll-spy: highlight the nav link for whichever homepage section the
   // viewport's reference line (35% down from the top) is currently over.
@@ -103,36 +100,6 @@ export default function Nav() {
 
         {/* Right actions */}
         <div className="nav-cta">
-          {/* Search — hidden on the landing page */}
-          {pathname !== "/" && (searchOpen ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = searchQuery.trim();
-                if (q) { window.location.href = `/search?q=${encodeURIComponent(q)}`; }
-                setSearchOpen(false);
-                setSearchQuery("");
-              }}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <input
-                ref={searchRef}
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products…"
-                autoFocus
-                style={{ fontSize: "0.9rem", padding: "0.3rem 0.6rem", borderRadius: 6, border: "1px solid var(--border, #e5e7eb)", outline: "none", width: 180 }}
-                onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-              />
-              <button type="button" className="nav-icon" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} aria-label="Close search">✕</button>
-            </form>
-          ) : (
-            <button type="button" className="nav-icon" aria-label="Search" onClick={() => setSearchOpen(true)}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-          ))}
-
           {user || (authed && authLoading) ? (
             <>
               <Link href="/cart" className={`nav-icon${pathname === "/cart" ? " nav-icon-active" : ""}`} aria-label={`Cart${itemCount > 0 ? `, ${itemCount} items` : ""}`}>
