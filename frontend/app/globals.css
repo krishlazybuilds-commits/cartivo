@@ -2869,12 +2869,13 @@ body::after {
 
 .product-actions {
   display: flex;
-  /* .add-to-cart is a column (quantity above the "Add to cart" button), so
-     bottom-aligning lines the Save button up with the "Add to cart" button
-     instead of floating it against the column's centre. */
   align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+/* Match the Save button height to the primary btn so they align perfectly. */
+.product-actions .wishlist-btn {
+  padding: 0.7rem 1.35rem;
 }
 
 .wishlist-card .wishlist-card-link {
