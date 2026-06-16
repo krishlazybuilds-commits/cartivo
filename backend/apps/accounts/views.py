@@ -707,3 +707,149 @@ class EmailChangeConfirmView(APIView):
         user.pending_email = ""
         user.save(update_fields=["email", "pending_email"])
         return Response({"detail": "Email updated successfully."})
+
+
+@extend_schema(
+    tags=["auth"],
+    summary="GDPR data export",
+    description="Returns all personal data for the authenticated user in JSON format "
+                "(right of access / data portability under Art. 15 & 20 GDPR).",
+)
+class GDPRExportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: {"type": "object"}},
+    )
+    def get(self, request):
+        user = request.user
+        from .models import Address
+        from orders.models import Order
+        from catalog.models import Review, WishlistItem
+        from cart.models import Cart
+        from contact.models import NewsletterSubscriber
+
+        data = {
+            "profile": {
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone": user.phone,
+                "date_joined": user.date_joined.isoformat(),
+                "last_login": user.last_login.isoformat() if user.last_login else None,
+            },
+            "addresses": list(Address.objects.filter(user=user).values(
+                "label", "full_name", "address", "city", "postal_code", "country", "is_default"
+            )),
+            "orders": [],
+            "reviews": list(Review.objects.filter(user=user).values(
+                "product_id", "rating", "title", "body", "created_at"
+            )),
+            "wishlist": list(WishlistItem.objects.filter(user=user).values(
+                "product_id", "added_at"
+            )),
+        }
+
+        for order in Order.objects.filter(user=user).prefetch_related("items"):
+            data["orders"].append({
+                "order_number": str(order.order_number),
+                "status": order.status,
+                "total": str(order.total),
+                "shipping_full_name": order.shipping_full_name,
+                "shipping_address": order.shipping_address,
+                "shipping_city": order.shipping_city,
+                "shipping_postal_code": order.shipping_postal_code,
+                "shipping_country": order.shipping_country,
+                "discount": str(order.discount),
+                "created_at": order.created_at.isoformat(),
+                "items": [
+                    {"product_id": item.product_id, "unit_price": str(item.unit_price), "quantity": item.quantity}
+                    for item in order.items.all()
+                ],
+            })
+
+        cart = Cart.objects.filter(user=user).first()
+        data["cart"] = list(cart.items.values("product_id", "variant_id", "quantity")) if cart else []
+
+        sub = NewsletterSubscriber.objects.filter(email__iexact=user.email).first()
+        data["newsletter_subscription"] = {
+            "subscribed": sub is not None,
+            "subscribed_at": sub.subscribed_at.isoformat() if sub else None,
+        }
+
+        return Response(data)
+
+
+@extend_schema(
+    tags=["auth"],
+    summary="GDPR account deletion",
+    description="Anonymises or deletes all personal data for the authenticated user "
+                "(right to erasure under Art. 17 GDPR). Orders are retained for legal "
+                "obligations but stripped of personal data. The account is deactivated "
+                "and anonymised so it can never be used again.",
+)
+class GDPRDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
+    def post(self, request):
+        user = request.user
+        from .models import Address
+        from orders.models import Order
+        from catalog.models import Review, WishlistItem
+        from cart.models import Cart
+        from contact.models import NewsletterSubscriber
+
+        # 1. Anonymise orders: detach from user, clear personal fields.
+        for order in Order.objects.filter(user=user):
+            order.user = None
+            order.guest_email = ""
+            order.shipping_full_name = "[anonymized]"
+            order.shipping_address = "[anonymized]"
+            order.shipping_city = "[anonymized]"
+            order.shipping_postal_code = "[anonymized]"
+            order.shipping_country = "[anonymized]"
+            order.save(update_fields=[
+                "user", "guest_email", "shipping_full_name", "shipping_address",
+                "shipping_city", "shipping_postal_code", "shipping_country",
+            ])
+
+        # 2. Delete associated data that can't be anonymised.
+        Address.objects.filter(user=user).delete()
+        Cart.objects.filter(user=user).delete()
+        WishlistItem.objects.filter(user=user).delete()
+        Review.objects.filter(user=user).delete()
+
+        # 3. Remove newsletter subscription linked to this email.
+        NewsletterSubscriber.objects.filter(email__iexact=user.email).delete()
+
+        # 4. Anonymise the user record so it can never be re-activated.
+        user.username = f"deleted-{user.pk}"
+        user.email = f"deleted-{user.pk}@cartivo.local"
+        user.first_name = ""
+        user.last_name = ""
+        user.phone = ""
+        user.pending_email = ""
+        user.set_unusable_password()
+        user.is_active = False
+        user.save(update_fields=[
+            "username", "email", "first_name", "last_name", "phone",
+            "pending_email", "password", "is_active",
+        ])
+
+        # 5. Invalidate all sessions.
+        raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
+        if raw_refresh:
+            try:
+                RefreshToken(raw_refresh).blacklist()
+            except (TokenError, AttributeError):
+                pass
+
+        response = Response({"detail": "Your personal data has been deleted or anonymised."})
+        response.delete_cookie(settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        response.delete_cookie(settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        return response
