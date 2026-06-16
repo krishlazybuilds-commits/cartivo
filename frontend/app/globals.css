@@ -1764,7 +1764,12 @@ body::after {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  /* Keep the quantity stepper and the "Add to cart" button together on one
+     line. Without flex-shrink:0 the parent (.product-actions) squeezes this
+     group when the Save button shares the row, which forces the button to wrap
+     under the stepper and leaves Save visually misaligned. */
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 .qty-selector {
   display: flex;
