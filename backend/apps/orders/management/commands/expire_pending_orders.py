@@ -83,10 +83,7 @@ class Command(BaseCommand):
             if order is None:
                 return False
 
-            for item in order.items.select_related("product"):
-                Product.objects.filter(pk=item.product_id).update(
-                    stock=F("stock") + item.quantity
-                )
+            order.restock()
             order.status = Order.Status.CANCELLED
             order.save(update_fields=["status"])
             return True

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Product, ProductImage, ProductVariant
+from .models import Category, Product, ProductImage, ProductVariant, Warehouse, WarehouseStock
 
 
 class ProductImageInline(admin.TabularInline):
@@ -10,6 +10,11 @@ class ProductImageInline(admin.TabularInline):
 
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
+    extra = 0
+
+
+class WarehouseStockInline(admin.TabularInline):
+    model = WarehouseStock
     extra = 0
 
 
@@ -26,4 +31,19 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "category")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "sku")
-    inlines = [ProductImageInline, ProductVariantInline]
+    inlines = [ProductImageInline, ProductVariantInline, WarehouseStockInline]
+
+
+@admin.register(Warehouse)
+class WarehouseAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "is_active", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("name", "code")
+    inlines = [WarehouseStockInline]
+
+
+@admin.register(WarehouseStock)
+class WarehouseStockAdmin(admin.ModelAdmin):
+    list_display = ("warehouse", "product", "variant", "stock")
+    list_filter = ("warehouse", "product")
+    search_fields = ("product__name", "variant__name", "warehouse__name")

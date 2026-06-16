@@ -118,6 +118,13 @@ class Order(models.Model):
         blank=True,
         related_name="orders",
     )
+    warehouse = models.ForeignKey(
+        "catalog.Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
 
     # Shipping snapshot
     shipping_full_name = models.CharField(max_length=200)
@@ -154,6 +161,27 @@ class Order(models.Model):
         subtotal = sum((item.subtotal for item in self.items.all()), start=Decimal("0"))
         self.total = max(subtotal - self.discount + self.shipping_cost + self.tax_amount, Decimal("0"))
         return self.total
+
+    def restock(self):
+        """Return this order's items to inventory (atomic, race-free)."""
+        from apps.catalog.models import Product, WarehouseStock
+        from django.db.models import F
+
+        if self.warehouse_id:
+            for item in self.items.all():
+                wh_stock, created = WarehouseStock.objects.get_or_create(
+                    warehouse_id=self.warehouse_id,
+                    product_id=item.product_id,
+                    variant_id=None,
+                    defaults={"stock": 0}
+                )
+                wh_stock.stock = F("stock") + item.quantity
+                wh_stock.save(update_fields=["stock"])
+        else:
+            for item in self.items.select_related("product"):
+                Product.objects.filter(pk=item.product_id).update(
+                    stock=F("stock") + item.quantity
+                )
 
     def __str__(self) -> str:
         who = str(self.user) if self.user_id else (self.guest_email or "guest")

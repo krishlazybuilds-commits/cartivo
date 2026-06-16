@@ -614,3 +614,122 @@ class StripeWebhookEventTests(APITestCase):
         self.assertEqual(order.status, Order.Status.CANCELLED)
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, before + 2)
+
+
+class MultiWarehouseStockTests(APITestCase):
+    def setUp(self):
+        from apps.catalog.models import Product, Warehouse, Category
+        self.category = Category.objects.create(name="Multi-Warehouse Category")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Multi-Warehouse Product",
+            price=Decimal("10.00"),
+            sku="MW-PROD-1",
+            stock=0,
+        )
+        
+        # Create two warehouses
+        self.wh_east = Warehouse.objects.create(
+            name="East Coast Hub",
+            code="EAST",
+            is_active=True,
+        )
+        self.wh_west = Warehouse.objects.create(
+            name="West Coast Hub",
+            code="WEST",
+            is_active=True,
+        )
+
+    def test_stock_aggregation(self):
+        from apps.catalog.models import WarehouseStock
+        # Set stock in East Coast Hub
+        WarehouseStock.objects.create(
+            warehouse=self.wh_east,
+            product=self.product,
+            stock=15,
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 15)
+
+        # Set stock in West Coast Hub
+        WarehouseStock.objects.create(
+            warehouse=self.wh_west,
+            product=self.product,
+            stock=25,
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 40)
+
+    def test_order_fulfillment_from_specific_warehouse(self):
+        from apps.catalog.models import WarehouseStock
+        from apps.orders.services import create_order_and_items
+        # East has 5, West has 20
+        WarehouseStock.objects.create(
+            warehouse=self.wh_east,
+            product=self.product,
+            stock=5,
+        )
+        WarehouseStock.objects.create(
+            warehouse=self.wh_west,
+            product=self.product,
+            stock=20,
+        )
+
+        # Order of 15 items should be fulfilled from West Coast Hub (since East only has 5)
+        order_kwargs = {
+            "shipping_full_name": "John Doe",
+            "shipping_address": "123 St",
+            "shipping_city": "NY",
+            "shipping_postal_code": "10001",
+            "shipping_country": "US",
+        }
+        items = [{"product_id": self.product.id, "quantity": 15}]
+        
+        order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
+        self.assertEqual(order.warehouse, self.wh_west)
+        
+        # West Coast stock should be decremented to 5, East Coast remains 5
+        wh_stock_west = WarehouseStock.objects.get(warehouse=self.wh_west, product=self.product)
+        self.assertEqual(wh_stock_west.stock, 5)
+        
+        wh_stock_east = WarehouseStock.objects.get(warehouse=self.wh_east, product=self.product)
+        self.assertEqual(wh_stock_east.stock, 5)
+
+        # Total product stock should be 10
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 10)
+
+    def test_order_restocking_to_correct_warehouse(self):
+        from apps.catalog.models import WarehouseStock
+        from apps.orders.services import create_order_and_items
+        # East has 5, West has 20
+        WarehouseStock.objects.create(
+            warehouse=self.wh_east,
+            product=self.product,
+            stock=5,
+        )
+        WarehouseStock.objects.create(
+            warehouse=self.wh_west,
+            product=self.product,
+            stock=20,
+        )
+
+        order_kwargs = {
+            "shipping_full_name": "John Doe",
+            "shipping_address": "123 St",
+            "shipping_city": "NY",
+            "shipping_postal_code": "10001",
+            "shipping_country": "US",
+        }
+        items = [{"product_id": self.product.id, "quantity": 15}]
+        order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
+        
+        # Cancel order should restock to West Coast Hub
+        order.restock()
+        
+        wh_stock_west = WarehouseStock.objects.get(warehouse=self.wh_west, product=self.product)
+        self.assertEqual(wh_stock_west.stock, 20)
+        
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 25)
+

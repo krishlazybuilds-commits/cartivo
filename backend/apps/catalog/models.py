@@ -215,3 +215,110 @@ class WishlistItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ♡ {self.product.name}"
+
+
+def update_cached_stock(product_id, variant_id=None):
+    """Update cached stock values on Product and/or ProductVariant."""
+    from django.db.models import Sum
+
+    if variant_id:
+        # Sum stock across all active warehouses for this variant
+        total_stock = WarehouseStock.objects.filter(
+            variant_id=variant_id,
+            warehouse__is_active=True
+        ).aggregate(total=Sum("stock"))["total"] or 0
+        
+        # Update variant's stock
+        ProductVariant.objects.filter(id=variant_id).update(stock=total_stock)
+        
+        # Also update the base product's stock (sum of all its active variants' stocks)
+        total_product_stock = ProductVariant.objects.filter(
+            product_id=product_id,
+            is_active=True
+        ).aggregate(total=Sum("stock"))["total"] or 0
+        Product.objects.filter(id=product_id).update(stock=total_product_stock)
+    else:
+        # Sum stock across all active warehouses for this product
+        total_stock = WarehouseStock.objects.filter(
+            product_id=product_id,
+            variant__isnull=True,
+            warehouse__is_active=True
+        ).aggregate(total=Sum("stock"))["total"] or 0
+        Product.objects.filter(id=product_id).update(stock=total_stock)
+
+
+class Warehouse(models.Model):
+    """An inventory warehouse or fulfillment center."""
+
+    name = models.CharField(max_length=200)
+    code = models.CharField(max_length=50, unique=True)
+    address = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+
+class WarehouseStock(models.Model):
+    """Stock level of a Product or ProductVariant in a specific Warehouse."""
+
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        related_name="stocks",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="warehouse_stocks",
+    )
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.CASCADE,
+        related_name="warehouse_stocks",
+        null=True,
+        blank=True,
+    )
+    stock = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["warehouse", "product", "variant"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["warehouse", "product"],
+                condition=models.Q(variant__isnull=True),
+                name="unique_warehouse_product_stock",
+            ),
+            models.UniqueConstraint(
+                fields=["warehouse", "variant"],
+                condition=models.Q(variant__isnull=False),
+                name="unique_warehouse_variant_stock",
+            ),
+            models.CheckConstraint(
+                check=models.Q(stock__gte=0),
+                name="warehouse_stock_non_negative",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.update_cached_stock()
+
+    def delete(self, *args, **kwargs):
+        product_id = self.product_id
+        variant_id = self.variant_id
+        super().delete(*args, **kwargs)
+        update_cached_stock(product_id, variant_id)
+
+    def update_cached_stock(self):
+        update_cached_stock(self.product_id, self.variant_id)
+
+    def __str__(self) -> str:
+        item = self.variant if self.variant else self.product
+        return f"{item} in {self.warehouse.name}: {self.stock}"
+

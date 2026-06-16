@@ -40,10 +40,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def _restock_order(order):
     """Return an order's items to inventory (atomic, race-free)."""
-    for item in order.items.select_related("product"):
-        Product.objects.filter(pk=item.product_id).update(
-            stock=F("stock") + item.quantity
-        )
+    order.restock()
 
 
 class DashboardView(APIView):
@@ -421,11 +418,7 @@ class OrderViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            for item in order.items.select_related("product"):
-                # Atomic restock; F() avoids a read-then-write race.
-                Product.objects.filter(pk=item.product_id).update(
-                    stock=F("stock") + item.quantity
-                )
+            _restock_order(order)
             order.status = Order.Status.CANCELLED
             order.save(update_fields=["status"])
         return Response(self.get_serializer(order).data)
