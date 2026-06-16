@@ -505,3 +505,66 @@ class ChangePasswordTests(APITestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(self.NEW_PASS))
         self.assertFalse(self.user.check_password(self.OLD_PASS))
+
+
+class ProductionSettingsTests(SimpleTestCase := __import__("django.test", fromlist=["SimpleTestCase"]).SimpleTestCase):
+    def test_production_settings_validation(self):
+        import importlib
+        import os
+        import sys
+        from django.core.exceptions import ImproperlyConfigured
+
+        original_env = os.environ.copy()
+        original_argv = sys.argv.copy()
+        try:
+            os.environ["DJANGO_DEBUG"] = "False"
+            os.environ["DJANGO_SECRET_KEY"] = "test-secret-key-1234567890-very-long-and-secure"
+            
+            # 1. Test wildcard in ALLOWED_HOSTS raises error
+            os.environ["DJANGO_ALLOWED_HOSTS"] = "*"
+            os.environ["CORS_ALLOWED_ORIGINS"] = "https://example.com"
+            os.environ["CSRF_TRUSTED_ORIGINS"] = "https://example.com"
+            if "test" in sys.argv:
+                sys.argv.remove("test")
+            
+            # Use absolute import path relative to sys.path
+            from config import settings as config_settings
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                importlib.reload(config_settings)
+            self.assertIn("DJANGO_ALLOWED_HOSTS cannot contain the wildcard", str(ctx.exception))
+            
+            # 2. Test wildcard in CORS_ALLOWED_ORIGINS raises error
+            os.environ["DJANGO_ALLOWED_HOSTS"] = "example.com"
+            os.environ["CORS_ALLOWED_ORIGINS"] = "https://*"
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                importlib.reload(config_settings)
+            self.assertIn("CORS_ALLOWED_ORIGINS cannot contain wildcards", str(ctx.exception))
+
+            # 3. Test non-HTTPS in CORS_ALLOWED_ORIGINS raises error
+            os.environ["CORS_ALLOWED_ORIGINS"] = "http://example.com"
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                importlib.reload(config_settings)
+            self.assertIn("CORS_ALLOWED_ORIGINS must use secure HTTPS", str(ctx.exception))
+
+            # 4. Test wildcard in CSRF_TRUSTED_ORIGINS raises error
+            os.environ["CORS_ALLOWED_ORIGINS"] = "https://example.com"
+            os.environ["CSRF_TRUSTED_ORIGINS"] = "https://*"
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                importlib.reload(config_settings)
+            self.assertIn("CSRF_TRUSTED_ORIGINS cannot contain wildcards", str(ctx.exception))
+
+            # 5. Test non-HTTPS in CSRF_TRUSTED_ORIGINS raises error
+            os.environ["CSRF_TRUSTED_ORIGINS"] = "http://example.com"
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                importlib.reload(config_settings)
+            self.assertIn("CSRF_TRUSTED_ORIGINS must use secure HTTPS", str(ctx.exception))
+
+        finally:
+            # Restore environment and sys.argv
+            os.environ.clear()
+            os.environ.update(original_env)
+            sys.argv = original_argv
+            # Reload settings one last time to restore original state
+            from config import settings as config_settings
+            importlib.reload(config_settings)
+

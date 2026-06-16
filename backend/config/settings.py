@@ -403,6 +403,55 @@ CSRF_COOKIE_HTTPONLY = False
 # These hardening settings only take effect when DEBUG is False, so local
 # development over http is unaffected. Each is overridable via env var.
 if not DEBUG:
+    # Validate ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, and CSRF_TRUSTED_ORIGINS in production.
+    # We skip these checks during tests so that test environments can run with DEBUG=False
+    # without requiring production-ready HTTPS configurations.
+    if "test" not in sys.argv:
+        # Validate ALLOWED_HOSTS in production to prevent Host Header Injection
+        if not ALLOWED_HOSTS:
+            raise ImproperlyConfigured(
+                "DJANGO_ALLOWED_HOSTS environment variable must be set when DEBUG is False."
+            )
+        if "*" in ALLOWED_HOSTS:
+            raise ImproperlyConfigured(
+                "DJANGO_ALLOWED_HOSTS cannot contain the wildcard '*' in production. "
+                "Please specify explicit allowed domains."
+            )
+
+        # Validate CORS_ALLOWED_ORIGINS in production to prevent unauthorized cross-origin requests
+        if not CORS_ALLOWED_ORIGINS:
+            raise ImproperlyConfigured(
+                "CORS_ALLOWED_ORIGINS must be set when DEBUG is False to allow cross-origin requests securely."
+            )
+        for origin in CORS_ALLOWED_ORIGINS:
+            if "*" in origin:
+                raise ImproperlyConfigured(
+                    f"CORS_ALLOWED_ORIGINS cannot contain wildcards ('*') in production. "
+                    f"Invalid origin: '{origin}'."
+                )
+            if not origin.startswith("https://"):
+                raise ImproperlyConfigured(
+                    f"CORS_ALLOWED_ORIGINS must use secure HTTPS in production. "
+                    f"Invalid origin: '{origin}'."
+                )
+
+        # Validate CSRF_TRUSTED_ORIGINS in production to prevent CSRF bypasses
+        if not CSRF_TRUSTED_ORIGINS:
+            raise ImproperlyConfigured(
+                "CSRF_TRUSTED_ORIGINS must be set when DEBUG is False."
+            )
+        for origin in CSRF_TRUSTED_ORIGINS:
+            if "*" in origin:
+                raise ImproperlyConfigured(
+                    f"CSRF_TRUSTED_ORIGINS cannot contain wildcards ('*') in production. "
+                    f"Invalid origin: '{origin}'."
+                )
+            if not origin.startswith("https://"):
+                raise ImproperlyConfigured(
+                    f"CSRF_TRUSTED_ORIGINS must use secure HTTPS in production. "
+                    f"Invalid origin: '{origin}'."
+                )
+
     # Redirect all http requests to https.
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     # Trust the X-Forwarded-Proto header set by a TLS-terminating proxy/load balancer.
