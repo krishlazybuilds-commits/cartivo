@@ -110,3 +110,52 @@ class CartTests(APITestCase):
         self.client.force_authenticate(None)
         res = self.client.get("/api/cart/")
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AbandonedCartRecoveryTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="shopper2", password="pass12345", email="shopper2@test.com")
+        self.category = Category.objects.create(name="Gadgets")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Widget",
+            price=Decimal("10.00"),
+            stock=5,
+            sku="WID-2",
+        )
+        self.cart = Cart.objects.create(user=self.user)
+        self.cart_item = CartItem.objects.create(cart=self.cart, product=self.product, quantity=1)
+
+    def test_send_abandoned_cart_emails_task_sends_email(self):
+        from apps.cart.tasks import send_abandoned_cart_emails_task
+        from unittest.mock import patch
+        from datetime import timedelta
+        from django.utils import timezone
+
+        # Artificially age the cart so it is considered abandoned (e.g. 3 hours old)
+        Cart.objects.filter(id=self.cart.id).update(updated_at=timezone.now() - timedelta(hours=3))
+
+        with patch("apps.cart.tasks.send_mail") as mock_send_mail:
+            sent_count = send_abandoned_cart_emails_task()
+            self.assertEqual(sent_count, 1)
+            mock_send_mail.assert_called_once()
+            
+            # Verify subject and recipient
+            args, kwargs = mock_send_mail.call_args
+            self.assertEqual(kwargs["recipient_list"], ["shopper2@test.com"])
+            self.assertIn("We noticed you left something in your cart!", kwargs["subject"])
+
+        self.cart.refresh_from_db()
+        self.assertTrue(self.cart.abandoned_email_sent)
+
+    def test_saving_cart_item_resets_abandoned_email_sent_flag(self):
+        self.cart.abandoned_email_sent = True
+        self.cart.save()
+
+        # Update cart item quantity
+        self.cart_item.quantity = 2
+        self.cart_item.save()
+
+        self.cart.refresh_from_db()
+        self.assertFalse(self.cart.abandoned_email_sent)
+

@@ -10,6 +10,7 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         related_name="cart",
     )
+    abandoned_email_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -52,6 +53,12 @@ class CartItem(models.Model):
     @property
     def subtotal(self):
         return self.unit_price * self.quantity
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.cart.abandoned_email_sent:
+            self.cart.abandoned_email_sent = False
+            self.cart.save(update_fields=["abandoned_email_sent"])
 
     def __str__(self) -> str:
         suffix = f" ({self.variant.name})" if self.variant_id else ""

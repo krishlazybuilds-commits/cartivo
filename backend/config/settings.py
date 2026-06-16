@@ -250,6 +250,10 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": float(os.getenv("ORDER_EXPIRY_CHECK_SECONDS", "300")),
         "kwargs": {"minutes": int(os.getenv("ORDER_EXPIRY_MINUTES", "30"))},
     },
+    "send-abandoned-cart-emails": {
+        "task": "apps.cart.tasks.send_abandoned_cart_emails_task",
+        "schedule": 3600.0, # Every hour
+    },
 }
 
 
