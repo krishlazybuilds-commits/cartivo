@@ -2102,9 +2102,9 @@ body::after {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  /* Height = one toast. Older toasts peek out above via translateY. */
+  height: 52px;
+  width: 320px;
   z-index: 9999;
   pointer-events: none;
 }
@@ -2116,9 +2116,12 @@ body::after {
   border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 500;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
   pointer-events: all;
-  animation: toast-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  width: 320px;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity  0.3s ease;
+  animation: toast-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   max-width: 320px;
 }
 @keyframes toast-in {
