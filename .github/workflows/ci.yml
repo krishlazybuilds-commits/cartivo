@@ -13,6 +13,24 @@ jobs:
       run:
         working-directory: backend
 
+    # Run the test suite against PostgreSQL — the production engine — so the
+    # full-text/trigram search path (and any other Postgres-specific SQL) is
+    # actually exercised, instead of silently falling back to SQLite.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cartivo
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -39,6 +57,12 @@ jobs:
           STRIPE_WEBHOOK_SECRET: whsec_dummy
           GOOGLE_OAUTH_CLIENT_ID: ""
           SECURE_SSL_REDIRECT: "False"
+          DB_ENGINE: django.db.backends.postgresql
+          DB_NAME: cartivo
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: "5432"
 
   frontend:
     runs-on: ubuntu-latest

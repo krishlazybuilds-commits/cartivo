@@ -1,12 +1,19 @@
 from decimal import Decimal
+from unittest import skipUnless
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.catalog.models import Category, Product, WishlistItem
 
 User = get_user_model()
+
+# Full-text search and trigram similarity are PostgreSQL-only. Off Postgres the
+# search filter degrades to a substring match, so the typo/stemming assertions
+# below are skipped (they can't pass on, e.g., SQLite).
+POSTGRES = connection.vendor == "postgresql"
 
 
 class CatalogReadTests(APITestCase):
@@ -47,6 +54,13 @@ class CatalogReadTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
 
+    def test_search_returns_ok_on_any_engine(self):
+        # Search must never 500: on Postgres it uses FTS/trigram, elsewhere it
+        # falls back to a substring match. Either way the request succeeds.
+        res = self.client.get("/api/products/?search=widget")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    @skipUnless(POSTGRES, "Trigram typo tolerance requires PostgreSQL")
     def test_search_products_fuzzy_typo_tolerance(self):
         # Test that search is typo tolerant (e.g. "widgt" matches "Cool Widget")
         res = self.client.get("/api/products/?search=widgt")
@@ -54,6 +68,7 @@ class CatalogReadTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
 
+    @skipUnless(POSTGRES, "Full-text stemming requires PostgreSQL")
     def test_search_products_stemming(self):
         # Test that search handles stemming (e.g. "widgets" matches "Cool Widget")
         res = self.client.get("/api/products/?search=widgets")
