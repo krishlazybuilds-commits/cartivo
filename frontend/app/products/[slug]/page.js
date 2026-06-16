@@ -59,7 +59,8 @@ function buildProductJsonLd(product) {
   return data;
 }
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   try {
     const product = await apiFetch(`/products/${params.slug}/`, {
       next: { tags: ["products", `product-${params.slug}`] },
@@ -99,7 +100,8 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default async function ProductDetailPage({ params }) {
+export default async function ProductDetailPage(props) {
+  const params = await props.params;
   let product;
   try {
     product = await apiFetch(`/products/${params.slug}/`, {

@@ -7,7 +7,8 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   try {
     const category = await apiFetch(`/categories/${params.slug}/`, {
       next: { tags: ["categories", `category-${params.slug}`] },
@@ -39,7 +40,8 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default async function CategoryPage({ params }) {
+export default async function CategoryPage(props) {
+  const params = await props.params;
   let category;
   try {
     category = await apiFetch(`/categories/${params.slug}/`, {

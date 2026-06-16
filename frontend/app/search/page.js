@@ -5,12 +5,14 @@ import Reveal from "../components/Reveal";
 import { apiFetch } from "../lib/api";
 import { formatPrice } from "../lib/format";
 
-export async function generateMetadata({ searchParams }) {
+export async function generateMetadata(props) {
+  const searchParams = await props.searchParams;
   const q = searchParams?.q ?? "";
   return { title: q ? `"${q}" — Cartivo` : "Search — Cartivo" };
 }
 
-export default async function SearchPage({ searchParams }) {
+export default async function SearchPage(props) {
+  const searchParams = await props.searchParams;
   const q = (searchParams?.q ?? "").trim();
   let products = [];
   let total = 0;

@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { posts, getAllSlugs } from "../../../blog/posts";
 
 export function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
 }
 
-export function generateMetadata({ params }) {
-  const post = posts.find((p) => p.slug === params.slug);
+export async function generateMetadata({ params }) {
+  const p = await params;
+  const post = posts.find((post) => post.slug === p.slug);
   if (!post) return {};
   return {
     title: `${post.title} — Cartivo Blog`,
@@ -17,12 +18,13 @@ export function generateMetadata({ params }) {
   };
 }
 
-export default function BlogPostPage({ params }) {
-  const post = posts.find((p) => p.slug === params.slug);
+export default async function BlogPostPage({ params }) {
+  const p = await params;
+  const post = posts.find((post) => post.slug === p.slug);
   if (!post) notFound();
 
   const rawHtml = marked(post.content, { async: false });
-  const html = DOMPurify.sanitize(rawHtml);
+  const html = sanitizeHtml(rawHtml);
 
   return (
     <main>

@@ -15,11 +15,11 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "isomorphic-dompurify": "^3.17.0",
     "marked": "^18.0.5",
-    "next": "^14.2.35",
+    "next": "^15.5.16",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "sanitize-html": "^2.17.5"
   },
   "overrides": {
     "postcss": "^8.5.10"
