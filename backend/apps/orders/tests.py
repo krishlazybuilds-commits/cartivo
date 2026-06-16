@@ -733,3 +733,67 @@ class MultiWarehouseStockTests(APITestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 25)
 
+
+class StaffRefundWorkflowTests(APITestCase):
+    def setUp(self):
+        from apps.catalog.models import Category, Product, Warehouse, WarehouseStock
+        self.staff_user = User.objects.create_user(username="staff", password="pass12345", email="staff@test.com", is_staff=True)
+        self.category = Category.objects.create(name="Gadgets")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Refundable Widget",
+            price=Decimal("10.00"),
+            sku="REF-WID-1",
+            stock=0,
+        )
+        self.warehouse = Warehouse.objects.create(
+            name="Refund Warehouse",
+            code="REF_WH",
+            is_active=True,
+        )
+        self.wh_stock = WarehouseStock.objects.create(
+            warehouse=self.warehouse,
+            product=self.product,
+            stock=10,
+        )
+        self.product.refresh_from_db()
+
+    def test_staff_can_process_refund_manually(self):
+        from apps.orders.services import create_order_and_items
+        self.client.force_authenticate(self.staff_user)
+        
+        order_kwargs = {
+            "shipping_full_name": "Jane Doe",
+            "shipping_address": "456 St",
+            "shipping_city": "Boston",
+            "shipping_postal_code": "02108",
+            "shipping_country": "US",
+        }
+        items = [{"product_id": self.product.id, "quantity": 3}]
+        order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
+        
+        # Mark order paid so it can be refunded
+        order.status = Order.Status.PAID
+        order.stripe_payment_intent = "pi_mock_refund_123"
+        order.save()
+        
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 7)
+
+        # Mock stripe.Refund.create
+        with patch("stripe.Refund.create") as mock_refund_create:
+            res = self.client.post(f"/api/orders/{order.id}/process-refund/", format="json")
+            self.assertEqual(res.status_code, status.HTTP_200_OK)
+            mock_refund_create.assert_called_once_with(payment_intent="pi_mock_refund_123")
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.REFUNDED)
+        
+        # Verify items were restocked to the correct warehouse
+        self.wh_stock.refresh_from_db()
+        self.assertEqual(self.wh_stock.stock, 10)
+        
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 10)
+
+

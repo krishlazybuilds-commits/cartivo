@@ -481,6 +481,56 @@ class OrderViewSet(
         return Response(self.get_serializer(order).data)
 
     @extend_schema(
+        summary="Process a refund (staff only)",
+        description="Allows staff to approve and process a refund directly through the Stripe API. Marks order REFUNDED and restocks items.",
+        request={"application/json": {"type": "object", "properties": {"amount": {"type": "number", "description": "Optional partial refund amount. If omitted, a full refund is issued."}}}},
+        responses={200: OrderSerializer},
+        tags=["orders"],
+    )
+    @action(detail=True, methods=["post"], url_path="process-refund", permission_classes=[permissions.IsAdminUser])
+    def process_refund(self, request, pk=None):
+        from decimal import Decimal, InvalidOperation
+        order = self.get_object()
+        if order.status not in (Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED):
+            return Response(
+                {"detail": "Only paid, shipped, or delivered orders can be refunded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        amount = request.data.get("amount")
+        refund_kwargs = {}
+        if amount is not None:
+            try:
+                amount_decimal = Decimal(str(amount))
+                if amount_decimal <= 0 or amount_decimal > order.total:
+                    raise ValueError()
+                refund_kwargs["amount"] = int(amount_decimal * 100)
+            except (ValueError, InvalidOperation):
+                return Response(
+                    {"detail": f"Invalid refund amount. Must be a positive number up to the order total (${order.total})."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if order.stripe_payment_intent:
+            try:
+                stripe.Refund.create(
+                    payment_intent=order.stripe_payment_intent,
+                    **refund_kwargs
+                )
+            except stripe.error.StripeError as exc:
+                logger.exception("Stripe refund failed for order %s", order.id)
+                return Response(
+                    {"detail": f"Stripe refund failed: {exc.user_message or str(exc)}"},
+                    status=status.HTTP_424_FAILED_DEPENDENCY,
+                )
+
+        order.restock()
+        order.status = Order.Status.REFUNDED
+        order.save(update_fields=["status"])
+
+        return Response(self.get_serializer(order).data)
+
+    @extend_schema(
         summary="Update order status (staff only)",
         description="Allows staff to advance an order through PAID → SHIPPED → DELIVERED, or cancel any non-refunded order.",
         request={"application/json": {"type": "object", "properties": {"status": {"type": "string"}}, "required": ["status"]}},
