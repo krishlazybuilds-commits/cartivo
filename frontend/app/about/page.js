@@ -38,7 +38,7 @@ export default function AboutPage() {
               <p>Cartivo is currently in early access. The product catalog, orders, and checkout are fully functional. We are actively adding features — pagination, email notifications, and an admin dashboard are on the roadmap.</p>
 
               <h3>Get in touch</h3>
-              <p>Have a question or want to collaborate? Reach us at <a href="mailto:hello@cartivo.com">hello@cartivo.com</a> or browse the <Link href="/products">shop</Link> to see it in action.</p>
+              <p>Have a question or want to collaborate? Reach us at <a href="mailto:krish.lazybuilds@gmail.com">krish.lazybuilds@gmail.com</a> or browse the <Link href="/products">shop</Link> to see it in action.</p>
             </div>
             </Reveal>
           </div>
