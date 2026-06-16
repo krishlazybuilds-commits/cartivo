@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import stripe
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -928,3 +929,79 @@ class StripeCheckoutFailureTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
         order = Order.objects.get(pk=order_id)
         self.assertEqual(order.status, Order.Status.PENDING)
+
+
+class OversellStockGuardTests(APITestCase):
+    """A stock CHECK-constraint violation during the decrement must surface as a
+    clean 400 (CheckoutError), never an unhandled 500 IntegrityError.
+
+    The Product-level row lock serializes concurrent checkouts and normally
+    prevents oversell, so we simulate a decrement that trips the
+    warehouse_stock_non_negative constraint to exercise the defensive guard.
+    """
+
+    def setUp(self):
+        from apps.catalog.models import Warehouse, WarehouseStock
+
+        self.category = Category.objects.create(name="Concurrents")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Last Unit Widget",
+            price=Decimal("10.00"),
+            sku="LAST-1",
+            stock=0,
+        )
+        self.warehouse = Warehouse.objects.create(
+            name="Solo Warehouse", code="SOLO", is_active=True,
+        )
+        # Pre-create the stock row so the get_or_create calls in checkout fetch
+        # it (no save), leaving only the explicit decrement save() to fail.
+        self.wh_stock = WarehouseStock.objects.create(
+            warehouse=self.warehouse, product=self.product, stock=5,
+        )
+        self.product.refresh_from_db()
+
+    def test_decrement_constraint_violation_raises_checkout_error(self):
+        from apps.catalog.models import WarehouseStock
+        from apps.orders.services import CheckoutError, create_order_and_items
+
+        order_kwargs = {"user": None, "guest_email": "race@test.com", **SHIPPING}
+        items = [{"product_id": self.product.id, "quantity": 2}]
+
+        with patch.object(
+            WarehouseStock,
+            "save",
+            side_effect=IntegrityError("warehouse_stock_non_negative"),
+        ):
+            with self.assertRaises(CheckoutError) as ctx:
+                create_order_and_items(order_kwargs=order_kwargs, items=items)
+
+        self.assertEqual(ctx.exception.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Insufficient stock", ctx.exception.detail)
+
+        # Whole checkout rolled back: no order persisted, stock untouched.
+        self.assertEqual(Order.objects.count(), 0)
+        self.wh_stock.refresh_from_db()
+        self.assertEqual(self.wh_stock.stock, 5)
+
+    def test_guest_checkout_oversell_returns_400_not_500(self):
+        from apps.catalog.models import WarehouseStock
+
+        payload = {
+            "guest_email": "race@test.com",
+            "items": [{"product_id": self.product.id, "quantity": 2}],
+            **SHIPPING,
+        }
+        with patch.object(
+            WarehouseStock,
+            "save",
+            side_effect=IntegrityError("warehouse_stock_non_negative"),
+        ):
+            res = self.client.post(
+                "/api/orders/guest-checkout/", payload, format="json"
+            )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Order.objects.count(), 0)
+        self.wh_stock.refresh_from_db()
+        self.assertEqual(self.wh_stock.stock, 5)

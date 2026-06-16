@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
 
 from apps.catalog.models import Product, ProductVariant
@@ -121,8 +121,10 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 if not variant:
                     raise CheckoutError("Variant not found.")
                 
-                # Get or create WarehouseStock to ensure it exists
-                wh_stock, created = WarehouseStock.objects.get_or_create(
+                # Lock the stock row during validation so the check and the
+                # later decrement observe a consistent value even if the
+                # Product-level lock above is ever relaxed.
+                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
                     warehouse=selected_warehouse,
                     product_id=pid,
                     variant_id=variant_id,
@@ -134,8 +136,10 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         f"Available: {wh_stock.stock}.",
                     )
             else:
-                # Get or create WarehouseStock to ensure it exists
-                wh_stock, created = WarehouseStock.objects.get_or_create(
+                # Lock the stock row during validation so the check and the
+                # later decrement observe a consistent value even if the
+                # Product-level lock above is ever relaxed.
+                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
                     warehouse=selected_warehouse,
                     product_id=pid,
                     variant_id=None,
@@ -154,53 +158,66 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
         low_stock_product_ids = []
         order_items = []
 
-        for item in items:
-            pid = item["product_id"]
-            qty = item["quantity"]
-            product = locked_products[pid]
-            variant_id = item.get("variant_id")
+        # The Product rows are already locked (select_for_update at the top),
+        # which serializes concurrent checkouts for the same product. The nested
+        # savepoint + IntegrityError guard is defense-in-depth: should any
+        # decrement ever slip past the row locks and push stock below zero, the
+        # warehouse_stock_non_negative CHECK constraint fires. We roll the
+        # savepoint back and surface the same clean "insufficient stock" 400 the
+        # validation loop returns instead of an unhandled 500.
+        try:
+            with transaction.atomic():
+                for item in items:
+                    pid = item["product_id"]
+                    qty = item["quantity"]
+                    product = locked_products[pid]
+                    variant_id = item.get("variant_id")
 
-            if variant_id:
-                variant = locked_variants[variant_id]
-                # Lock and update WarehouseStock
-                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
-                    warehouse=selected_warehouse,
-                    product_id=pid,
-                    variant_id=variant_id,
-                    defaults={"stock": variant.stock}
-                )
-                wh_stock.stock = F("stock") - qty
-                wh_stock.save(update_fields=["stock"])
+                    if variant_id:
+                        variant = locked_variants[variant_id]
+                        # Lock and update WarehouseStock
+                        wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
+                            warehouse=selected_warehouse,
+                            product_id=pid,
+                            variant_id=variant_id,
+                            defaults={"stock": variant.stock}
+                        )
+                        wh_stock.stock = F("stock") - qty
+                        wh_stock.save(update_fields=["stock"])
 
-                variant.refresh_from_db()
-                remaining = variant.stock
-                unit_price = variant.effective_price
-            else:
-                # Lock and update WarehouseStock
-                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
-                    warehouse=selected_warehouse,
-                    product_id=pid,
-                    variant_id=None,
-                    defaults={"stock": product.stock}
-                )
-                wh_stock.stock = F("stock") - qty
-                wh_stock.save(update_fields=["stock"])
+                        variant.refresh_from_db()
+                        remaining = variant.stock
+                        unit_price = variant.effective_price
+                    else:
+                        # Lock and update WarehouseStock
+                        wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
+                            warehouse=selected_warehouse,
+                            product_id=pid,
+                            variant_id=None,
+                            defaults={"stock": product.stock}
+                        )
+                        wh_stock.stock = F("stock") - qty
+                        wh_stock.save(update_fields=["stock"])
 
-                product.refresh_from_db()
-                remaining = product.stock
-                unit_price = product.price
+                        product.refresh_from_db()
+                        remaining = product.stock
+                        unit_price = product.price
 
-            if remaining <= threshold:
-                low_stock_product_ids.append(pid)
+                    if remaining <= threshold:
+                        low_stock_product_ids.append(pid)
 
-            order_items.append(OrderItem(
-                order=order,
-                product=product,
-                unit_price=unit_price,
-                quantity=qty,
-            ))
+                    order_items.append(OrderItem(
+                        order=order,
+                        product=product,
+                        unit_price=unit_price,
+                        quantity=qty,
+                    ))
 
-        OrderItem.objects.bulk_create(order_items)
+                OrderItem.objects.bulk_create(order_items)
+        except IntegrityError:
+            raise CheckoutError(
+                "Insufficient stock for one or more items. Please review your cart and try again."
+            )
 
         for pid in low_stock_product_ids:
             transaction.on_commit(lambda p=pid: send_low_stock_alert_task.delay(p))
