@@ -74,7 +74,7 @@ export default async function RootLayout({ children }) {
     url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
     logo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/logo.png`, // Assuming there's a logo
     sameAs: [
-      "https://twitter.com/cartivo",
+      "https://x.com/krisht813",
       "https://github.com/krishlazybuilds-commits",
     ],
   };
