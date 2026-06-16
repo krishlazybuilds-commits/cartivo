@@ -40,15 +40,21 @@ export function middleware(request) {
   // Generate a per-request nonce for Content-Security-Policy.
   // Exposed via x-nonce so layout.js can apply it to the inline script.
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV === "development";
+  const devHosts = isDev ? ["localhost:8000", "127.0.0.1:8000"] : [];
+  const imgSrc = ["'self'", "blob:", "data:", ...devHosts];
+  if (process.env.NEXT_PUBLIC_MEDIA_HOST) imgSrc.push(process.env.NEXT_PUBLIC_MEDIA_HOST);
+  const connectSrc = ["'self'", ...devHosts, "api.stripe.com", "accounts.google.com"];
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' js.stripe.com accounts.google.com`,
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
-    "img-src 'self' blob: data: localhost:8000 127.0.0.1:8000" +
-      (process.env.NEXT_PUBLIC_MEDIA_HOST ? ` ${process.env.NEXT_PUBLIC_MEDIA_HOST}` : ""),
+    `img-src ${imgSrc.join(" ")}`,
     "font-src 'self' fonts.gstatic.com",
-    "connect-src 'self' localhost:8000 127.0.0.1:8000 api.stripe.com accounts.google.com",
+    `connect-src ${connectSrc.join(" ")}`,
     "frame-src 'self' js.stripe.com accounts.google.com",
+    "form-action 'self'",
+    "base-uri 'self'",
     "upgrade-insecure-requests",
   ].join("; ");
   const response = NextResponse.next({

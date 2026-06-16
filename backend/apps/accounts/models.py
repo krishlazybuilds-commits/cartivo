@@ -12,6 +12,7 @@ class User(AbstractUser):
     pending_email = models.EmailField(blank=True, default="")
     # Stripe Customer ID — created on first payment, reused for returning customers.
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
+    email_verified = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.username

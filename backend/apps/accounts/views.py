@@ -22,8 +22,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .authentication import enforce_csrf
+from .email_utils import normalize_email, is_disposable_email
 from .models import Address
-from .tasks import send_password_reset_email_task, send_email_change_task
+from .tasks import (
+    send_password_reset_email_task,
+    send_email_change_task,
+    send_verification_email_task,
+)
 from .serializers import (
     AddressSerializer,
     AdminUserSerializer,
@@ -92,6 +97,25 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [RegisterRateThrottle]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data.get("email", "")
+        if email and User.objects.filter(email__iexact=email).exists():
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        self.perform_create(serializer)
+        self._send_verification_email(serializer.instance)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _send_verification_email(self, user):
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        verify_url = f"{frontend_base}/verify-email?uid={uid}&token={token}"
+        send_verification_email_task.delay(user.pk, verify_url)
 
 
 @extend_schema(tags=["auth"])
@@ -567,6 +591,42 @@ class AddressViewSet(viewsets.ModelViewSet):
             Address.objects.filter(user=self.request.user).exclude(pk=instance.pk).update(is_default=False)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Verify email address",
+    description="Validates the uid/token pair and marks the user's email as verified.",
+)
+class EmailVerifyView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        request=inline_serializer("EmailVerifyBody", fields={
+            "uid": drf_serializers.CharField(),
+            "token": drf_serializers.CharField(),
+        }),
+        responses={200: inline_serializer("EmailVerifyResponse", fields={"detail": drf_serializers.CharField()})},
+    )
+    def post(self, request):
+        uid = request.data.get("uid", "")
+        token = request.data.get("token", "")
+        if not all([uid, token]):
+            return Response({"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pk = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=pk)
+        except (User.DoesNotExist, ValueError):
+            return Response({"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"detail": "Verification link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
+        return Response({"detail": "Email verified successfully."})
+
+
 @extend_schema(tags=["auth"], summary="Request email change")
 class EmailChangeRequestView(APIView):
     """Send a confirmation link to the requested new email address."""
@@ -577,9 +637,11 @@ class EmailChangeRequestView(APIView):
         responses={200: inline_serializer("EmailChangeRequestResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
-        new_email = request.data.get("email", "").strip().lower()
+        new_email = normalize_email(request.data.get("email", "").strip().lower())
         if not new_email:
             return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if is_disposable_email(new_email):
+            return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             validate_email(new_email)
         except DjangoValidationError:

@@ -286,6 +286,7 @@ REST_FRAMEWORK = {
         "payment": "10/min",
         "coupon": "10/min",
         "shipping_estimate": "30/min",
+        "order_velocity": "5/hour",
     },
 }
 

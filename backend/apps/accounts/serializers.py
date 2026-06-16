@@ -3,6 +3,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from .email_utils import normalize_email, is_disposable_email
+
 User = get_user_model()
 
 
@@ -64,12 +66,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {"email": {"required": True}}
 
     def validate(self, attrs):
-        # Reject if the email is already registered (case-insensitive).
         email = attrs.get("email", "")
-        if email and User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError(
-                {"email": "A user with this email already exists."}
-            )
+        if email:
+            normalized = normalize_email(email)
+            attrs["email"] = normalized
+            if is_disposable_email(normalized):
+                raise serializers.ValidationError(
+                    {"email": "Disposable email addresses are not allowed."}
+                )
 
         # Run Django's configured password validators (length, common-password,
         # numeric, and similarity to user attributes) at registration time.

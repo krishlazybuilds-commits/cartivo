@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
 import { posts, getAllSlugs } from "../../../blog/posts";
 
 export function generateStaticParams() {
@@ -20,7 +21,8 @@ export default function BlogPostPage({ params }) {
   const post = posts.find((p) => p.slug === params.slug);
   if (!post) notFound();
 
-  const html = marked(post.content, { async: false });
+  const rawHtml = marked(post.content, { async: false });
+  const html = DOMPurify.sanitize(rawHtml);
 
   return (
     <main>

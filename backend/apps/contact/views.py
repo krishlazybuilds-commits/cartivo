@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework import status
 
+from apps.accounts.email_utils import normalize_email, is_disposable_email
 from .models import NewsletterSubscriber
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class ContactRateThrottle(AnonRateThrottle):
 @throttle_classes([ContactRateThrottle])
 def contact(request):
     name = request.data.get("name", "").strip()
-    email = request.data.get("email", "").strip()
+    email = normalize_email(request.data.get("email", "").strip())
     message = request.data.get("message", "").strip()
 
     if not all([name, email, message]):
@@ -57,6 +58,9 @@ def contact(request):
 
     if len(name) > MAX_NAME or len(email) > MAX_EMAIL or len(message) > MAX_MESSAGE:
         return Response({"detail": "One or more fields exceed the allowed length."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if is_disposable_email(email):
+        return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         validate_email(email)
@@ -91,9 +95,13 @@ def contact(request):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def subscribe(request):
-    email = request.data.get("email", "").strip().lower()
+    email = normalize_email(request.data.get("email", "").strip().lower())
     if not email:
         return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if is_disposable_email(email):
+        return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         validate_email(email)
     except ValidationError:

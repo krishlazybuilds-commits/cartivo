@@ -61,3 +61,9 @@ class ShippingEstimateAnonThrottle(WriteRateThrottle):
     """Rate-limit shipping estimate requests."""
 
     scope = "shipping_estimate"
+
+
+class OrderVelocityThrottle(UserOrAnonRateThrottle):
+    """Limit order creation velocity per account/IP (e.g. 5/hour)."""
+
+    scope = "order_velocity"

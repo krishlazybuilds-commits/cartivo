@@ -17,7 +17,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
-from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle
+from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
 from .serializers import (
@@ -229,6 +229,8 @@ class OrderViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_throttles(self):
+        if self.action == "create":
+            return [OrderWriteThrottle(), OrderVelocityThrottle()]
         if self.action == "pay":
             return [PaymentThrottle()]
         return [OrderWriteThrottle()]
@@ -782,7 +784,7 @@ class GuestCheckoutView(APIView):
     can redirect immediately without a second request.
     """
     permission_classes = [AllowAny]
-    throttle_classes = [OrderWriteThrottle]
+    throttle_classes = [OrderWriteThrottle, OrderVelocityThrottle]
 
     @extend_schema(
         request=GuestCheckoutSerializer,

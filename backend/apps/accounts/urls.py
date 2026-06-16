@@ -8,6 +8,7 @@ from .views import (
     CSRFView,
     EmailChangeConfirmView,
     EmailChangeRequestView,
+    EmailVerifyView,
     GoogleLoginView,
     LoginView,
     LogoutView,
@@ -26,6 +27,7 @@ router.register("addresses", AddressViewSet, basename="address")
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
+    path("verify/", EmailVerifyView.as_view(), name="email_verify"),
     path("me/", MeView.as_view(), name="me"),
     path("me/password/", ChangePasswordView.as_view(), name="change_password"),
     path("me/email/", EmailChangeRequestView.as_view(), name="email_change_request"),
