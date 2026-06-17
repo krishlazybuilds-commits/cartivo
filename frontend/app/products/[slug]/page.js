@@ -160,7 +160,7 @@ export default async function ProductDetailPage(props) {
               <div style={{ marginTop: "1.5rem" }}>
                 <div className="product-actions">
                   <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} variants={product.variants ?? []} />
-                  <WishlistButton productId={product.id} withLabel />
+                  <WishlistButton productId={product.id} product={product} withLabel />
                 </div>
               </div>
             </article>

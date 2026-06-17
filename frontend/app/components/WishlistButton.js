@@ -14,14 +14,24 @@ function HeartIcon({ filled }) {
   );
 }
 
-export default function WishlistButton({ productId, withLabel = false, className = "" }) {
+/**
+ * Button component to toggle products in/out of the user's wishlist.
+ *
+ * @param {object} props
+ * @param {number|string} props.productId - The unique identifier of the product.
+ * @param {object} [props.product=null] - Detailed product metadata to persist for guest wishlist entries.
+ * @param {boolean} [props.withLabel=false] - Whether to display a text label alongside the icon.
+ * @param {string} [props.className=""] - Additional class names to customize styles.
+ * @returns {JSX.Element} The wishlist toggle button.
+ */
+export default function WishlistButton({ productId, product = null, withLabel = false, className = "" }) {
   const { isWishlisted, toggle } = useWishlist();
   const active = isWishlisted(productId);
 
   function handleClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    toggle(productId);
+    toggle(productId, product);
   }
 
   return (

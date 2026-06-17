@@ -114,7 +114,7 @@ export default async function ProductsPage(props) {
                           {p.name?.[0] ?? "?"}
                         </span>
                       )}
-                      <WishlistButton productId={p.id} className="product-card-wishlist" />
+                      <WishlistButton productId={p.id} product={p} className="product-card-wishlist" />
                     </div>
                     <span className="product-cat">{p.category_name ?? "Product"}</span>
                     <h3>{p.name}</h3>

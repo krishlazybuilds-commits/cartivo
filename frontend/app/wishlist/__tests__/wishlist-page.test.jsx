@@ -74,11 +74,11 @@ beforeEach(() => {
 });
 
 describe("WishlistPage — auth guard", () => {
-  it("shows sign-in prompt when not authenticated", () => {
+  it("renders wishlist items for guest when not authenticated", () => {
     mockUseAuth.mockReturnValue({ user: null, loading: false });
     render(<WishlistPage />);
-    expect(screen.getByText(/sign in to see your saved items/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /sign in/i })).toHaveAttribute("href", "/login");
+    expect(screen.getByText(/widget/i)).toBeInTheDocument();
+    expect(screen.getByText(/gadget/i)).toBeInTheDocument();
   });
 
   it("shows skeleton while auth loading", () => {

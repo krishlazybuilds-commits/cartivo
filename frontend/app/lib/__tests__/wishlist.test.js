@@ -45,6 +45,7 @@ function renderWishlist() {
 }
 
 beforeEach(() => {
+  localStorage.clear();
   mockUseAuth.mockReturnValue({ user: null });
   mockAuthFetch.mockReset();
   mockToast.mockReset();
@@ -58,15 +59,50 @@ describe("WishlistProvider — guest mode", () => {
     });
   });
 
-  it("toggle prompts sign-in for guest", async () => {
+  it("toggle adds item to guest wishlist when not wishlisted", async () => {
     renderWishlist();
     await waitFor(() => expect(screen.getByTestId("count").textContent).toBe("0"));
 
     fireEvent.click(screen.getByText("Toggle 1"));
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith("Sign in to save items to your wishlist", "info");
+      expect(screen.getByTestId("count").textContent).toBe("1");
+      expect(screen.getByTestId("wishlisted-1").textContent).toBe("true");
     });
+
+    expect(mockToast).toHaveBeenCalledWith("Saved to wishlist", "success");
+    const items = JSON.parse(screen.getByTestId("items").textContent);
+    expect(items).toHaveLength(1);
+    expect(items[0].product).toBe(1);
+    expect(items[0].id).toBe("guest-1");
+  });
+
+  it("toggle removes item from guest wishlist when wishlisted", async () => {
+    const initialItem = {
+      id: "guest-1",
+      product: 1,
+      product_name: "Product #1",
+      product_slug: "",
+      product_price: "0.00",
+      product_image: null,
+      added_at: new Date().toISOString(),
+    };
+    localStorage.setItem("cartivo_guest_wishlist", JSON.stringify([initialItem]));
+
+    renderWishlist();
+    await waitFor(() => expect(screen.getByTestId("count").textContent).toBe("1"));
+    expect(screen.getByTestId("wishlisted-1").textContent).toBe("true");
+
+    fireEvent.click(screen.getByText("Toggle 1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("count").textContent).toBe("0");
+      expect(screen.getByTestId("wishlisted-1").textContent).toBe("false");
+    });
+
+    expect(mockToast).toHaveBeenCalledWith("Removed from wishlist", "info");
+    const items = JSON.parse(screen.getByTestId("items").textContent);
+    expect(items).toHaveLength(0);
   });
 });
 

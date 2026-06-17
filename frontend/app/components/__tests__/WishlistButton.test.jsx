@@ -53,7 +53,7 @@ describe("WishlistButton — icon-only variant", () => {
     render(<WishlistButton productId={productId} />);
     fireEvent.click(screen.getByRole("button"));
     expect(mockToggle).toHaveBeenCalledTimes(1);
-    expect(mockToggle).toHaveBeenCalledWith(productId);
+    expect(mockToggle).toHaveBeenCalledWith(productId, null);
   });
 
   it("calls preventDefault and stopPropagation on click", () => {
