@@ -41,6 +41,16 @@ class ProductViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not (user and user.is_staff):
             qs = qs.filter(is_active=True)
+
+        # Allow filtering by a comma-separated list of product IDs (e.g.
+        # ?ids=1,2,3). Used by the frontend checkout to validate guest cart
+        # prices against real server-side values.
+        ids_param = self.request.query_params.get("ids", "").strip()
+        if ids_param:
+            id_list = [int(x) for x in ids_param.split(",") if x.strip().isdigit()]
+            if id_list:
+                qs = qs.filter(id__in=id_list)
+
         # Explicit, deterministic ordering (newest first, id as tiebreaker) so
         # pagination is stable. The annotations add a GROUP BY, which otherwise
         # makes the model's default ordering non-guaranteed for the paginator.

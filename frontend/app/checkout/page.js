@@ -41,6 +41,51 @@ export default function CheckoutPage() {
       .catch(() => {});
   }, [user]);
 
+  // For guests, validate localStorage prices against the server on mount.
+  // This ensures displayed line items reflect real product prices even if
+  // localStorage was tampered with or prices changed since the item was added.
+  useEffect(() => {
+    if (user || !cart || cart.items.length === 0) return;
+    const guestItems = cart.items;
+    const productIds = [...new Set(guestItems.map((i) => i.product_id))];
+    if (productIds.length === 0) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/products/?ids=${productIds.join(",")}&page_size=100`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const products = data.results ?? data;
+        const priceMap = {};
+        for (const p of products) {
+          priceMap[p.id] = parseFloat(p.price);
+          if (p.variants) {
+            for (const v of p.variants) {
+              priceMap[`${p.id}-${v.id}`] = parseFloat(v.effective_price ?? v.price ?? p.price);
+            }
+          }
+        }
+        // Update localStorage prices if they differ.
+        let changed = false;
+        const updatedItems = guestItems.map((item) => {
+          const key = item.variant_id ? `${item.product_id}-${item.variant_id}` : item.product_id;
+          const serverPrice = priceMap[key];
+          if (serverPrice !== undefined && serverPrice !== item.unit_price) {
+            changed = true;
+            return { ...item, unit_price: serverPrice, subtotal: serverPrice * item.quantity };
+          }
+          return item;
+        });
+        if (changed) {
+          localStorage.setItem("cartivo_guest_cart", JSON.stringify(updatedItems));
+          refresh();
+        }
+      } catch {
+        // Non-critical: worst case we show stale prices, backend still charges correctly.
+      }
+    })();
+  }, [user, cart, refresh]);
+
   function fillFromAddress(addr) {
     setForm({
       shipping_full_name: addr.full_name,
