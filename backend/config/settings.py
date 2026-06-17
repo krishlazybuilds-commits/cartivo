@@ -406,11 +406,17 @@ CSRF_COOKIE_HTTPONLY = False
 # --- Production security ------------------------------------------------------
 # These hardening settings only take effect when DEBUG is False, so local
 # development over http is unaffected. Each is overridable via env var.
+# Management commands that load settings but never serve HTTP requests. These
+# skip network/credential validation so Docker builds and migrations work
+# without full production env vars.
+_SKIP_NETWORK_VALIDATION = {"test", "collectstatic", "migrate", "makemigrations", "check"}
+
 if not DEBUG:
     # Validate ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, and CSRF_TRUSTED_ORIGINS in production.
-    # We skip these checks during tests so that test environments can run with DEBUG=False
-    # without requiring production-ready HTTPS configurations.
-    if "test" not in sys.argv:
+    # We skip these checks during tests and non-serving management commands (collectstatic,
+    # migrate) that load settings but never handle HTTP requests, so Docker builds and
+    # migrations can run with DEBUG=False without requiring full production env vars.
+    if not _SKIP_NETWORK_VALIDATION.intersection(sys.argv):
         # Validate ALLOWED_HOSTS in production to prevent Host Header Injection
         if not ALLOWED_HOSTS:
             raise ImproperlyConfigured(
@@ -575,7 +581,7 @@ CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", EMAIL_HOST_USER or DEFAULT_FROM_EMAIL
 # mode these default to empty strings (payments are mocked or skipped), but in
 # production an empty key means silent failures — charges won't process, uploads
 # won't work, emails won't send. Better to crash on boot than discover at 2 AM.
-if not DEBUG and "test" not in sys.argv:
+if not DEBUG and not _SKIP_NETWORK_VALIDATION.intersection(sys.argv):
     _missing = []
 
     # Stripe: required for checkout to function
