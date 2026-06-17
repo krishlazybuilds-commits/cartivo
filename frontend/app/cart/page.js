@@ -9,10 +9,12 @@ import CustomSelect from "../components/CustomSelect";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
 import { formatPrice } from "../lib/format";
+import { useToast } from "../lib/toast";
 import { fetchShippingEstimate } from "../lib/api";
 
 export default function CartPage() {
   const { cart, loading, updateItem, removeItem, clear } = useCart();
+  const toast = useToast();
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState(null); // { type, item } | null
   const [country, setCountry] = useState("IN");
@@ -22,10 +24,17 @@ export default function CartPage() {
   const loadEstimate = useCallback(async (c, subtotal) => {
     if (!c || !subtotal) return;
     setEstimating(true);
-    const result = await fetchShippingEstimate(c, subtotal);
-    setEstimate(result);
+    try {
+      const result = await fetchShippingEstimate(c, subtotal);
+      setEstimate(result);
+    } catch (err) {
+      if (err.message?.includes("Too many requests")) {
+        toast("Too many requests. Please wait a moment.", "error", 4000);
+      }
+      setEstimate(null);
+    }
     setEstimating(false);
-  }, []);
+  }, [toast]);
 
   // Refresh estimate whenever cart total or country changes.
   useEffect(() => {
@@ -36,12 +45,64 @@ export default function CartPage() {
     }
   }, [cart?.total, country, loadEstimate]);
 
+  // Debug logging for footer flicker investigation
+  function logLayout(tag, extra) {
+    console.log(`[CART ${tag}]`, {
+      loading,
+      cartItems: cart?.items?.length,
+      cartTotal: cart?.total,
+      estimating,
+      hasEstimate: !!estimate,
+      docHeight: document.documentElement.scrollHeight,
+      bodyHeight: document.body.scrollHeight,
+      scrollY: window.scrollY,
+      innerHeight: window.innerHeight,
+      ...extra,
+    });
+  }
+
+  useEffect(() => {
+    logLayout("loading=" + loading);
+  }, [loading]);
+
+  useEffect(() => {
+    if (cart) logLayout("cart updated");
+  }, [cart]);
+
+  useEffect(() => {
+    logLayout("estimating=" + estimating, { estimateNote: estimate?.note });
+  }, [estimating]);
+
+  useEffect(() => {
+    if (estimate) logLayout("estimate received");
+  }, [estimate]);
+
+  // Log the rendering path
+  const showSkeleton = loading && !cart;
+  const showEmpty = !cart || cart.items.length === 0;
+  const showCart = !showSkeleton && !showEmpty;
+  useEffect(() => {
+    logLayout("render path", { showSkeleton, showEmpty, showCart });
+  }, [showSkeleton, showEmpty, showCart]);
+
+  // Measure actual estimate container height
+  useEffect(() => {
+    const el = document.querySelector(".shipping-estimate");
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      console.log(`[CART estimate-height] ${rect.height}px`, { estimating, hasEstimate: !!estimate });
+    }
+  }, [estimating, estimate, cart?.total]);
+
   async function run(action) {
+    logLayout("before-update");
     setError(null);
     try {
       await action();
+      logLayout("after-update");
     } catch (err) {
       setError(err.message);
+      logLayout("error");
     }
   }
 
@@ -96,13 +157,14 @@ export default function CartPage() {
                         <button
                           type="button"
                           aria-label="Decrease quantity"
-                          onClick={() =>
+                          onClick={() => {
+                            console.log("[CART] qty-", { id: item.id, from: item.quantity, to: item.quantity - 1 });
                             run(() =>
                               item.quantity > 1
                                 ? updateItem(item.id, item.quantity - 1)
                                 : removeItem(item.id)
-                            )
-                          }
+                            );
+                          }}
                         >
                           −
                         </button>
@@ -110,7 +172,10 @@ export default function CartPage() {
                         <button
                           type="button"
                           aria-label="Increase quantity"
-                          onClick={() => run(() => updateItem(item.id, item.quantity + 1))}
+                          onClick={() => {
+                            console.log("[CART] qty+", { id: item.id, from: item.quantity, to: item.quantity + 1 });
+                            run(() => updateItem(item.id, item.quantity + 1));
+                          }}
                         >
                           +
                         </button>
@@ -137,7 +202,7 @@ export default function CartPage() {
                   </div>
 
                   {/* Shipping & tax estimate */}
-                  <div className="shipping-estimate" style={{ marginTop: "1rem" }}>
+                  <div className="shipping-estimate" style={{ marginTop: "1rem", minHeight: cart?.total > 0 ? "120px" : undefined }}>
                     <label className="shipping-estimate-label">
                       <span>Estimate for</span>
                       <CustomSelect

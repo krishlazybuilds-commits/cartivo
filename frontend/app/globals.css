@@ -31,7 +31,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   /* Hide the scrollbar everywhere while keeping scroll functional */
   scrollbar-width: none;          /* Firefox */
   -ms-overflow-style: none;       /* IE / legacy Edge */

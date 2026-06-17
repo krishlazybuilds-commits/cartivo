@@ -53,18 +53,15 @@ interface ShippingEstimate {
  */
 export async function fetchShippingEstimate(country: string, subtotal: number | string): Promise<ShippingEstimate | null> {
   if (!country || !subtotal) return null;
-  try {
-    const res = await fetch(`${API_URL}/shipping-estimate/`, {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country, subtotal }),
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
+  const res = await fetch(`${API_URL}/shipping-estimate/`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ country, subtotal }),
+  });
+  if (res.status === 429) throw new Error("Too many requests. Please wait a moment.");
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export { API_URL };
