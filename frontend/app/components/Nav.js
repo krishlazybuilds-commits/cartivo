@@ -85,7 +85,7 @@ export default function Nav() {
     <>
     <nav className="nav nav--min">
       <div className="container nav-inner">
-        <Link href="/" className="brand" aria-label="Cartivo home">
+        <Link href={user ? "/products" : "/"} className="brand" aria-label={user ? "Shop" : "Cartivo home"}>
           <span className="brand-dot">C</span>
           Cartivo
         </Link>
