@@ -3467,7 +3467,7 @@ body::after {
 .pt-overlay {
   position: fixed;
   inset: 0;
-  z-index: 8888;
+  z-index: 10000;
   pointer-events: all;
 }
 
@@ -3574,7 +3574,7 @@ html[data-auth-intro="play"] .auth-intro {
   display: block;
   position: fixed;
   inset: 0;
-  z-index: 8888;
+  z-index: 10000;
   pointer-events: all;
 }
 html[data-auth-intro="done"] .auth-intro {
