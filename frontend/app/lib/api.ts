@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 // Default revalidation period for catalog data (seconds). Catalog pages are
 // served from cache and revalidated in the background at this interval (ISR).
@@ -6,13 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 // { cache: "no-store" } for real-time data.
 const DEFAULT_REVALIDATE = 60;
 
+interface ApiFetchOptions extends RequestInit {
+  next?: {
+    revalidate?: number;
+    tags?: string[];
+  };
+}
+
 /**
  * Fetch JSON from the Cartivo backend API with ISR caching by default.
  *
- * @param {string} path - e.g. "/products/" or "/products/some-slug/"
- * @param {RequestInit & { next?: { revalidate?: number, tags?: string[] } }} options
+ * @param path - e.g. "/products/" or "/products/some-slug/"
+ * @param options - fetch options with optional Next.js `next` config
  */
-export async function apiFetch(path, options = {}) {
+export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptions = {}): Promise<T | null> {
   const { next, ...fetchOptions } = options;
 
   const res = await fetch(`${API_URL}${path}`, {
@@ -23,7 +30,7 @@ export async function apiFetch(path, options = {}) {
       revalidate: DEFAULT_REVALIDATE,
       ...next,
     },
-  });
+  } as RequestInit);
 
   if (!res.ok) {
     throw new Error(`API ${res.status}: ${res.statusText}`);
@@ -33,14 +40,18 @@ export async function apiFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+interface ShippingEstimate {
+  shipping: number;
+  tax: number;
+  total: number;
+}
+
 /**
  * Fetch a shipping + tax estimate from the backend.
  * Works for both guests and authenticated users.
  * NOT cached (pricing depends on request-time input).
- * @param {string} country
- * @param {number|string} subtotal
  */
-export async function fetchShippingEstimate(country, subtotal) {
+export async function fetchShippingEstimate(country: string, subtotal: number | string): Promise<ShippingEstimate | null> {
   if (!country || !subtotal) return null;
   try {
     const res = await fetch(`${API_URL}/shipping-estimate/`, {
