@@ -15,7 +15,7 @@ export default function CartPage() {
   const { cart, loading, updateItem, removeItem, clear } = useCart();
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState(null); // { type, item } | null
-  const [country, setCountry] = useState("US");
+  const [country, setCountry] = useState("IN");
   const [estimate, setEstimate] = useState(null);
   const [estimating, setEstimating] = useState(false);
 
@@ -143,6 +143,7 @@ export default function CartPage() {
                       <CustomSelect
                         value={country}
                         options={[
+                          { value: "IN", label: "India" },
                           { value: "US", label: "United States" },
                           { value: "CA", label: "Canada" },
                           { value: "GB", label: "United Kingdom" },
