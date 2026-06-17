@@ -26,12 +26,11 @@ export default function CartPage() {
     setEstimating(true);
     try {
       const result = await fetchShippingEstimate(c, subtotal);
-      setEstimate(result);
+      if (result) setEstimate(result);
     } catch (err) {
       if (err.message?.includes("Too many requests")) {
         toast("Too many requests. Please wait a moment.", "error", 4000);
       }
-      setEstimate(null);
     }
     setEstimating(false);
   }, [toast]);
@@ -204,7 +203,7 @@ export default function CartPage() {
                   {/* Shipping & tax estimate */}
                   <div className="shipping-estimate" style={{ marginTop: "1rem", minHeight: cart?.total > 0 ? "120px" : undefined }}>
                     <label className="shipping-estimate-label">
-                      <span>Estimate for</span>
+                      <span>Estimate for{estimating ? " (calculating…)" : ""}</span>
                       <CustomSelect
                         value={country}
                         options={[
@@ -220,9 +219,8 @@ export default function CartPage() {
                         onChange={setCountry}
                       />
                     </label>
-                    {estimating && <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Calculating…</p>}
                     {estimate && (
-                      <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.25rem", visibility: estimating ? "hidden" : "visible" }}>
+                      <div style={{ fontSize: "0.875rem", marginTop: "0.5rem", display: "grid", gap: "0.25rem" }}>
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
                           <span>Shipping</span>
                           <span>{estimate.shipping === 0 ? "Free" : formatPrice(estimate.shipping)}</span>
