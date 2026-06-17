@@ -605,16 +605,23 @@ class OrderViewSet(
             Order.Status.PAID: [Order.Status.SHIPPED, Order.Status.CANCELLED],
             Order.Status.SHIPPED: [Order.Status.DELIVERED, Order.Status.CANCELLED],
         }
-        current = order.status
-        allowed = allowed_transitions.get(current, [])
-        if Order.Status(new_status) not in allowed:
-            return Response(
-                {"detail": f"Cannot transition from '{current}' to '{new_status}'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
-        order.status = new_status
-        order.save(update_fields=["status"])
+        # Lock the order row to prevent a concurrent webhook from changing
+        # status between our check and save (e.g. webhook sets REFUNDED while
+        # staff tries to set SHIPPED).
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=order.pk)
+            current = order.status
+            allowed = allowed_transitions.get(current, [])
+            if Order.Status(new_status) not in allowed:
+                return Response(
+                    {"detail": f"Cannot transition from '{current}' to '{new_status}'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            order.status = new_status
+            order.save(update_fields=["status"])
+
         return Response(self.get_serializer(order).data)
 
 
