@@ -17,6 +17,12 @@ function formatDate(value) {
   }
 }
 
+/**
+ * Admin component for managing user accounts and viewing dashboard stats.
+ * Displays sales summaries, top products with variant-level info, and user activation/role management.
+ *
+ * @returns {JSX.Element|null} The admin users/dashboard interface.
+ */
 export default function AdminUsersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -166,8 +172,11 @@ export default function AdminUsersPage() {
                   </thead>
                   <tbody>
                     {stats.top_products.map((p) => (
-                      <tr key={p.product__name} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
-                        <td style={{ padding: "0.4rem 0.6rem" }}>{p.product__name}</td>
+                      <tr key={p.variant__name ? `${p.product__name}-${p.variant__name}` : p.product__name} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
+                        <td style={{ padding: "0.4rem 0.6rem" }}>
+                          {p.product__name}
+                          {p.variant__name ? ` (${p.variant__name})` : ""}
+                        </td>
                         <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>{p.units}</td>
                         <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>${Number(p.revenue).toFixed(2)}</td>
                       </tr>

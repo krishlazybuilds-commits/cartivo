@@ -99,7 +99,7 @@ class DashboardView(APIView):
         top_products = (
             OrderItem.objects
             .filter(order__status__in=paid_statuses)
-            .values("product__name")
+            .values("product__name", "variant__name")
             .annotate(units=Sum("quantity"), revenue=Sum(
                 django_models.ExpressionWrapper(
                     django_models.F("unit_price") * django_models.F("quantity"),
