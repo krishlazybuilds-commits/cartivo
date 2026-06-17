@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 
 vi.mock("../../lib/api", () => ({
-  API_URL: "http://localhost:8000/api",
+  API_URL: "http://localhost:8000/api/v1",
 }));
 
 vi.mock("../../components/Reveal", () => ({
@@ -104,7 +104,7 @@ describe("ContactPage", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:8000/api/contact/",
+        "http://localhost:8000/api/v1/contact/",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },

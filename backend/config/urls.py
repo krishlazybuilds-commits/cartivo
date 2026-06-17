@@ -24,11 +24,11 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
-    path("api/auth/", include("apps.accounts.urls")),
-    path("api/", include("apps.catalog.urls")),
-    path("api/", include("apps.cart.urls")),
-    path("api/", include("apps.orders.urls")),
-    path("api/", include("apps.contact.urls")),
+    path("api/v1/auth/", include("apps.accounts.urls")),
+    path("api/v1/", include("apps.catalog.urls")),
+    path("api/v1/", include("apps.cart.urls")),
+    path("api/v1/", include("apps.orders.urls")),
+    path("api/v1/", include("apps.contact.urls")),
 ]
 
 if settings.DEBUG:

@@ -314,7 +314,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     # Group endpoints by their app tag.
-    "SCHEMA_PATH_PREFIX": r"/api/",
+    "SCHEMA_PATH_PREFIX": r"/api/v1/",
     # Show all response codes, not just 200.
     "COMPONENT_SPLIT_PATCH": True,
     "COMPONENT_NO_READ_ONLY_REQUIRED": True,

@@ -7,7 +7,7 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("../../lib/api", () => ({
-  API_URL: "http://localhost:8000/api",
+  API_URL: "http://localhost:8000/api/v1",
 }));
 
 vi.mock("../../components/AuthPanel", () => ({
@@ -102,7 +102,7 @@ describe("ForgotPasswordPage", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:8000/api/auth/password-reset/",
+        "http://localhost:8000/api/v1/auth/password-reset/",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
