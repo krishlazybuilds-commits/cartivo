@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -20,17 +20,27 @@ export default function CartPage() {
   const [country, setCountry] = useState("IN");
   const [estimate, setEstimate] = useState(null);
   const [estimating, setEstimating] = useState(false);
+  const debounceRef = useRef(null);
 
-  const loadEstimate = useCallback(async (c, subtotal) => {
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const loadEstimate = useCallback((c, subtotal) => {
     if (!c || !subtotal) return;
-    setEstimating(true);
-    try {
-      const result = await fetchShippingEstimate(c, subtotal);
-      if (result) setEstimate(result);
-    } catch (err) {
-      toast(err.message || "Couldn't load estimate", "error", 4000);
-    }
-    setEstimating(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setEstimating(true);
+      try {
+        const result = await fetchShippingEstimate(c, subtotal);
+        if (result) setEstimate(result);
+      } catch (err) {
+        toast(err.message || "Couldn't load estimate", "error", 4000);
+      }
+      setEstimating(false);
+    }, 400);
   }, [toast]);
 
   // Refresh estimate whenever cart total or country changes.
