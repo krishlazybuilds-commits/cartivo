@@ -2831,7 +2831,8 @@ body::after {
   gap: 0.4rem;
   /* Icon-only default: same height as .btn via matching vertical padding */
   padding: 0.7rem 0.7rem;
-  border: 1px solid var(--line, #e2e8f0);
+  border: none;
+  box-shadow: 0 0 0 1px var(--line, #e2e8f0);
   background: transparent;
   color: var(--ink);
   border-radius: 999px;
@@ -2839,11 +2840,11 @@ body::after {
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.2;
-  transition: color 0.15s ease, border-color 0.15s ease,
+  transition: color 0.15s ease, box-shadow 0.15s ease,
               background 0.15s ease, transform 0.1s ease;
 }
 .wishlist-btn:hover {
-  border-color: #f43f5e;
+  box-shadow: 0 0 0 1px #f43f5e;
   color: #f43f5e;
   background: #fff1f2;
 }
@@ -2851,7 +2852,7 @@ body::after {
   transform: scale(0.95);
 }
 .wishlist-btn.active {
-  border-color: #f43f5e;
+  box-shadow: 0 0 0 1px #f43f5e;
   background: #fff1f2;
 }
 /* Labelled variant on the product detail page — matches .btn exactly */
