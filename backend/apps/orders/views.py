@@ -759,17 +759,20 @@ class GuestOrderLookupView(APIView):
         if not email or not order_number:
             return Response({"detail": "email and order_number are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        order = (
-            Order.objects.filter(guest_email__iexact=email, user=None)
-            .prefetch_related("items__product")
-            .first()
-        )
+        # Search all guest orders for this email, not just the most recent one.
         # Match against the full UUID or the 8-char short form.
-        if order and not (
-            str(order.order_number).upper() == order_number or
-            str(order.order_number)[:8].upper() == order_number
-        ):
-            order = None
+        orders = Order.objects.filter(
+            guest_email__iexact=email, user=None
+        ).prefetch_related("items__product")
+
+        order = None
+        for o in orders:
+            if (
+                str(o.order_number).upper() == order_number
+                or str(o.order_number)[:8].upper() == order_number
+            ):
+                order = o
+                break
 
         if not order:
             return Response({"detail": "No order found with that email and order number."}, status=status.HTTP_404_NOT_FOUND)
