@@ -245,10 +245,21 @@ class GoogleLoginView(APIView):
         responses={200: inline_serializer("GoogleLoginResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
-        enforce_csrf(request)
+        logger.info("=== GoogleLoginView.post called ===")
+        logger.info("Request headers: %s", dict(request.headers))
+        logger.info("Request data keys: %s", list(request.data.keys()))
+
+        try:
+            enforce_csrf(request)
+            logger.info("CSRF check passed")
+        except Exception as exc:
+            logger.warning("CSRF check FAILED: %s", exc)
+            raise
 
         client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "")
+        logger.info("GOOGLE_OAUTH_CLIENT_ID configured: %s", "yes" if client_id else "NO")
         if not client_id:
+            logger.warning("Google sign-in is not configured — GOOGLE_OAUTH_CLIENT_ID is empty")
             return Response(
                 {"detail": "Google sign-in is not configured."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -256,10 +267,13 @@ class GoogleLoginView(APIView):
 
         credential = request.data.get("credential", "")
         if not credential:
+            logger.warning("Missing Google credential in request body")
+            logger.info("Request body: %s", request.data)
             return Response(
                 {"detail": "Missing Google credential."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        logger.info("Credential received (length=%d)", len(credential))
 
         # Imported lazily so the dependency is only needed when the feature is used.
         from google.auth.transport import requests as google_requests
@@ -269,7 +283,10 @@ class GoogleLoginView(APIView):
             idinfo = google_id_token.verify_oauth2_token(
                 credential, google_requests.Request(), client_id
             )
-        except ValueError:
+            logger.info("Google token verified successfully — issuer: %s, audience: %s",
+                        idinfo.get("iss"), idinfo.get("aud"))
+        except ValueError as exc:
+            logger.warning("Google token verification FAILED: %s", exc)
             # Bad signature, wrong audience, expired, or malformed token.
             return Response(
                 {"detail": "Invalid Google credential."},
@@ -277,7 +294,13 @@ class GoogleLoginView(APIView):
             )
 
         email = (idinfo.get("email") or "").strip()
-        if not email or not idinfo.get("email_verified", False):
+        email_verified = idinfo.get("email_verified", False)
+        logger.info("Token payload — email: %s, verified: %s, name: %s %s",
+                    email, email_verified,
+                    idinfo.get("given_name", ""), idinfo.get("family_name", ""))
+
+        if not email or not email_verified:
+            logger.warning("Google email missing or unverified — email: '%s', verified: %s", email, email_verified)
             return Response(
                 {"detail": "Google account email is missing or unverified."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -285,16 +308,22 @@ class GoogleLoginView(APIView):
 
         try:
             user = self._get_or_create_user(idinfo, email)
+            logger.info("User resolved — pk: %s, username: %s, email: %s, existed: %s",
+                        user.pk, user.username, user.email,
+                        "yes" if user.password and user.has_usable_password() else "newly created")
         except ValidationError as exc:
+            logger.warning("User lookup/creation failed: %s", exc.detail)
             return Response({"detail": exc.detail}, status=status.HTTP_409_CONFLICT)
 
         if not user.is_active:
+            logger.warning("User %s (pk=%s) is disabled — login rejected", user.username, user.pk)
             return Response(
                 {"detail": "This account is disabled."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         refresh = RefreshToken.for_user(user)
+        logger.info("Login successful for user %s (pk=%s) — access token issued", user.username, user.pk)
         response = Response({"detail": "Login successful."})
         set_auth_cookies(response, access=refresh.access_token, refresh=refresh)
         return response
@@ -317,21 +346,27 @@ class GoogleLoginView(APIView):
         """
         existing = User.objects.filter(email__iexact=email).first()
         if existing:
+            logger.info("Existing user found: pk=%s, username=%s, has_usable_password=%s",
+                        existing.pk, existing.username, existing.has_usable_password())
             if not existing.has_usable_password():
-                # Google-only account — safe to reuse.
+                logger.info("Returning existing Google-only user pk=%s", existing.pk)
                 return existing
-            # Password account exists — block silent takeover.
+            logger.warning("Blocking Google login — user pk=%s has a password set", existing.pk)
             raise ValidationError(
                 "An account with this email already exists. "
                 "Sign in with your password, then link Google from your profile."
             )
 
+        logger.info("No existing user for email=%s — creating new account", email)
         base_username = email.split("@")[0][:140] or "user"
         username = base_username
         suffix = 1
         while User.objects.filter(username=username).exists():
             username = f"{base_username}{suffix}"
             suffix += 1
+
+        if username != base_username:
+            logger.info("Username collision — using %s instead of %s", username, base_username)
 
         user = User.objects.create_user(
             username=username,
@@ -341,6 +376,7 @@ class GoogleLoginView(APIView):
         )
         user.set_unusable_password()
         user.save(update_fields=["password"])
+        logger.info("New user created: pk=%s, username=%s, email=%s", user.pk, user.username, user.email)
         return user
 
 

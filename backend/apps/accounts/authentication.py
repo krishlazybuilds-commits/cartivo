@@ -8,10 +8,14 @@ unsafe (state-changing) requests — the client must echo the `csrftoken` cookie
 back in the `X-CSRFToken` header.
 """
 
+import logging
+
 from django.conf import settings
 from django.middleware.csrf import CsrfViewMiddleware
 from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+logger = logging.getLogger(__name__)
 
 
 class _CSRFCheck(CsrfViewMiddleware):
@@ -26,10 +30,15 @@ def enforce_csrf(request):
 
     Safe methods (GET/HEAD/OPTIONS/TRACE) are skipped by the middleware itself.
     """
+    logger.info("enforce_csrf — request method: %s, origin: %s, referer: %s",
+                request.method, request.META.get("HTTP_ORIGIN"), request.META.get("HTTP_REFERER"))
+    logger.info("enforce_csrf — cookies keys: %s", list(request.COOKIES.keys()))
+    logger.info("enforce_csrf — X-CSRFToken header: %s", request.META.get("HTTP_X_CSRFTOKEN", "(not set)"))
     check = _CSRFCheck(lambda req: None)
     check.process_request(request)
     reason = check.process_view(request, None, (), {})
     if reason:
+        logger.warning("CSRF check FAILED: %s", reason)
         raise exceptions.PermissionDenied(f"CSRF Failed: {reason}")
 
 

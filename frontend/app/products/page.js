@@ -105,30 +105,32 @@ export default async function ProductsPage(props) {
             <div className="feature-grid">
               {products.map((p, i) => (
                 <Reveal key={p.id} delay={i * 30}>
-                  <Link className="feature-card product-card" href={`/products/${p.slug}`}>
-                    <div className="product-image">
-                      {p.image ? (
-                        <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
-                      ) : (
-                        <span className="product-image-ph" aria-hidden="true">
-                          {p.name?.[0] ?? "?"}
-                        </span>
+                  <div className="feature-card product-card" style={{ position: "relative" }}>
+                    <Link href={`/products/${p.slug}`} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
+                      <div className="product-image">
+                        {p.image ? (
+                          <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
+                        ) : (
+                          <span className="product-image-ph" aria-hidden="true">
+                            {p.name?.[0] ?? "?"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="product-cat">{p.category_name ?? "Product"}</span>
+                      <h3>{p.name}</h3>
+                      {p.review_count > 0 && (
+                        <StarRating value={p.avg_rating ?? 0} count={p.review_count} size="0.85rem" />
                       )}
-                      <WishlistButton productId={p.id} product={p} className="product-card-wishlist" />
-                    </div>
-                    <span className="product-cat">{p.category_name ?? "Product"}</span>
-                    <h3>{p.name}</h3>
-                    {p.review_count > 0 && (
-                      <StarRating value={p.avg_rating ?? 0} count={p.review_count} size="0.85rem" />
-                    )}
-                    <p>{p.description}</p>
-                    <div className="product-meta">
-                      <span className="product-price">{formatPrice(p.price)}</span>
-                      <span className={p.in_stock ? "product-stock" : "product-stock out"}>
-                        {p.in_stock ? "In stock" : "Out of stock"}
-                      </span>
-                    </div>
-                  </Link>
+                      <p>{p.description}</p>
+                      <div className="product-meta">
+                        <span className="product-price">{formatPrice(p.price)}</span>
+                        <span className={p.in_stock ? "product-stock" : "product-stock out"}>
+                          {p.in_stock ? "In stock" : "Out of stock"}
+                        </span>
+                      </div>
+                    </Link>
+                    <WishlistButton productId={p.id} product={p} className="product-card-wishlist" />
+                  </div>
                 </Reveal>
               ))}
             </div>
