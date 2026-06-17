@@ -161,6 +161,7 @@ export default function CheckoutPage() {
         const items = (cart?.items ?? []).map((i) => ({
           product_id: i.product_id ?? i.product,
           quantity: i.quantity,
+          variant_id: i.variant_id ?? null,
         }));
         if (items.length === 0) {
           setError("Your cart is empty.");

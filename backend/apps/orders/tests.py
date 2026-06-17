@@ -1005,3 +1005,113 @@ class OversellStockGuardTests(APITestCase):
         self.assertEqual(Order.objects.count(), 0)
         self.wh_stock.refresh_from_db()
         self.assertEqual(self.wh_stock.stock, 5)
+
+
+class ProductVariantOrderTests(APITestCase):
+    def setUp(self):
+        from apps.catalog.models import Category, Product, ProductVariant, Warehouse, WarehouseStock
+        self.user = User.objects.create_user(username="variantbuyer", password="pass12345", email="variantbuyer@test.com")
+        self.category = Category.objects.create(name="Shirts")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Super T-Shirt",
+            price=Decimal("15.00"),
+            sku="SHIRT-BASE",
+            stock=0,
+        )
+        self.variant_red = ProductVariant.objects.create(
+            product=self.product,
+            name="Red",
+            sku="SHIRT-RED",
+            price=Decimal("17.00"),
+            stock=0,
+        )
+        self.variant_blue = ProductVariant.objects.create(
+            product=self.product,
+            name="Blue",
+            sku="SHIRT-BLUE",
+            price=Decimal("18.00"),
+            stock=0,
+        )
+        self.warehouse = Warehouse.objects.create(
+            name="Test Warehouse",
+            code="TEST_WH",
+            is_active=True,
+        )
+        # Pre-populate stock
+        self.stock_red = WarehouseStock.objects.create(
+            warehouse=self.warehouse,
+            product=self.product,
+            variant=self.variant_red,
+            stock=10,
+        )
+        self.stock_blue = WarehouseStock.objects.create(
+            warehouse=self.warehouse,
+            product=self.product,
+            variant=self.variant_blue,
+            stock=10,
+        )
+        self.product.refresh_from_db()
+        self.variant_red.refresh_from_db()
+        self.variant_blue.refresh_from_db()
+        self.client.force_authenticate(self.user)
+
+    def test_checkout_multiple_variants_success(self):
+        from apps.orders.services import create_order_and_items
+        order_kwargs = {
+            "user": self.user,
+            "shipping_full_name": "Variant Test",
+            "shipping_address": "456 Main St",
+            "shipping_city": "Boston",
+            "shipping_postal_code": "02111",
+            "shipping_country": "US",
+        }
+        items = [
+            {"product_id": self.product.id, "quantity": 2, "variant_id": self.variant_red.id},
+            {"product_id": self.product.id, "quantity": 3, "variant_id": self.variant_blue.id},
+        ]
+        
+        # Verify no constraint error is thrown when placing an order with multiple variants
+        order, order_items = create_order_and_items(order_kwargs=order_kwargs, items=items)
+        self.assertEqual(order.items.count(), 2)
+        
+        # Verify stock was decremented correctly
+        self.stock_red.refresh_from_db()
+        self.stock_blue.refresh_from_db()
+        self.assertEqual(self.stock_red.stock, 8)
+        self.assertEqual(self.stock_blue.stock, 7)
+        
+        # Verify variant properties are assigned on order items
+        red_item = order.items.get(variant=self.variant_red)
+        blue_item = order.items.get(variant=self.variant_blue)
+        self.assertEqual(red_item.unit_price, Decimal("17.00"))
+        self.assertEqual(blue_item.unit_price, Decimal("18.00"))
+
+        # Verify restocking works correctly for variants
+        order.restock()
+        self.stock_red.refresh_from_db()
+        self.stock_blue.refresh_from_db()
+        self.assertEqual(self.stock_red.stock, 10)
+        self.assertEqual(self.stock_blue.stock, 10)
+
+    def test_guest_checkout_with_variant_success(self):
+        fake_session = MagicMock(id="cs_guest_var", url="https://stripe.test/checkout")
+        payload = {
+            "guest_email": "guestvar@test.com",
+            "items": [
+                {"product_id": self.product.id, "quantity": 1, "variant_id": self.variant_red.id}
+            ],
+            "shipping_full_name": "Guest Var",
+            "shipping_address": "123 Var St",
+            "shipping_city": "Seattle",
+            "shipping_postal_code": "98101",
+            "shipping_country": "US",
+        }
+        self.client.force_authenticate(None)
+        
+        with patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session):
+            res = self.client.post("/api/v1/orders/guest-checkout/", payload, format="json")
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+            
+        order = Order.objects.get(guest_email="guestvar@test.com")
+        self.assertEqual(order.items.first().variant, self.variant_red)

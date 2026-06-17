@@ -261,7 +261,7 @@ class OrderViewSet(
         # Staff see all orders; regular users see only their own.
         if self.request.user.is_staff:
             qs = (
-                Order.objects.prefetch_related("items__product")
+                Order.objects.prefetch_related("items__product", "items__variant")
                 .select_related("user")
                 .order_by("-created_at")
             )
@@ -287,7 +287,7 @@ class OrderViewSet(
             return qs
         return (
             Order.objects.filter(user=self.request.user)
-            .prefetch_related("items__product")
+            .prefetch_related("items__product", "items__variant")
             .order_by("-created_at")
         )
 

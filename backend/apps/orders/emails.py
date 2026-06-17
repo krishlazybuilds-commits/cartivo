@@ -30,8 +30,8 @@ def send_order_confirmation(order):
         return
     name = (user.first_name or user.email) if user else order.guest_email
     items_lines = "\n".join(
-        f"  {item.quantity} x {item.product.name}  ${item.subtotal:.2f}"
-        for item in order.items.select_related("product")
+        f"  {item.quantity} x {item.product.name}" + (f" ({item.variant.name})" if item.variant else "") + f"  ${item.subtotal:.2f}"
+        for item in order.items.select_related("product", "variant")
     )
     body = (
         f"Hi {name},\n\n"

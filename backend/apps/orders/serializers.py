@@ -17,6 +17,7 @@ class CouponSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
+    variant_name = serializers.CharField(source="variant.name", read_only=True, default=None)
     subtotal = serializers.DecimalField(
         max_digits=12, decimal_places=2, read_only=True
     )
@@ -27,6 +28,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
+            "variant",
+            "variant_name",
             "unit_price",
             "quantity",
             "subtotal",
@@ -83,6 +86,7 @@ class GuestCartItemSerializer(serializers.Serializer):
     """A single cart line submitted by a guest at checkout."""
     product_id = serializers.IntegerField(min_value=1)
     quantity = serializers.IntegerField(min_value=1, max_value=100)
+    variant_id = serializers.IntegerField(required=False, allow_null=True, default=None)
 
 
 class GuestCheckoutSerializer(serializers.Serializer):

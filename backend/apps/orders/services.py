@@ -172,6 +172,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     qty = item["quantity"]
                     product = locked_products[pid]
                     variant_id = item.get("variant_id")
+                    variant = None
 
                     if variant_id:
                         variant = locked_variants[variant_id]
@@ -209,6 +210,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     order_items.append(OrderItem(
                         order=order,
                         product=product,
+                        variant=variant,
                         unit_price=unit_price,
                         quantity=qty,
                     ))

@@ -172,16 +172,25 @@ class Order(models.Model):
                 wh_stock, created = WarehouseStock.objects.get_or_create(
                     warehouse_id=self.warehouse_id,
                     product_id=item.product_id,
-                    variant_id=None,
+                    variant_id=item.variant_id,
                     defaults={"stock": 0}
                 )
                 wh_stock.stock = F("stock") + item.quantity
                 wh_stock.save(update_fields=["stock"])
         else:
             for item in self.items.select_related("product"):
-                Product.objects.filter(pk=item.product_id).update(
-                    stock=F("stock") + item.quantity
-                )
+                if item.variant_id:
+                    from apps.catalog.models import ProductVariant
+                    ProductVariant.objects.filter(pk=item.variant_id).update(
+                        stock=F("stock") + item.quantity
+                    )
+                    Product.objects.filter(pk=item.product_id).update(
+                        stock=F("stock") + item.quantity
+                    )
+                else:
+                    Product.objects.filter(pk=item.product_id).update(
+                        stock=F("stock") + item.quantity
+                    )
 
     def __str__(self) -> str:
         who = str(self.user) if self.user_id else (self.guest_email or "guest")
@@ -225,12 +234,19 @@ class OrderItem(models.Model):
         on_delete=models.PROTECT,
         related_name="order_items",
     )
+    variant = models.ForeignKey(
+        "catalog.ProductVariant",
+        on_delete=models.PROTECT,
+        related_name="order_items",
+        null=True,
+        blank=True,
+    )
     # Price snapshot at purchase time so historical orders stay accurate.
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
 
     class Meta:
-        unique_together = ("order", "product")
+        unique_together = ("order", "product", "variant")
         constraints = [
             models.CheckConstraint(
                 check=models.Q(quantity__gte=1),
