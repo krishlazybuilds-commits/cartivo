@@ -135,11 +135,57 @@ a {
   background: var(--ink);
   color: #fff;
   box-shadow: 0 4px 12px rgba(20, 33, 61, 0.12);
+  min-width: 148px;
 }
 .btn-primary:hover {
   background: var(--ink-soft);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(20, 33, 61, 0.18);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Add-to-cart button state animations */
+.atc-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s ease;
+}
+.atc-content.adding {
+  gap: 0.6rem;
+}
+.atc-content.added {
+  gap: 0.4rem;
+}
+.atc-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: atc-spin 0.6s linear infinite;
+}
+@keyframes atc-spin {
+  to { transform: rotate(360deg); }
+}
+.atc-check {
+  animation: atc-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes atc-pop {
+  0%   { opacity: 0; transform: scale(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.atc-cart-icon {
+  transition: transform 0.2s ease;
+}
+.btn-primary:hover .atc-cart-icon {
+  transform: translateX(-2px);
+}
+.atc-label {
+  transition: opacity 0.2s ease;
 }
 
 .btn-ghost {
