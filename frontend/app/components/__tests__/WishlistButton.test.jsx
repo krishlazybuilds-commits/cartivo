@@ -30,7 +30,9 @@ describe("WishlistButton — icon-only variant", () => {
     expect(btn).toHaveAttribute("aria-pressed", "false");
     expect(btn).toHaveAttribute("title", "Save to wishlist");
     expect(btn).not.toHaveClass("active");
-    expect(btn.querySelector(".wishlist-heart").textContent).toBe("♡");
+    const svg = btn.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute("fill", "none");
   });
 
   it("renders filled heart and correct aria-label when wishlisted", () => {
@@ -41,7 +43,9 @@ describe("WishlistButton — icon-only variant", () => {
     expect(btn).toHaveAttribute("aria-pressed", "true");
     expect(btn).toHaveAttribute("title", "Remove from wishlist");
     expect(btn).toHaveClass("active");
-    expect(btn.querySelector(".wishlist-heart").textContent).toBe("♥");
+    const svg = btn.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute("fill", "#f43f5e");
   });
 
   it("calls toggle with productId on click", () => {
