@@ -528,12 +528,9 @@ class OrderViewSet(
     def process_refund(self, request, pk=None):
         from decimal import Decimal, InvalidOperation
         order = self.get_object()
-        if order.status not in (Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED):
-            return Response(
-                {"detail": "Only paid, shipped, or delivered orders can be refunded."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
+        # Parse and validate the optional partial-refund amount before acquiring
+        # the DB lock so we don't hold a row lock during input validation.
         amount = request.data.get("amount")
         refund_kwargs = {}
         if amount is not None:
@@ -548,22 +545,39 @@ class OrderViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        if order.stripe_payment_intent:
-            try:
-                stripe.Refund.create(
-                    payment_intent=order.stripe_payment_intent,
-                    **refund_kwargs
+        # Lock the order row to prevent a concurrent webhook (charge.refunded)
+        # from also restocking inventory, which would double-count stock.
+        with transaction.atomic():
+            order = (
+                Order.objects.select_for_update()
+                .filter(
+                    pk=order.pk,
+                    status__in=(Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED),
                 )
-            except stripe.error.StripeError as exc:
-                logger.exception("Stripe refund failed for order %s", order.id)
+                .first()
+            )
+            if order is None:
                 return Response(
-                    {"detail": f"Stripe refund failed: {exc.user_message or str(exc)}"},
-                    status=status.HTTP_424_FAILED_DEPENDENCY,
+                    {"detail": "Order already refunded or cancelled."},
+                    status=status.HTTP_409_CONFLICT,
                 )
 
-        order.restock()
-        order.status = Order.Status.REFUNDED
-        order.save(update_fields=["status"])
+            if order.stripe_payment_intent:
+                try:
+                    stripe.Refund.create(
+                        payment_intent=order.stripe_payment_intent,
+                        **refund_kwargs
+                    )
+                except stripe.error.StripeError as exc:
+                    logger.exception("Stripe refund failed for order %s", order.id)
+                    return Response(
+                        {"detail": f"Stripe refund failed: {exc.user_message or str(exc)}"},
+                        status=status.HTTP_424_FAILED_DEPENDENCY,
+                    )
+
+            order.restock()
+            order.status = Order.Status.REFUNDED
+            order.save(update_fields=["status"])
 
         return Response(self.get_serializer(order).data)
 
