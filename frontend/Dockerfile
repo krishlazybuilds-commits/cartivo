@@ -1,6 +1,5 @@
-# Frontend image: Next.js production server.
-# Multi-stage build reduces image size and improves security by excluding
-# source code and build tools from the final runtime image.
+# Frontend image: Next.js standalone production server.
+# Multi-stage build with standalone output for minimal image size (~50MB vs ~300MB).
 
 # --- Stage 1: Dependencies ---
 FROM node:20-slim AS deps
@@ -38,13 +37,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN groupadd --gid 1001 nodejs && \
     useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home nextjs
 
-# Copy only the necessary files from the builder.
-# We take the pre-built .next folder and the standalone server if possible,
-# or the standard build artifacts. For simplicity here, we take the standard ones.
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copy only what the standalone server needs:
+# 1. public/ for static assets
+# 2. .next/standalone/ contains the minimal Node.js server + dependencies
+# 3. .next/static/ for compiled JS/CSS chunks (served by the standalone server)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
@@ -52,4 +51,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["npm", "start"]
+# The standalone output generates a self-contained server.js
+CMD ["node", "server.js"]
