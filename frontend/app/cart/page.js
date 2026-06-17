@@ -28,9 +28,7 @@ export default function CartPage() {
       const result = await fetchShippingEstimate(c, subtotal);
       if (result) setEstimate(result);
     } catch (err) {
-      if (err.message?.includes("Too many requests")) {
-        toast("Too many requests. Please wait a moment.", "error", 4000);
-      }
+      toast(err.message || "Couldn't load estimate", "error", 4000);
     }
     setEstimating(false);
   }, [toast]);
