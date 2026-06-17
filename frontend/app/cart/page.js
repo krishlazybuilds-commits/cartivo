@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import CustomSelect from "../components/CustomSelect";
 import { useCart } from "../lib/cart";
 import { CartSkeleton } from "../components/Skeleton";
 import { formatPrice } from "../lib/format";
@@ -137,22 +138,21 @@ export default function CartPage() {
 
                   {/* Shipping & tax estimate */}
                   <div className="shipping-estimate" style={{ marginTop: "1rem" }}>
-                    <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.9rem" }}>
+                    <label className="shipping-estimate-label">
                       <span>Estimate for</span>
-                      <select
+                      <CustomSelect
                         value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        style={{ padding: "0.2rem 0.4rem", borderRadius: 4, border: "1px solid var(--border, #ddd)" }}
-                        aria-label="Select country for shipping estimate"
-                      >
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="GB">United Kingdom</option>
-                        <option value="AU">Australia</option>
-                        <option value="DE">Germany</option>
-                        <option value="FR">France</option>
-                        <option value="OTHER">Other</option>
-                      </select>
+                        options={[
+                          { value: "US", label: "United States" },
+                          { value: "CA", label: "Canada" },
+                          { value: "GB", label: "United Kingdom" },
+                          { value: "AU", label: "Australia" },
+                          { value: "DE", label: "Germany" },
+                          { value: "FR", label: "France" },
+                          { value: "OTHER", label: "Other" },
+                        ]}
+                        onChange={setCountry}
+                      />
                     </label>
                     {estimating && <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Calculating…</p>}
                     {!estimating && estimate && (
