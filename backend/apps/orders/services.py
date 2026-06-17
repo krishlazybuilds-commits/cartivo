@@ -230,6 +230,9 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
         order.tax_amount = Decimal(str(estimate["tax"]))
 
         if coupon:
+            # Lock the coupon row so concurrent checkouts can't both pass the
+            # max_uses check before either increments times_used.
+            coupon = Coupon.objects.select_for_update().get(pk=coupon.pk)
             valid, reason = coupon.is_valid(subtotal)
             if not valid:
                 transaction.set_rollback(True)
