@@ -42,7 +42,7 @@ class CheckoutTests(APITestCase):
 
     def test_successful_checkout_creates_order_and_decrements_stock(self):
         self._add_to_cart(2)
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(res.data["status"], "pending")
@@ -61,13 +61,13 @@ class CheckoutTests(APITestCase):
         self.assertEqual(order.items.first().unit_price, Decimal("10.00"))
 
     def test_checkout_with_empty_cart_returns_400(self):
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Order.objects.count(), 0)
 
     def test_checkout_insufficient_stock_returns_400_and_no_side_effects(self):
         self._add_to_cart(10)  # only 5 in stock
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         # No order created, stock unchanged, cart intact.
@@ -78,13 +78,13 @@ class CheckoutTests(APITestCase):
 
     def test_checkout_requires_shipping_fields(self):
         self._add_to_cart(1)
-        res = self.client.post("/api/orders/", {}, format="json")
+        res = self.client.post("/api/v1/orders/", {}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_checkout_requires_authentication(self):
         # Guest checkout is no longer supported — placing an order requires auth.
         self.client.force_authenticate(None)
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         self.assertIn(
             res.status_code,
             (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
@@ -93,11 +93,11 @@ class CheckoutTests(APITestCase):
 
     def test_users_only_see_their_own_orders(self):
         self._add_to_cart(1)
-        self.client.post("/api/orders/", SHIPPING, format="json")
+        self.client.post("/api/v1/orders/", SHIPPING, format="json")
 
         other = User.objects.create_user(username="other", password="pass12345", email="other@test.com")
         self.client.force_authenticate(other)
-        res = self.client.get("/api/orders/")
+        res = self.client.get("/api/v1/orders/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 0)
@@ -119,7 +119,7 @@ class CancelOrderTests(APITestCase):
     def _place_order(self, quantity=2):
         cart, _ = Cart.objects.get_or_create(user=self.user)
         CartItem.objects.create(cart=cart, product=self.product, quantity=quantity)
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         return res.data["id"]
 
     def test_cancel_pending_order_restocks_and_updates_status(self):
@@ -127,7 +127,7 @@ class CancelOrderTests(APITestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)  # 5 - 2
 
-        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        res = self.client.post(f"/api/v1/orders/{order_id}/cancel/", format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["status"], "cancelled")
 
@@ -137,9 +137,9 @@ class CancelOrderTests(APITestCase):
 
     def test_cannot_cancel_twice(self):
         order_id = self._place_order(1)
-        self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        self.client.post(f"/api/v1/orders/{order_id}/cancel/", format="json")
 
-        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        res = self.client.post(f"/api/v1/orders/{order_id}/cancel/", format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
         # Stock not double-restocked.
@@ -150,7 +150,7 @@ class CancelOrderTests(APITestCase):
         order_id = self._place_order(1)
         other = User.objects.create_user(username="intruder", password="pass12345", email="intruder@test.com")
         self.client.force_authenticate(other)
-        res = self.client.post(f"/api/orders/{order_id}/cancel/", format="json")
+        res = self.client.post(f"/api/v1/orders/{order_id}/cancel/", format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
 
@@ -170,7 +170,7 @@ class ExpirePendingOrdersCommandTests(APITestCase):
     def _place_order(self, quantity=2):
         cart, _ = Cart.objects.get_or_create(user=self.user)
         CartItem.objects.create(cart=cart, product=self.product, quantity=quantity)
-        res = self.client.post("/api/orders/", SHIPPING, format="json")
+        res = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         return res.data["id"]
 
     def _backdate(self, order_id, minutes):
@@ -222,7 +222,7 @@ class ExpirePendingOrdersCommandTests(APITestCase):
 class StripeWebhookIdempotencyTests(APITestCase):
     """The webhook must tolerate Stripe's at-least-once / retry delivery."""
 
-    WEBHOOK_URL = "/api/orders/webhook/"
+    WEBHOOK_URL = "/api/v1/orders/webhook/"
 
     def setUp(self):
         self.user = User.objects.create_user(username="payer", password="pass12345", email="payer@test.com")
@@ -333,7 +333,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
 class StripeWebhookEventTests(APITestCase):
     """Tests for each specific webhook event handler."""
 
-    WEBHOOK_URL = "/api/orders/webhook/"
+    WEBHOOK_URL = "/api/v1/orders/webhook/"
 
     def setUp(self):
         self.user = User.objects.create_user(username="evtuser", password="pass12345", email="evtuser@test.com")
@@ -785,7 +785,7 @@ class StaffRefundWorkflowTests(APITestCase):
 
         # Mock stripe.Refund.create
         with patch("stripe.Refund.create") as mock_refund_create:
-            res = self.client.post(f"/api/orders/{order.id}/process-refund/", format="json")
+            res = self.client.post(f"/api/v1/orders/{order.id}/process-refund/", format="json")
             self.assertEqual(res.status_code, status.HTTP_200_OK)
             mock_refund_create.assert_called_once_with(payment_intent="pi_mock_refund_123")
 
@@ -807,7 +807,7 @@ class StripeCheckoutFailureTests(APITestCase):
     500), and must never leave a reserved-stock PENDING order behind.
     """
 
-    GUEST_URL = "/api/orders/guest-checkout/"
+    GUEST_URL = "/api/v1/orders/guest-checkout/"
 
     def setUp(self):
         self.category = Category.objects.create(name="Payables")
@@ -888,7 +888,7 @@ class StripeCheckoutFailureTests(APITestCase):
 
         cart, _ = Cart.objects.get_or_create(user=user)
         CartItem.objects.create(cart=cart, product=self.product, quantity=2)
-        place = self.client.post("/api/orders/", SHIPPING, format="json")
+        place = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         order_id = place.data["id"]
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)  # reserved at order creation
@@ -897,7 +897,7 @@ class StripeCheckoutFailureTests(APITestCase):
             "apps.orders.views.stripe.checkout.Session.create",
             side_effect=stripe.error.StripeError("timeout"),
         ):
-            res = self.client.post(f"/api/orders/{order_id}/pay/", format="json")
+            res = self.client.post(f"/api/v1/orders/{order_id}/pay/", format="json")
 
         # Clean 502 rather than an unhandled 500.
         self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
@@ -916,7 +916,7 @@ class StripeCheckoutFailureTests(APITestCase):
 
         cart, _ = Cart.objects.get_or_create(user=user)
         CartItem.objects.create(cart=cart, product=self.product, quantity=1)
-        place = self.client.post("/api/orders/", SHIPPING, format="json")
+        place = self.client.post("/api/v1/orders/", SHIPPING, format="json")
         order_id = place.data["id"]
 
         # No stripe_customer_id yet, so Customer.create is hit first.
@@ -924,7 +924,7 @@ class StripeCheckoutFailureTests(APITestCase):
             "apps.orders.views.stripe.Customer.create",
             side_effect=stripe.error.StripeError("timeout"),
         ):
-            res = self.client.post(f"/api/orders/{order_id}/pay/", format="json")
+            res = self.client.post(f"/api/v1/orders/{order_id}/pay/", format="json")
 
         self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
         order = Order.objects.get(pk=order_id)
@@ -998,7 +998,7 @@ class OversellStockGuardTests(APITestCase):
             side_effect=IntegrityError("warehouse_stock_non_negative"),
         ):
             res = self.client.post(
-                "/api/orders/guest-checkout/", payload, format="json"
+                "/api/v1/orders/guest-checkout/", payload, format="json"
             )
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

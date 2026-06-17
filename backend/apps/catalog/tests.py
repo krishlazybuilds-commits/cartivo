@@ -29,13 +29,13 @@ class CatalogReadTests(APITestCase):
         )
 
     def test_list_products_is_public(self):
-        res = self.client.get("/api/products/")
+        res = self.client.get("/api/v1/products/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
 
     def test_retrieve_product_by_slug(self):
-        res = self.client.get(f"/api/products/{self.product.slug}/")
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["name"], "Cool Widget")
         self.assertEqual(res.data["category_name"], "Gadgets")
@@ -49,7 +49,7 @@ class CatalogReadTests(APITestCase):
             category=self.category, name="Boring Thing", price=Decimal("5.00"),
             stock=1, sku="BOR-1",
         )
-        res = self.client.get("/api/products/?search=widget")
+        res = self.client.get("/api/v1/products/?search=widget")
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
@@ -57,13 +57,13 @@ class CatalogReadTests(APITestCase):
     def test_search_returns_ok_on_any_engine(self):
         # Search must never 500: on Postgres it uses FTS/trigram, elsewhere it
         # falls back to a substring match. Either way the request succeeds.
-        res = self.client.get("/api/products/?search=widget")
+        res = self.client.get("/api/v1/products/?search=widget")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     @skipUnless(POSTGRES, "Trigram typo tolerance requires PostgreSQL")
     def test_search_products_fuzzy_typo_tolerance(self):
         # Test that search is typo tolerant (e.g. "widgt" matches "Cool Widget")
-        res = self.client.get("/api/products/?search=widgt")
+        res = self.client.get("/api/v1/products/?search=widgt")
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
@@ -71,7 +71,7 @@ class CatalogReadTests(APITestCase):
     @skipUnless(POSTGRES, "Full-text stemming requires PostgreSQL")
     def test_search_products_stemming(self):
         # Test that search handles stemming (e.g. "widgets" matches "Cool Widget")
-        res = self.client.get("/api/products/?search=widgets")
+        res = self.client.get("/api/v1/products/?search=widgets")
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["name"], "Cool Widget")
@@ -82,7 +82,7 @@ class CatalogReadTests(APITestCase):
             category=other, name="Other Item", price=Decimal("5.00"),
             stock=1, sku="OTH-1",
         )
-        res = self.client.get(f"/api/products/?category={self.category.id}")
+        res = self.client.get(f"/api/v1/products/?category={self.category.id}")
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
 
@@ -101,19 +101,19 @@ class CatalogWriteTests(APITestCase):
         }
 
     def test_anonymous_cannot_create_product(self):
-        res = self.client.post("/api/products/", self.payload, format="json")
+        res = self.client.post("/api/v1/products/", self.payload, format="json")
         self.assertIn(res.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
         self.assertEqual(Product.objects.count(), 0)
 
     def test_normal_user_cannot_create_product(self):
         self.client.force_authenticate(self.user)
-        res = self.client.post("/api/products/", self.payload, format="json")
+        res = self.client.post("/api/v1/products/", self.payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Product.objects.count(), 0)
 
     def test_admin_can_create_product(self):
         self.client.force_authenticate(self.admin)
-        res = self.client.post("/api/products/", self.payload, format="json")
+        res = self.client.post("/api/v1/products/", self.payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Product.objects.count(), 1)
 
@@ -143,7 +143,7 @@ class WishlistTests(APITestCase):
             stock=3,
             sku="GGT-001",
         )
-        self.list_url = "/api/wishlist/"
+        self.list_url = "/api/v1/wishlist/"
 
     def test_unauthenticated_list_returns_401(self):
         res = self.client.get(self.list_url)

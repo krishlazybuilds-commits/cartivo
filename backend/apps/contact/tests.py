@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class ContactEndpointTests(APITestCase):
-    URL = "/api/contact/"
+    URL = "/api/v1/contact/"
     VALID = {
         "name": "Grace Hopper",
         "email": "grace@example.com",

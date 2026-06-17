@@ -13,7 +13,7 @@ User = get_user_model()
 class RegistrationTests(APITestCase):
     def test_register_creates_user(self):
         res = self.client.post(
-            "/api/auth/register/",
+            "/api/v1/auth/register/",
             {"username": "newbie", "password": "strongpass123", "email": "n@example.com"},
             format="json",
         )
@@ -24,7 +24,7 @@ class RegistrationTests(APITestCase):
 
     def test_register_rejects_short_password(self):
         res = self.client.post(
-            "/api/auth/register/",
+            "/api/v1/auth/register/",
             {"username": "shorty", "password": "x"},
             format="json",
         )
@@ -33,13 +33,13 @@ class RegistrationTests(APITestCase):
 
     def test_register_requires_username(self):
         res = self.client.post(
-            "/api/auth/register/", {"password": "strongpass123"}, format="json"
+            "/api/v1/auth/register/", {"password": "strongpass123"}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_password_is_hashed(self):
         self.client.post(
-            "/api/auth/register/",
+            "/api/v1/auth/register/",
             {"username": "secure", "password": "strongpass123", "email": "secure@example.com"},
             format="json",
         )
@@ -56,7 +56,7 @@ class AuthTokenTests(APITestCase):
 
     def test_login_sets_auth_cookies(self):
         res = self.client.post(
-            "/api/auth/token/",
+            "/api/v1/auth/token/",
             {"username": "member", "password": "strongpass123"},
             format="json",
         )
@@ -69,25 +69,25 @@ class AuthTokenTests(APITestCase):
 
     def test_login_with_wrong_password_fails(self):
         res = self.client.post(
-            "/api/auth/token/",
+            "/api/v1/auth/token/",
             {"username": "member", "password": "wrong"},
             format="json",
         )
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_me_requires_authentication(self):
-        res = self.client.get("/api/auth/me/")
+        res = self.client.get("/api/v1/auth/me/")
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_me_returns_current_user(self):
         self.client.force_authenticate(self.user)
-        res = self.client.get("/api/auth/me/")
+        res = self.client.get("/api/v1/auth/me/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["username"], "member")
 
 
 class AdminUserManagementTests(APITestCase):
-    URL = "/api/auth/admin/users/"
+    URL = "/api/v1/auth/admin/users/"
 
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -187,14 +187,14 @@ class AdminUserManagementTests(APITestCase):
 
     def test_me_exposes_staff_flag(self):
          self.client.force_authenticate(self.admin)
-         res = self.client.get("/api/auth/me/")
+         res = self.client.get("/api/v1/auth/me/")
          self.assertEqual(res.status_code, status.HTTP_200_OK)
          self.assertTrue(res.data["is_staff"])
 
 
 @override_settings(GOOGLE_OAUTH_CLIENT_ID="test-client-id.apps.googleusercontent.com")
 class GoogleLoginTests(APITestCase):
-    URL = "/api/auth/google/"
+    URL = "/api/v1/auth/google/"
 
     @patch("google.oauth2.id_token.verify_oauth2_token")
     def test_google_login_not_configured(self, mock_verify):
@@ -329,7 +329,7 @@ class GoogleLoginTests(APITestCase):
 
 
 class PasswordResetRequestTests(APITestCase):
-    URL = "/api/auth/password-reset/"
+    URL = "/api/v1/auth/password-reset/"
 
     def test_returns_200_for_empty_email(self):
         res = self.client.post(self.URL, {"email": ""}, format="json")
@@ -379,7 +379,7 @@ class PasswordResetRequestTests(APITestCase):
 
 
 class PasswordResetConfirmTests(APITestCase):
-    URL = "/api/auth/password-reset/confirm/"
+    URL = "/api/v1/auth/password-reset/confirm/"
     NEW_PASS = "NewStr0ng!Pass"
 
     def setUp(self):
@@ -456,7 +456,7 @@ class PasswordResetConfirmTests(APITestCase):
 
 
 class ChangePasswordTests(APITestCase):
-    URL = "/api/auth/me/password/"
+    URL = "/api/v1/auth/me/password/"
     OLD_PASS = "OldStrong123!"
     NEW_PASS = "NewStr0ng!Pass"
 

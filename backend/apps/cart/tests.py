@@ -28,24 +28,24 @@ class CartTests(APITestCase):
 
     def test_add_item_creates_cart_item(self):
         res = self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 2}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 2}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(self._item().quantity, 2)
 
     def test_adding_same_product_increments_quantity(self):
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 2}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 2}, format="json"
         )
         self.assertEqual(Cart.objects.get(user=self.user).items.count(), 1)
         self.assertEqual(self._item().quantity, 3)
 
     def test_add_over_stock_returns_400(self):
         res = self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 6}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 6}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", res.data)
@@ -53,10 +53,10 @@ class CartTests(APITestCase):
     def test_cumulative_add_over_stock_returns_400(self):
         """Regression: adding to an existing item must check the cumulative total."""
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 3}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 3}, format="json"
         )
         res = self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 3}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 3}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", res.data)
@@ -66,11 +66,11 @@ class CartTests(APITestCase):
     def test_patch_update_over_stock_returns_400(self):
         """Regression: quantity-only PATCH must still validate against stock."""
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         item = self._item()
         res = self.client.patch(
-            f"/api/cart-items/{item.id}/", {"quantity": 99}, format="json"
+            f"/api/v1/cart-items/{item.id}/", {"quantity": 99}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", res.data)
@@ -79,11 +79,11 @@ class CartTests(APITestCase):
 
     def test_patch_valid_update_succeeds(self):
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         item = self._item()
         res = self.client.patch(
-            f"/api/cart-items/{item.id}/", {"quantity": 4}, format="json"
+            f"/api/v1/cart-items/{item.id}/", {"quantity": 4}, format="json"
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         item.refresh_from_db()
@@ -91,24 +91,24 @@ class CartTests(APITestCase):
 
     def test_remove_item(self):
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         item = self._item()
-        res = self.client.delete(f"/api/cart-items/{item.id}/")
+        res = self.client.delete(f"/api/v1/cart-items/{item.id}/")
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Cart.objects.get(user=self.user).items.count(), 0)
 
     def test_clear_cart(self):
         self.client.post(
-            "/api/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
+            "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
-        res = self.client.post("/api/cart/clear/")
+        res = self.client.post("/api/v1/cart/clear/")
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Cart.objects.get(user=self.user).items.count(), 0)
 
     def test_cart_requires_authentication(self):
         self.client.force_authenticate(None)
-        res = self.client.get("/api/cart/")
+        res = self.client.get("/api/v1/cart/")
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 

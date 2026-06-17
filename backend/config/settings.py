@@ -570,6 +570,43 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-repl
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", EMAIL_HOST_USER or DEFAULT_FROM_EMAIL)
 
 
+# --- Production startup validation -------------------------------------------
+# Fail fast if critical service credentials are missing in production. In dev
+# mode these default to empty strings (payments are mocked or skipped), but in
+# production an empty key means silent failures — charges won't process, uploads
+# won't work, emails won't send. Better to crash on boot than discover at 2 AM.
+if not DEBUG and "test" not in sys.argv:
+    _missing = []
+
+    # Stripe: required for checkout to function
+    if not STRIPE_SECRET_KEY:
+        _missing.append("STRIPE_SECRET_KEY")
+    if not STRIPE_WEBHOOK_SECRET:
+        _missing.append("STRIPE_WEBHOOK_SECRET")
+
+    # S3: required when USE_S3 is enabled (horizontal scaling)
+    if USE_S3:
+        if not os.getenv("AWS_ACCESS_KEY_ID", ""):
+            _missing.append("AWS_ACCESS_KEY_ID")
+        if not os.getenv("AWS_SECRET_ACCESS_KEY", ""):
+            _missing.append("AWS_SECRET_ACCESS_KEY")
+        if not os.getenv("AWS_STORAGE_BUCKET_NAME", ""):
+            _missing.append("AWS_STORAGE_BUCKET_NAME")
+
+    # Email: required for order confirmations and password resets
+    if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
+        if not EMAIL_HOST_USER:
+            _missing.append("EMAIL_HOST_USER")
+        if not EMAIL_HOST_PASSWORD:
+            _missing.append("EMAIL_HOST_PASSWORD")
+
+    if _missing:
+        raise ImproperlyConfigured(
+            f"Missing required environment variables for production: {', '.join(_missing)}. "
+            "Set these in your deployment environment or .env.production file."
+        )
+
+
 # --- Logging -----------------------------------------------------------------
 # Structured console logging. Level is env-driven (default INFO; use DEBUG
 # locally for more detail). Container/platform log collectors capture stdout.
