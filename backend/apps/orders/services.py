@@ -155,7 +155,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
         order = Order.objects.create(**order_kwargs)
 
         threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
-        low_stock_product_ids = []
+        low_stock_alerts = []
         order_items = []
 
         # The Product rows are already locked (select_for_update at the top),
@@ -205,7 +205,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         unit_price = product.price
 
                     if remaining <= threshold:
-                        low_stock_product_ids.append(pid)
+                        low_stock_alerts.append((pid, variant_id))
 
                     order_items.append(OrderItem(
                         order=order,
@@ -221,8 +221,10 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 "Insufficient stock for one or more items. Please review your cart and try again."
             )
 
-        for pid in low_stock_product_ids:
-            transaction.on_commit(lambda p=pid: send_low_stock_alert_task.delay(p))
+        for pid, vid in low_stock_alerts:
+            transaction.on_commit(
+                lambda p=pid, v=vid: send_low_stock_alert_task.delay(p, variant_id=v)
+            )
 
         subtotal = sum(
             (i.unit_price * i.quantity for i in order_items), Decimal("0")

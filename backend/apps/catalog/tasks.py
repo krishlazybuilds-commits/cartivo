@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
     retry_jitter=True,
     max_retries=3,
 )
-def send_low_stock_alert_task(product_id):
-    """Email all staff users when a product's stock drops to or below LOW_STOCK_THRESHOLD."""
-    from .models import Product  # local import avoids circular at module load
+def send_low_stock_alert_task(product_id, variant_id=None):
+    """Email all staff users when a product's or variant's stock drops to or below LOW_STOCK_THRESHOLD."""
+    from .models import Product, ProductVariant  # local import avoids circular at module load
 
     threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)
 
@@ -26,8 +26,22 @@ def send_low_stock_alert_task(product_id):
     except Product.DoesNotExist:
         return
 
-    if product.stock > threshold:
-        return  # stock recovered between task enqueue and execution — skip
+    if variant_id:
+        try:
+            variant = ProductVariant.objects.get(pk=variant_id, product=product)
+        except ProductVariant.DoesNotExist:
+            return
+        if variant.stock > threshold:
+            return
+        item_name = f"{product.name} — {variant.name}"
+        sku = variant.sku
+        current_stock = variant.stock
+    else:
+        if product.stock > threshold:
+            return  # stock recovered between task enqueue and execution — skip
+        item_name = product.name
+        sku = product.sku
+        current_stock = product.stock
 
     User = get_user_model()
     staff_emails = list(
@@ -40,19 +54,19 @@ def send_low_stock_alert_task(product_id):
         return
 
     send_mail(
-        subject=f"[Cartivo] Low stock alert: {product.name}",
+        subject=f"[Cartivo] Low stock alert: {item_name}",
         message=(
-            f"Stock alert for: {product.name}\n"
-            f"SKU: {product.sku}\n"
-            f"Current stock: {product.stock}\n"
+            f"Stock alert for: {item_name}\n"
+            f"SKU: {sku}\n"
+            f"Current stock: {current_stock}\n"
             f"Threshold: {threshold}\n\n"
-            f"Please restock this product soon.\n\n"
+            f"Please restock this item soon.\n\n"
             f"— Cartivo"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=staff_emails,
     )
     logger.info(
-        "Low-stock alert sent for product %s (stock=%s) to %s",
-        product.name, product.stock, staff_emails,
+        "Low-stock alert sent for %s (stock=%s) to %s",
+        item_name, current_stock, staff_emails,
     )

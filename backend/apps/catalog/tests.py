@@ -1,5 +1,6 @@
 from decimal import Decimal
 from unittest import skipUnless
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -235,3 +236,48 @@ class WishlistTests(APITestCase):
         self.client.force_authenticate(user=self.other)
         res = self.client.delete(f"{self.list_url}{item_id}/")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class LowStockAlertTaskTests(APITestCase):
+    def setUp(self):
+        self.cat = Category.objects.create(name="Alerts")
+        self.user_staff = User.objects.create_user(
+            username="alertstaff", password="pass12345", email="staff_alert@test.com", is_staff=True
+        )
+        self.prod = Product.objects.create(
+            category=self.cat,
+            name="Base Product",
+            price=Decimal("10.00"),
+            stock=3,
+            sku="BASE-SKU",
+        )
+        from apps.catalog.models import ProductVariant
+        self.variant = ProductVariant.objects.create(
+            product=self.prod,
+            name="Variant Product",
+            sku="VAR-SKU",
+            price=Decimal("12.00"),
+            stock=2,
+        )
+
+    @patch("apps.catalog.tasks.send_mail")
+    def test_base_product_low_stock_email_sent(self, mock_send_mail):
+        from apps.catalog.tasks import send_low_stock_alert_task
+        send_low_stock_alert_task(self.prod.id)
+        
+        mock_send_mail.assert_called_once()
+        kwargs = mock_send_mail.call_args[1]
+        self.assertIn("Base Product", kwargs["subject"])
+        self.assertIn("BASE-SKU", kwargs["message"])
+        self.assertIn("staff_alert@test.com", kwargs["recipient_list"])
+
+    @patch("apps.catalog.tasks.send_mail")
+    def test_variant_low_stock_email_sent(self, mock_send_mail):
+        from apps.catalog.tasks import send_low_stock_alert_task
+        send_low_stock_alert_task(self.prod.id, variant_id=self.variant.id)
+        
+        mock_send_mail.assert_called_once()
+        kwargs = mock_send_mail.call_args[1]
+        self.assertIn("Base Product — Variant Product", kwargs["subject"])
+        self.assertIn("VAR-SKU", kwargs["message"])
+        self.assertIn("staff_alert@test.com", kwargs["recipient_list"])
