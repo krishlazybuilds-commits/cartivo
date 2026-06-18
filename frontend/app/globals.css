@@ -2772,6 +2772,15 @@ body::after {
   object-fit: cover;
   display: block;
 }
+.product-img-hover {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.product-card:hover .product-img-hover {
+  opacity: 1;
+}
 .product-image-ph {
   font-family: var(--font-serif, serif);
   font-size: 2.5rem;

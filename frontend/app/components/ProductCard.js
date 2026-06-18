@@ -15,6 +15,15 @@ export default function ProductCard({ product, showRating = false, children, cla
               {product.name?.[0] ?? "?"}
             </span>
           )}
+          {product.images?.[0]?.image && product.image && (
+            <Image
+              src={product.images[0].image}
+              alt={product.images[0].alt || `${product.name} alternate`}
+              width={400}
+              height={300}
+              className="product-img product-img-hover"
+            />
+          )}
           {product.display_badge && (
             <span style={{
               position: "absolute", top: "0.5rem", left: "0.5rem",
