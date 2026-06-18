@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 import Nav from "./Nav";
 
-const HIDDEN_ON = ["/login", "/register", "/forgot-password", "/reset-password"];
+const HIDDEN_ON = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 
 export default function ConditionalNav() {
   const pathname = usePathname();

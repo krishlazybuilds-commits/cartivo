@@ -6,7 +6,7 @@ import Footer from "./Footer";
 
 // Auth pages use a full-screen split layout with their own branding, so the
 // global site footer is hidden on them.
-const HIDDEN_ON = ["/login", "/register", "/forgot-password", "/reset-password"];
+const HIDDEN_ON = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 
 export default function ConditionalFooter() {
   const pathname = usePathname();
