@@ -75,6 +75,13 @@ const sampleProduct = {
   image: "/images/test.jpg",
   avg_rating: 4.5,
   review_count: 10,
+  effective_price: "29.99",
+  is_featured: false,
+  is_new: false,
+  on_sale: false,
+  sale_price: null,
+  badge: "",
+  display_badge: null,
 };
 
 beforeEach(() => {
@@ -96,6 +103,29 @@ describe("ProductDetailPage", () => {
     render(element);
     expect(screen.getByText("$29.99")).toBeInTheDocument();
     expect(screen.getByText("In stock (15)")).toBeInTheDocument();
+  });
+
+  it("renders sale price with strikethrough when on sale", async () => {
+    mockApiFetch.mockResolvedValue({ ...sampleProduct, on_sale: true, sale_price: "24.99", effective_price: "24.99", display_badge: "Sale" });
+    const element = await ProductDetailPage({ params: { slug: "test-product" } });
+    render(element);
+    expect(screen.getByText("$24.99")).toBeInTheDocument();
+    expect(screen.getByText("$29.99")).toBeInTheDocument();
+  });
+
+  it("renders display badge on product detail", async () => {
+    mockApiFetch.mockResolvedValue({ ...sampleProduct, is_new: true, display_badge: "New" });
+    const element = await ProductDetailPage({ params: { slug: "test-product" } });
+    render(element);
+    expect(screen.getByText("New")).toBeInTheDocument();
+  });
+
+  it("passes effective_price to AddToCart when on sale", async () => {
+    mockApiFetch.mockResolvedValue({ ...sampleProduct, on_sale: true, sale_price: "24.99", effective_price: "24.99" });
+    const element = await ProductDetailPage({ params: { slug: "test-product" } });
+    render(element);
+    const atc = screen.getByTestId("add-to-cart");
+    expect(atc).toHaveAttribute("data-price", "24.99");
   });
 
   it("renders out of stock when not in stock", async () => {
@@ -198,6 +228,16 @@ describe("ProductDetailPage", () => {
     expect(data.name).toBe("Test Product");
     expect(data.offers.price).toBe("29.99");
     expect(data.offers.availability).toBe("https://schema.org/InStock");
+  });
+
+  it("uses effective_price in JSON-LD when on sale", async () => {
+    mockApiFetch.mockResolvedValue({ ...sampleProduct, on_sale: true, sale_price: "19.99", effective_price: "19.99" });
+    const element = await ProductDetailPage({ params: { slug: "test-product" } });
+    render(element);
+    const scripts = screen.getAllByTestId("jsonld");
+    const productLd = scripts.find(s => JSON.parse(s.textContent)["@type"] === "Product");
+    const data = JSON.parse(productLd.textContent);
+    expect(data.offers.price).toBe("19.99");
   });
 
   it("includes aggregateRating in JSON-LD when reviews exist", async () => {

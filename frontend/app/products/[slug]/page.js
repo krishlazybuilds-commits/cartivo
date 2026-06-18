@@ -34,7 +34,7 @@ function buildProductJsonLd(product) {
       "@type": "Offer",
       url: `${SITE_URL}/products/${product.slug}`,
       priceCurrency: "USD",
-      price: Number(product.price).toFixed(2),
+      price: Number(product.effective_price ?? product.price).toFixed(2),
       itemCondition: "https://schema.org/NewCondition",
       availability: product.in_stock
         ? "https://schema.org/InStock"
@@ -129,7 +129,7 @@ export default async function ProductDetailPage(props) {
 
             <Reveal>
             <article className="product-detail">
-              <div className="product-detail-image">
+              <div className="product-detail-image" style={{ position: "relative" }}>
                 {product.images?.length > 0 ? (
                   <GalleryImages images={product.images} mainImage={product.image} name={product.name} />
                 ) : product.image ? (
@@ -137,6 +137,16 @@ export default async function ProductDetailPage(props) {
                 ) : (
                   <span className="product-image-ph large" aria-hidden="true">
                     {product.name?.[0] ?? "?"}
+                  </span>
+                )}
+                {(product.display_badge) && (
+                  <span style={{
+                    position: "absolute", top: "0.75rem", left: "0.75rem",
+                    background: product.on_sale ? "#e11d48" : product.is_new ? "#2563eb" : "#111",
+                    color: "#fff", fontSize: "0.85rem", fontWeight: 600,
+                    padding: "0.2rem 0.7rem", borderRadius: 4, zIndex: 2,
+                  }}>
+                    {product.display_badge}
                   </span>
                 )}
               </div>
@@ -148,7 +158,14 @@ export default async function ProductDetailPage(props) {
                 </div>
               )}
               <div className="product-meta">
-                <span className="product-price">{formatPrice(product.price)}</span>
+                <span className="product-price">
+                  {formatPrice(product.effective_price ?? product.price)}
+                  {product.on_sale && product.sale_price && (
+                    <span style={{ fontSize: "0.78em", opacity: 0.5, textDecoration: "line-through", marginLeft: "0.4rem" }}>
+                      {formatPrice(product.price)}
+                    </span>
+                  )}
+                </span>
                 <span
                   className={product.in_stock ? "product-stock" : "product-stock out"}
                 >
@@ -159,7 +176,7 @@ export default async function ProductDetailPage(props) {
               <p className="product-sku">SKU: {product.sku}</p>
               <div style={{ marginTop: "1.5rem" }}>
                 <div className="product-actions">
-                  <AddToCart productId={product.id} productName={product.name} productPrice={product.price} inStock={product.in_stock} variants={product.variants ?? []} />
+                  <AddToCart productId={product.id} productName={product.name} productPrice={product.effective_price ?? product.price} inStock={product.in_stock} variants={product.variants ?? []} />
                   <WishlistButton productId={product.id} product={product} withLabel />
                 </div>
               </div>

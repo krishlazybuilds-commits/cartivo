@@ -159,6 +159,34 @@ describe("ProductsPage", () => {
     expect(screen.getByText("$29.99")).toBeInTheDocument();
   });
 
+  it("renders sale price with strikethrough for on-sale product", async () => {
+    const products = [product(1, { price: "29.99", on_sale: true, sale_price: "24.99", effective_price: "24.99", display_badge: "Sale" })];
+    mockApiFetch.mockResolvedValueOnce({ results: products, count: 1 });
+    mockApiFetch.mockResolvedValueOnce({ results: [] });
+    const element = await ProductsPage({ searchParams: {} });
+    render(element);
+    expect(screen.getByText("$24.99")).toBeInTheDocument();
+    expect(screen.getByText("$29.99")).toBeInTheDocument();
+  });
+
+  it("renders display badge on product card", async () => {
+    const products = [product(1, { is_new: true, display_badge: "New" })];
+    mockApiFetch.mockResolvedValueOnce({ results: products, count: 1 });
+    mockApiFetch.mockResolvedValueOnce({ results: [] });
+    const element = await ProductsPage({ searchParams: {} });
+    render(element);
+    expect(screen.getByText("New")).toBeInTheDocument();
+  });
+
+  it("renders custom badge text", async () => {
+    const products = [product(1, { badge: "Clearance", display_badge: "Clearance" })];
+    mockApiFetch.mockResolvedValueOnce({ results: products, count: 1 });
+    mockApiFetch.mockResolvedValueOnce({ results: [] });
+    const element = await ProductsPage({ searchParams: {} });
+    render(element);
+    expect(screen.getByText("Clearance")).toBeInTheDocument();
+  });
+
   it("renders star rating when reviews exist", async () => {
     const products = [product(1, { avg_rating: 4, review_count: 5 })];
     mockApiFetch.mockResolvedValueOnce({ results: products, count: 1 });

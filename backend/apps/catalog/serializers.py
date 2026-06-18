@@ -32,6 +32,8 @@ class ProductSerializer(serializers.ModelSerializer):
     in_stock = serializers.BooleanField(read_only=True)
     avg_rating = serializers.FloatField(read_only=True, default=None)
     review_count = serializers.IntegerField(read_only=True, default=0)
+    effective_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    display_badge = serializers.CharField(read_only=True, allow_null=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
 
@@ -45,10 +47,17 @@ class ProductSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "price",
+            "sale_price",
+            "effective_price",
             "stock",
             "sku",
             "image",
             "is_active",
+            "is_featured",
+            "is_new",
+            "on_sale",
+            "badge",
+            "display_badge",
             "in_stock",
             "avg_rating",
             "review_count",

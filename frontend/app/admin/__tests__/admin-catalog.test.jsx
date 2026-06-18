@@ -54,8 +54,8 @@ const sampleCategories = [
   { id: 2, name: "Books", slug: "books" },
 ];
 const sampleProducts = [
-  { id: 1, name: "Widget", slug: "widget", category: 1, category_name: "Electronics", price: "19.99", stock: 10, sku: "WID-001", is_active: true, description: "A widget" },
-  { id: 2, name: "Gadget", slug: "gadget", category: 1, category_name: "Electronics", price: "29.99", stock: 0, sku: "GAD-001", is_active: false, description: "" },
+  { id: 1, name: "Widget", slug: "widget", category: 1, category_name: "Electronics", price: "19.99", stock: 10, sku: "WID-001", is_active: true, description: "A widget", effective_price: "19.99", is_featured: true, is_new: false, on_sale: false, sale_price: null, badge: "", display_badge: null },
+  { id: 2, name: "Gadget", slug: "gadget", category: 1, category_name: "Electronics", price: "29.99", stock: 0, sku: "GAD-001", is_active: false, description: "", effective_price: "24.99", is_featured: false, is_new: true, on_sale: true, sale_price: "24.99", badge: "Clearance", display_badge: "Clearance" },
 ];
 
 /** Helper: configures mount mocks for products (1st call) then categories (2nd call). */
@@ -189,6 +189,24 @@ describe("AdminCatalogPage — products", () => {
     render(<AdminCatalogPage />);
     expect(await screen.findByText(/no products yet/i)).toBeInTheDocument();
   });
+
+  it("renders product flag badges in table", async () => {
+    mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
+    mockMount({ results: sampleProducts }, sampleCategories);
+    render(<AdminCatalogPage />);
+    expect(await screen.findByText("Widget")).toBeInTheDocument();
+    expect(screen.getByText("Featured")).toBeInTheDocument();
+    expect(screen.getByText("Clearance")).toBeInTheDocument();
+  });
+
+  it("renders sale price with strikethrough for on-sale product", async () => {
+    mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
+    mockMount({ results: sampleProducts }, sampleCategories);
+    render(<AdminCatalogPage />);
+    expect(await screen.findByText("Widget")).toBeInTheDocument();
+    expect(screen.getByText("$24.99")).toBeInTheDocument();
+    expect(screen.getByText("$29.99")).toBeInTheDocument();
+  });
 });
 
 describe("AdminCatalogPage — product form", () => {
@@ -211,6 +229,51 @@ describe("AdminCatalogPage — product form", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Widget")).toBeInTheDocument();
     expect(screen.getByDisplayValue("WID-001")).toBeInTheDocument();
+  });
+
+  it("pre-fills flag fields when editing a product", async () => {
+    mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
+    mockMount({ results: [sampleProducts[1]] }, sampleCategories);
+    render(<AdminCatalogPage />);
+    expect(await screen.findByText("Gadget")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Edit"));
+    expect(screen.getByDisplayValue("Clearance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("24.99")).toBeInTheDocument();
+    expect(screen.getByLabelText("On sale")).toBeChecked();
+    expect(screen.getByLabelText("New arrival")).toBeChecked();
+    expect(screen.getByLabelText("Featured")).not.toBeChecked();
+  });
+
+  it("includes flag fields in create product submit", async () => {
+    mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
+    mockMount({ results: [] }, sampleCategories);
+    render(<AdminCatalogPage />);
+    expect(await screen.findByText(/\+ new product/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/\+ new product/i));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Flagged Item" } });
+    fireEvent.change(screen.getByLabelText("Category"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Price (USD)"), { target: { value: "15.00" } });
+    fireEvent.change(screen.getByLabelText("Stock"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("SKU"), { target: { value: "FLG-001" } });
+    fireEvent.click(screen.getByLabelText("Featured"));
+    fireEvent.click(screen.getByLabelText("New arrival"));
+    fireEvent.click(screen.getByLabelText("On sale"));
+    fireEvent.change(screen.getByLabelText("Sale price (USD)"), { target: { value: "12.00" } });
+    fireEvent.change(screen.getByLabelText("Custom badge"), { target: { value: "Special" } });
+    fireEvent.click(screen.getByRole("button", { name: /create product/i }));
+    await waitFor(() => {
+      expect(mockAuthFetch).toHaveBeenCalledWith("/products/", {
+        method: "POST",
+        body: expect.any(FormData),
+      });
+      const call = mockAuthFetch.mock.calls.find(c => c[0] === "/products/" && c[1]?.method === "POST");
+      const fd = call[1].body;
+      expect(fd.get("is_featured")).toBe("true");
+      expect(fd.get("is_new")).toBe("true");
+      expect(fd.get("on_sale")).toBe("true");
+      expect(fd.get("sale_price")).toBe("12.00");
+      expect(fd.get("badge")).toBe("Special");
+    });
   });
 
   it("creates a new product on submit", async () => {

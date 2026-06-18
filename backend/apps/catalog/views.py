@@ -28,7 +28,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     lookup_field = "slug"
     filter_backends = (DjangoFilterBackend, PostgresSearchFilter, OrderingFilter)
-    filterset_fields = ("category", "is_active")
+    filterset_fields = ("category", "is_active", "is_featured", "is_new", "on_sale")
     search_fields = ("name", "description", "sku")
     ordering_fields = ("price", "created_at", "name")
 

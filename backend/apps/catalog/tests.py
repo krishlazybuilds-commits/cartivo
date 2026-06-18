@@ -477,3 +477,71 @@ class WarehouseTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         # Only the stock entry for w1 (excludes CENTRAL seed + w2)
         self.assertEqual(res.data["count"], 1)
+
+
+class ProductFlagsTests(APITestCase):
+    def setUp(self):
+        self.staff = User.objects.create_superuser("staff", "staff@test.com", "pass")
+        self.user = User.objects.create_user("user", "user@test.com", "pass")
+        self.category = Category.objects.create(name="Flags Cat")
+        self.product = Product.objects.create(
+            category=self.category, name="Base", price=Decimal("20.00"),
+            stock=5, sku="FLAG-01",
+        )
+
+    def test_effective_price_returns_price_when_not_on_sale(self):
+        self.assertEqual(self.product.effective_price, Decimal("20.00"))
+
+    def test_effective_price_returns_sale_price_when_on_sale(self):
+        self.product.on_sale = True
+        self.product.sale_price = Decimal("15.00")
+        self.product.save()
+        self.assertEqual(self.product.effective_price, Decimal("15.00"))
+
+    def test_display_badge_returns_none_by_default(self):
+        self.assertIsNone(self.product.display_badge)
+
+    def test_display_badge_returns_new_when_is_new(self):
+        self.product.is_new = True
+        self.product.save()
+        self.assertEqual(self.product.display_badge, "New")
+
+    def test_display_badge_returns_sale_when_on_sale(self):
+        self.product.on_sale = True
+        self.product.sale_price = Decimal("15.00")
+        self.product.save()
+        self.assertEqual(self.product.display_badge, "Sale")
+
+    def test_display_badge_prefers_custom_over_auto(self):
+        self.product.is_new = True
+        self.product.badge = "Limited"
+        self.product.save()
+        self.assertEqual(self.product.display_badge, "Limited")
+
+    def test_filter_by_is_featured(self):
+        Product.objects.create(category=self.category, name="Featured", price=10, stock=1, sku="FEAT-01", is_featured=True)
+        Product.objects.create(category=self.category, name="Normal", price=10, stock=1, sku="NORM-01", is_featured=False)
+        self.client.force_authenticate(self.staff)
+        res = self.client.get("/api/v1/products/?is_featured=true")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        names = [p["name"] for p in res.data["results"]]
+        self.assertIn("Featured", names)
+        self.assertNotIn("Normal", names)
+
+    def test_serializer_exposes_new_fields(self):
+        self.product.is_featured = True
+        self.product.is_new = True
+        self.product.on_sale = True
+        self.product.sale_price = Decimal("15.00")
+        self.product.badge = "Clearance"
+        self.product.save()
+        self.client.force_authenticate(self.staff)
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data["is_featured"])
+        self.assertTrue(res.data["is_new"])
+        self.assertTrue(res.data["on_sale"])
+        self.assertEqual(res.data["sale_price"], "15.00")
+        self.assertEqual(res.data["badge"], "Clearance")
+        self.assertEqual(res.data["display_badge"], "Clearance")
+        self.assertEqual(res.data["effective_price"], "15.00")

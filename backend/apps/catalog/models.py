@@ -44,6 +44,7 @@ class Product(models.Model):
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=64, unique=True)
     image = models.ImageField(
@@ -56,6 +57,10 @@ class Product(models.Model):
         ],
     )
     is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    is_new = models.BooleanField(default=False)
+    on_sale = models.BooleanField(default=False)
+    badge = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -64,6 +69,9 @@ class Product(models.Model):
         indexes = [
             models.Index(fields=["slug"]),
             models.Index(fields=["is_active"]),
+            models.Index(fields=["is_featured"]),
+            models.Index(fields=["is_new"]),
+            models.Index(fields=["on_sale"]),
             # Storefront browse: filter by category and/or active flag, ordered
             # by newest first (the model's default ordering). The leading
             # column also serves category-only / active-only filters.
@@ -89,6 +97,22 @@ class Product(models.Model):
     @property
     def in_stock(self) -> bool:
         return self.stock > 0
+
+    @property
+    def effective_price(self):
+        if self.on_sale and self.sale_price is not None:
+            return self.sale_price
+        return self.price
+
+    @property
+    def display_badge(self):
+        if self.badge:
+            return self.badge
+        if self.is_new:
+            return "New"
+        if self.on_sale:
+            return "Sale"
+        return None
 
     def __str__(self) -> str:
         return self.name

@@ -13,10 +13,15 @@ const EMPTY_FORM = {
   name: "",
   category: "",
   price: "",
+  sale_price: "",
   stock: "",
   sku: "",
   description: "",
   is_active: true,
+  is_featured: false,
+  is_new: false,
+  on_sale: false,
+  badge: "",
 };
 
 export default function AdminCatalogPage() {
@@ -97,10 +102,15 @@ export default function AdminCatalogPage() {
       name: p.name,
       category: p.category,
       price: p.price,
+      sale_price: p.sale_price ?? "",
       stock: p.stock,
       sku: p.sku,
       description: p.description ?? "",
       is_active: p.is_active,
+      is_featured: p.is_featured,
+      is_new: p.is_new,
+      on_sale: p.on_sale,
+      badge: p.badge ?? "",
     });
   }
 
@@ -123,6 +133,11 @@ export default function AdminCatalogPage() {
       fd.append("sku", form.sku);
       fd.append("description", form.description);
       fd.append("is_active", form.is_active ? "true" : "false");
+      fd.append("is_featured", form.is_featured ? "true" : "false");
+      fd.append("is_new", form.is_new ? "true" : "false");
+      fd.append("on_sale", form.on_sale ? "true" : "false");
+      fd.append("badge", form.badge);
+      if (form.sale_price) fd.append("sale_price", form.sale_price);
       if (imageFile) fd.append("image", imageFile);
 
       if (editing) {
@@ -366,6 +381,7 @@ export default function AdminCatalogPage() {
                         <th>Price</th>
                         <th>Stock</th>
                         <th>Status</th>
+                        <th>Flags</th>
                         <th style={{ textAlign: "right" }}>Controls</th>
                       </tr>
                     </thead>
@@ -377,11 +393,22 @@ export default function AdminCatalogPage() {
                             <div className="admin-sku">{p.sku}</div>
                           </td>
                           <td>{p.category_name ?? "—"}</td>
-                          <td>{formatPrice(p.price)}</td>
+                          <td>
+                            {formatPrice(p.effective_price ?? p.price)}
+                            {p.on_sale && p.sale_price && <span style={{ fontSize: "0.78em", opacity: 0.5, textDecoration: "line-through", marginLeft: "0.3rem" }}>{formatPrice(p.price)}</span>}
+                          </td>
                           <td>{p.stock}</td>
                           <td>
                             <span className={p.is_active ? "product-stock" : "product-stock out"}>
                               {p.is_active ? "Active" : "Hidden"}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ display: "flex", gap: "0.25rem", fontSize: "0.75em" }}>
+                              {p.is_featured && <span className="product-stock" style={{ padding: "0.05rem 0.4rem", borderRadius: 4 }}>Featured</span>}
+                              {p.is_new && <span className="product-stock" style={{ padding: "0.05rem 0.4rem", borderRadius: 4, background: "#dbeafe", color: "#1e40af" }}>New</span>}
+                              {p.on_sale && <span className="product-stock" style={{ padding: "0.05rem 0.4rem", borderRadius: 4, background: "#fce7f3", color: "#9d174d" }}>Sale</span>}
+                              {p.badge && <span className="product-stock" style={{ padding: "0.05rem 0.4rem", borderRadius: 4, background: "#fef3c7", color: "#92400e" }}>{p.badge}</span>}
                             </span>
                           </td>
                           <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -566,6 +593,30 @@ export default function AdminCatalogPage() {
                 <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
                 Active (visible in shop)
               </label>
+              <div className="admin-form-row">
+                <label className="admin-checkbox">
+                  <input type="checkbox" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
+                  Featured
+                </label>
+                <label className="admin-checkbox">
+                  <input type="checkbox" checked={form.is_new} onChange={(e) => setForm({ ...form, is_new: e.target.checked })} />
+                  New arrival
+                </label>
+                <label className="admin-checkbox">
+                  <input type="checkbox" checked={form.on_sale} onChange={(e) => setForm({ ...form, on_sale: e.target.checked })} />
+                  On sale
+                </label>
+              </div>
+              <div className="admin-form-row">
+                <label>
+                  Sale price (USD)
+                  <input type="number" step="0.01" min="0" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: e.target.value })} />
+                </label>
+                <label>
+                  Custom badge
+                  <input type="text" value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="e.g. Clearance" />
+                </label>
+              </div>
               <div className="admin-form-actions">
                 <button type="button" className="btn btn-ghost" onClick={closeForm} disabled={saving}>
                   Cancel
