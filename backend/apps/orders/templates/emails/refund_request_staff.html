@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+<tr><td style="padding:32px 32px 16px;background:#dc2626;">
+<h1 style="color:#fff;margin:0;font-size:20px;">Cartivo &mdash; Refund Request</h1>
+</td></tr>
+<tr><td style="padding:24px 32px;">
+<p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6;">A customer has requested a refund.</p>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding:4px 0;font-size:13px;color:#64748b;">Customer</td><td style="padding:4px 0;font-size:14px;color:#334155;text-align:right;">{{ customer }}</td></tr>
+<tr><td style="padding:4px 0;font-size:13px;color:#64748b;">Order</td><td style="padding:4px 0;font-size:14px;color:#334155;text-align:right;">{{ order.order_number_short }} (#{{ order.id }})</td></tr>
+<tr><td style="padding:4px 0;font-size:13px;color:#64748b;">Status</td><td style="padding:4px 0;font-size:14px;color:#334155;text-align:right;">{{ order.status }}</td></tr>
+<tr><td style="padding:4px 0;font-size:13px;color:#64748b;">Total</td><td style="padding:4px 0;font-size:14px;color:#334155;text-align:right;">${{ order.total|floatformat:2 }}</td></tr>
+</table>
+<div style="margin-top:16px;padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;">
+<p style="margin:0 0 4px;font-size:13px;color:#991b1b;text-transform:uppercase;letter-spacing:1px;">Reason</p>
+<p style="margin:0;font-size:14px;color:#7f1d1d;line-height:1.6;">{{ reason }}</p>
+</div>
+<p style="color:#475569;margin:16px 0 0;font-size:14px;line-height:1.6;">Process the refund in the Stripe dashboard if approved.</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

@@ -3,9 +3,9 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import timezone
 
+from apps.orders.email_utils import send_html_email
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,6 @@ def send_abandoned_cart_emails_task():
 
     cutoff = timezone.now() - timedelta(hours=2)
 
-    # Find carts with items that belong to active users with emails,
-    # haven't been updated in 2 hours, and haven't received a recovery email yet.
     abandoned_carts = (
         Cart.objects.filter(
             items__isnull=False,
@@ -43,7 +41,6 @@ def send_abandoned_cart_emails_task():
         logger.info("No abandoned carts found to recover.")
         return 0
 
-    # Ensure a default recovery coupon exists
     coupon, created = Coupon.objects.get_or_create(
         code="COMEBACK10",
         defaults={
@@ -55,31 +52,35 @@ def send_abandoned_cart_emails_task():
         },
     )
 
+    cart_url = f"{getattr(settings, 'CORS_ALLOWED_ORIGINS', ['http://localhost:3000'])[0]}/cart"
     sent_count = 0
     for cart in abandoned_carts:
         user = cart.user
-        items_list = []
+        name = user.first_name or user.username
+        items = []
         for item in cart.items.all():
             suffix = f" ({item.variant.name})" if item.variant_id else ""
-            items_list.append(f"- {item.quantity}x {item.product.name}{suffix}")
+            items.append({"quantity": item.quantity, "name": f"{item.product.name}{suffix}"})
 
-        items_text = "\n".join(items_list)
+        items_text = "\n".join(f"- {i['quantity']}x {i['name']}" for i in items)
 
+        text_body = (
+            f"Hi {name},\n\n"
+            f"You left some items in your Cartivo shopping cart. We've saved them for you!\n\n"
+            f"Here is what's waiting for you:\n"
+            f"{items_text}\n\n"
+            f"To help you complete your purchase, use code {coupon.code} at checkout for 10% off your entire order!\n\n"
+            f"Return to your cart here: {cart_url}\n\n"
+            f"Best regards,\n"
+            f"The Cartivo Team"
+        )
         try:
-            send_mail(
+            send_html_email(
                 subject="We noticed you left something in your cart!",
-                message=(
-                    f"Hi {user.first_name or user.username},\n\n"
-                    f"You left some items in your Cartivo shopping cart. We've saved them for you!\n\n"
-                    f"Here is what's waiting for you:\n"
-                    f"{items_text}\n\n"
-                    f"To help you complete your purchase, use code {coupon.code} at checkout for 10% off your entire order!\n\n"
-                    f"Return to your cart here: {getattr(settings, 'CORS_ALLOWED_ORIGINS', ['http://localhost:3000'])[0]}/cart\n\n"
-                    f"Best regards,\n"
-                    f"The Cartivo Team"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                html_template="emails/abandoned_cart.html",
+                text_body=text_body,
                 recipient_list=[user.email],
+                context={"name": name, "items": items, "coupon_code": coupon.code, "cart_url": cart_url},
             )
             cart.abandoned_email_sent = True
             cart.save(update_fields=["abandoned_email_sent"])

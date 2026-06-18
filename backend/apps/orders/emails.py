@@ -1,24 +1,10 @@
 import logging
 
-from django.core.mail import send_mail
 from django.conf import settings
 
+from .email_utils import send_html_email
+
 logger = logging.getLogger(__name__)
-
-
-def _send(subject, body, recipient):
-    """Send an email.
-
-    Raises on failure so the calling Celery task can retry. These helpers are
-    invoked from background tasks (see apps.orders.tasks), so SMTP latency and
-    transient errors are kept off the request cycle and retried automatically.
-    """
-    send_mail(
-        subject=subject,
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[recipient],
-    )
 
 
 def send_order_confirmation(order):
@@ -29,11 +15,12 @@ def send_order_confirmation(order):
         logger.warning("send_order_confirmation: no recipient for order %s", order.id)
         return
     name = (user.first_name or user.email) if user else order.guest_email
+    items = list(order.items.select_related("product", "variant"))
     items_lines = "\n".join(
         f"  {item.quantity} x {item.product.name}" + (f" ({item.variant.name})" if item.variant else "") + f"  ${item.subtotal:.2f}"
-        for item in order.items.select_related("product", "variant")
+        for item in items
     )
-    body = (
+    text_body = (
         f"Hi {name},\n\n"
         f"Thanks for your order! Here's your summary:\n\n"
         f"Order {order.order_number_short}\n"
@@ -48,7 +35,13 @@ def send_order_confirmation(order):
         f"We'll notify you when your order ships.\n\n"
         f"— The Cartivo Team"
     )
-    _send(f"Order {order.order_number_short} confirmed — Cartivo", body, recipient)
+    send_html_email(
+        subject=f"Order {order.order_number_short} confirmed — Cartivo",
+        html_template="emails/order_confirmation.html",
+        text_body=text_body,
+        recipient_list=[recipient],
+        context={"name": name, "order": order, "items": items},
+    )
 
 
 def send_payment_confirmed(order):
@@ -59,7 +52,7 @@ def send_payment_confirmed(order):
         logger.warning("send_payment_confirmed: no recipient for order %s", order.id)
         return
     name = (user.first_name or user.email) if user else order.guest_email
-    body = (
+    text_body = (
         f"Hi {name},\n\n"
         f"Your payment for Order {order.order_number_short} has been received. "
         f"We're now preparing your order.\n\n"
@@ -70,4 +63,10 @@ def send_payment_confirmed(order):
         f"  {order.shipping_postal_code}, {order.shipping_country}\n\n"
         f"— The Cartivo Team"
     )
-    _send(f"Payment received for Order {order.order_number_short} — Cartivo", body, recipient)
+    send_html_email(
+        subject=f"Payment received for Order {order.order_number_short} — Cartivo",
+        html_template="emails/payment_confirmed.html",
+        text_body=text_body,
+        recipient_list=[recipient],
+        context={"name": name, "order": order},
+    )

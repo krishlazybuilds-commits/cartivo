@@ -1,7 +1,6 @@
 import logging
 import re
 
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -14,18 +13,17 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework import status
 
 from apps.accounts.email_utils import normalize_email, is_disposable_email
+from apps.orders.email_utils import send_html_email
 from .models import NewsletterSubscriber
 
 logger = logging.getLogger(__name__)
 
-# Reasonable upper bounds to prevent abuse / oversized payloads.
 MAX_NAME = 120
 MAX_EMAIL = 254
 MAX_MESSAGE = 5000
 
 
 class ContactRateThrottle(AnonRateThrottle):
-    """Limit unauthenticated contact submissions per client (see DRF rates)."""
     scope = "contact"
 
 
@@ -68,15 +66,16 @@ def contact(request):
     except ValidationError:
         return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
 
+    text_body = f"From: {name} <{email}>\n\n{message}"
     try:
-        send_mail(
+        send_html_email(
             subject=f"[Cartivo Contact] Message from {name}",
-            message=f"From: {name} <{email}>\n\n{message}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            html_template="emails/contact_message.html",
+            text_body=text_body,
             recipient_list=[settings.CONTACT_EMAIL],
+            context={"name": name, "email": email, "message": message},
         )
     except Exception:
-        # Don't leak SMTP errors to the client or 500 the request.
         logger.exception("Failed to send contact email")
         return Response(
             {"detail": "We couldn't send your message right now. Please try again later."},

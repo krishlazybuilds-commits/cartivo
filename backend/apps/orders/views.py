@@ -492,7 +492,7 @@ class OrderViewSet(
 
         # Email staff.
         from django.contrib.auth import get_user_model
-        from django.core.mail import send_mail
+        from .email_utils import send_html_email
         User = get_user_model()
         staff_emails = list(
             User.objects.filter(is_staff=True, is_active=True)
@@ -501,19 +501,21 @@ class OrderViewSet(
         )
         if staff_emails:
             customer = order.user.email if order.user else order.guest_email
+            text_body = (
+                f"Customer: {customer}\n"
+                f"Order: {order.order_number_short} (#{order.id})\n"
+                f"Status: {order.status}\n"
+                f"Total: ${order.total}\n\n"
+                f"Reason:\n{reason}\n\n"
+                f"Process the refund in the Stripe dashboard if approved."
+            )
             try:
-                send_mail(
+                send_html_email(
                     subject=f"[Cartivo] Refund request for Order {order.order_number_short}",
-                    message=(
-                        f"Customer: {customer}\n"
-                        f"Order: {order.order_number_short} (#{order.id})\n"
-                        f"Status: {order.status}\n"
-                        f"Total: ${order.total}\n\n"
-                        f"Reason:\n{reason}\n\n"
-                        f"Process the refund in the Stripe dashboard if approved."
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    html_template="emails/refund_request_staff.html",
+                    text_body=text_body,
                     recipient_list=staff_emails,
+                    context={"customer": customer, "order": order, "reason": reason},
                 )
             except Exception:
                 logger.exception("Failed to send refund request email for order %s", order.id)

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+<tr><td style="padding:32px 32px 16px;background:#1e293b;">
+<h1 style="color:#fff;margin:0;font-size:20px;">Cartivo</h1>
+</td></tr>
+<tr><td style="padding:24px 32px;">
+<h2 style="color:#1e293b;margin:0 0 16px;font-size:18px;">Order confirmed!</h2>
+<p style="color:#475569;margin:0 0 4px;font-size:14px;line-height:1.6;">Hi {{ name }},</p>
+<p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6;">Thanks for your order! Here&rsquo;s your summary:</p>
+
+<p style="font-size:13px;color:#64748b;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">Order {{ order.order_number_short }}</p>
+<table width="100%" cellpadding="0" cellspacing="0">
+{% for item in items %}
+<tr>
+<td style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:14px;color:#334155;">{{ item.quantity }} x {{ item.product.name }}{% if item.variant %} &mdash; {{ item.variant.name }}{% endif %}</td>
+<td style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:14px;color:#334155;text-align:right;">${{ item.subtotal|floatformat:2 }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+<tr><td style="font-size:14px;color:#475569;padding:4px 0;">Subtotal</td><td style="font-size:14px;color:#475569;padding:4px 0;text-align:right;">${{ order.items_total|floatformat:2 }}</td></tr>
+{% if order.discount > 0 %}
+<tr><td style="font-size:14px;color:#16a34a;padding:4px 0;">Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td><td style="font-size:14px;color:#16a34a;padding:4px 0;text-align:right;">&minus;${{ order.discount|floatformat:2 }}</td></tr>
+{% endif %}
+{% if order.shipping_cost > 0 %}
+<tr><td style="font-size:14px;color:#475569;padding:4px 0;">Shipping</td><td style="font-size:14px;color:#475569;padding:4px 0;text-align:right;">${{ order.shipping_cost|floatformat:2 }}</td></tr>
+{% endif %}
+{% if order.tax_amount > 0 %}
+<tr><td style="font-size:14px;color:#475569;padding:4px 0;">Tax</td><td style="font-size:14px;color:#475569;padding:4px 0;text-align:right;">${{ order.tax_amount|floatformat:2 }}</td></tr>
+{% endif %}
+<tr><td style="font-size:16px;font-weight:bold;color:#1e293b;padding:8px 0;border-top:2px solid #1e293b;">Total</td><td style="font-size:16px;font-weight:bold;color:#1e293b;padding:8px 0;border-top:2px solid #1e293b;text-align:right;">${{ order.total|floatformat:2 }}</td></tr>
+</table>
+
+<div style="margin-top:20px;padding:16px;background:#f1f5f9;border-radius:6px;">
+<p style="margin:0 0 4px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Shipping to</p>
+<p style="margin:0;font-size:14px;color:#334155;line-height:1.6;">
+{{ order.shipping_full_name }}<br>
+{{ order.shipping_address }}<br>
+{{ order.shipping_city }}, {{ order.shipping_postal_code }}<br>
+{{ order.shipping_country }}
+</p>
+</div>
+
+<p style="color:#475569;margin:16px 0 0;font-size:14px;line-height:1.6;">We&rsquo;ll notify you when your order ships.</p>
+</td></tr>
+<tr><td style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+<p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">&mdash; The Cartivo Team</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
