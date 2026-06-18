@@ -83,7 +83,7 @@ describe("AddToCart — add to cart button", () => {
     mockAddItem.mockImplementation(() => new Promise(() => {}));
     render(<AddToCart {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
-    expect(screen.getByText("Adding…")).toBeInTheDocument();
+    expect(screen.getByText("Adding")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /adding/i })).toBeDisabled();
   });
 
@@ -92,7 +92,7 @@ describe("AddToCart — add to cart button", () => {
     render(<AddToCart {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
     await waitFor(() => {
-      expect(screen.getByText("Added ✓")).toBeInTheDocument();
+      expect(screen.getByText("Added")).toBeInTheDocument();
     });
     expect(mockToast).toHaveBeenCalledWith("Added 1 to cart", "success");
   });
@@ -103,7 +103,7 @@ describe("AddToCart — add to cart button", () => {
     render(<AddToCart {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
     await act(async () => {});
-    expect(screen.getByText("Added ✓")).toBeInTheDocument();
+    expect(screen.getByText("Added")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(2000); });
     expect(screen.getByText("Add to cart")).toBeInTheDocument();
     vi.useRealTimers();

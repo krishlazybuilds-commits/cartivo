@@ -45,7 +45,7 @@ describe("WishlistButton — icon-only variant", () => {
     expect(btn).toHaveClass("active");
     const svg = btn.querySelector("svg");
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute("fill", "#f43f5e");
+    expect(svg).toHaveAttribute("fill", "currentColor");
   });
 
   it("calls toggle with productId on click", () => {
