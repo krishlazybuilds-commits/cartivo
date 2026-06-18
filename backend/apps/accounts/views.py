@@ -695,7 +695,7 @@ class EmailChangeRequestView(APIView):
         uid = urlsafe_base64_encode(force_bytes(request.user.pk))
         token = default_token_generator.make_token(request.user)
         frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
-        confirm_url = f"{frontend_base}/profile?email_uid={uid}&email_token={token}"
+        confirm_url = f"{frontend_base}/email-change?email_uid={uid}&email_token={token}"
         send_email_change_task.delay(request.user.pk, confirm_url)
         return Response({"detail": "Confirmation email sent. Check your new inbox."})
 
