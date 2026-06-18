@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import ImageLightbox from "./ImageLightbox";
 
 /**
  * Product image gallery with a large selected image and thumbnail strip.
  * Falls back to the base product image as the first slide if present.
+ * Click the main image to open a full-screen lightbox.
  */
 export default function GalleryImages({ images = [], mainImage, name }) {
   // Build the full list: extra images first (ordered by `order`), with the
@@ -17,6 +19,7 @@ export default function GalleryImages({ images = [], mainImage, name }) {
       : [];
 
   const [active, setActive] = useState(0);
+  const [lightbox, setLightbox] = useState(null);
 
   if (all.length === 0) {
     return <span className="product-image-ph large" aria-hidden="true">{name?.[0] ?? "?"}</span>;
@@ -24,18 +27,47 @@ export default function GalleryImages({ images = [], mainImage, name }) {
 
   const current = all[active];
 
+  function openLightbox() {
+    setLightbox(active);
+  }
+
+  function closeLightbox(index) {
+    if (index !== undefined && typeof index === "number") {
+      setActive(index);
+      setLightbox(null);
+    } else {
+      setLightbox(null);
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <div style={{ position: "relative", width: "100%", aspectRatio: "4/3", background: "var(--surface, #f5f5f5)", borderRadius: 8, overflow: "hidden" }}>
+      <div
+        style={{ position: "relative", width: "100%", aspectRatio: "4/3", background: "var(--surface, #f5f5f5)", borderRadius: 8, overflow: "hidden", cursor: "pointer" }}
+        onClick={openLightbox}
+        role="button"
+        tabIndex={0}
+        aria-label="Open image viewer"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openLightbox(); }}
+      >
         <Image
           src={current.image}
           alt={current.alt || name}
           fill
-          style={{ objectFit: "contain" }}
+          style={{ objectFit: "contain", pointerEvents: "none" }}
           priority={active === 0}
           sizes="(max-width: 768px) 100vw, 50vw"
         />
       </div>
+
+      {lightbox !== null && (
+        <ImageLightbox
+          images={all}
+          activeIndex={lightbox}
+          onClose={closeLightbox}
+          name={name}
+        />
+      )}
       {all.length > 1 && (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           {all.map((img, i) => (
