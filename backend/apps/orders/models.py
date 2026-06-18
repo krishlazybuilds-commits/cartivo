@@ -142,6 +142,9 @@ class Order(models.Model):
     # Customer-submitted refund request reason. Non-empty signals a pending request.
     refund_request_reason = models.TextField(blank=True, default="")
 
+    # Optional customer notes / special delivery instructions captured at checkout.
+    notes = models.TextField(blank=True, default="")
+
     CARRIER_CHOICES = [
         ("ups", "UPS"),
         ("fedex", "FedEx"),

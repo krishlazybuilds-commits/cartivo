@@ -62,6 +62,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "items",
             "created_at",
             "refund_request_reason",
+            "notes",
             "tracking_number",
             "carrier",
             "currency",
@@ -83,6 +84,8 @@ class CheckoutSerializer(serializers.Serializer):
     shipping_country = serializers.CharField(max_length=120)
     # Optional coupon code
     coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    # Optional customer notes / special delivery instructions
+    notes = serializers.CharField(max_length=1000, required=False, allow_blank=True, default="")
 
 
 class GuestCartItemSerializer(serializers.Serializer):
@@ -106,6 +109,7 @@ class GuestCheckoutSerializer(serializers.Serializer):
     shipping_postal_code = serializers.CharField(max_length=20)
     shipping_country = serializers.CharField(max_length=120)
     coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    notes = serializers.CharField(max_length=1000, required=False, allow_blank=True, default="")
 
 
 # ---------------------------------------------------------------------------

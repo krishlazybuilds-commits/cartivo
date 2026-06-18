@@ -241,6 +241,11 @@ export default function AdminOrdersPage() {
                                 <span style={{ fontWeight: 600 }}>Refund Reason:</span> &ldquo;{o.refund_request_reason}&rdquo;
                               </div>
                             )}
+                            {o.notes && (
+                              <div style={{ fontSize: "0.78rem", color: "#475569", marginTop: "0.3rem", padding: "0.4rem 0.6rem", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", maxWidth: "250px", whiteSpace: "pre-wrap" }}>
+                                <span style={{ fontWeight: 600 }}>Notes:</span> &ldquo;{o.notes}&rdquo;
+                              </div>
+                            )}
                           </td>
                           <td style={{ padding: "0.6rem" }}>{formatDate(o.created_at)}</td>
                           <td style={{ padding: "0.6rem" }}>${Number(o.total).toFixed(2)}</td>

@@ -225,6 +225,7 @@ describe("CheckoutPage — order submission", () => {
           shipping_city: "Portland",
           shipping_postal_code: "97201",
           shipping_country: "US",
+          notes: "",
           coupon_code: "",
         }),
       }));

@@ -17,6 +17,7 @@ const EMPTY = {
   shipping_city: "",
   shipping_postal_code: "",
   shipping_country: "US",
+  notes: "",
 };
 
 export default function CheckoutPage() {
@@ -87,13 +88,14 @@ export default function CheckoutPage() {
   }, [user, cart, refresh]);
 
   function fillFromAddress(addr) {
-    setForm({
+    setForm((f) => ({
+      ...f,
       shipping_full_name: addr.full_name,
       shipping_address: addr.address,
       shipping_city: addr.city,
       shipping_postal_code: addr.postal_code,
       shipping_country: addr.country,
-    });
+    }));
   }
 
   function update(field) {
@@ -292,6 +294,17 @@ export default function CheckoutPage() {
                       <option value="FR">France</option>
                       <option value="OTHER">Other</option>
                     </select>
+                  </label>
+
+                  <label style={{ marginTop: "1rem" }}>
+                    Order notes <span style={{ opacity: 0.5, fontSize: "0.85em" }}>(optional)</span>
+                    <textarea
+                      value={form.notes}
+                      onChange={update("notes")}
+                      rows={3}
+                      maxLength={1000}
+                      placeholder="Special delivery instructions, gift message, etc."
+                    />
                   </label>
 
                   <div className="coupon-field" style={{ marginTop: "1rem" }}>
