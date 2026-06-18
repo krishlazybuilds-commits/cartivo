@@ -233,7 +233,7 @@ describe("ProductReviews — form submission", () => {
         body: JSON.stringify({ product: 1, rating: 4, title: "Nice", body: "Great product" }),
       });
     });
-    expect(mockToast).toHaveBeenCalledWith("Thanks for your review!", "success");
+    expect(mockToast).toHaveBeenCalledWith("Your review has been submitted for approval.", "success");
   });
 
   it("shows error toast when authFetch fails", async () => {
@@ -266,7 +266,7 @@ describe("ProductReviews — form submission", () => {
     });
   });
 
-  it("resets form fields after successful submit", async () => {
+  it("shows pending approval message after successful submit", async () => {
     mockFetchReviews([]);
     mockAuthFetch.mockResolvedValue({});
     mockUseAuth.mockReturnValue({ user: { id: 1, username: "NewUser" } });
@@ -279,10 +279,8 @@ describe("ProductReviews — form submission", () => {
     fireEvent.change(screen.getByPlaceholderText(/share your thoughts/i), { target: { value: "Great!" } });
     fireEvent.click(screen.getByRole("button", { name: /post review/i }));
     await waitFor(() => {
-      expect(mockAuthFetch).toHaveBeenCalled();
+      expect(screen.getByText(/pending approval/i)).toBeInTheDocument();
     });
-    expect(screen.getByPlaceholderText(/title/i)).toHaveValue("");
-    expect(screen.getByPlaceholderText(/share your thoughts/i)).toHaveValue("");
-    expect(screen.getByLabelText("4 stars")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: /post review/i })).not.toBeInTheDocument();
   });
 });

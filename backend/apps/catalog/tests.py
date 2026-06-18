@@ -7,7 +7,7 @@ from django.db import connection
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.catalog.models import Category, Product, WishlistItem
+from apps.catalog.models import Category, Product, Review, WishlistItem
 
 User = get_user_model()
 
@@ -281,3 +281,115 @@ class LowStockAlertTaskTests(APITestCase):
         self.assertIn("Base Product — Variant Product", kwargs["subject"])
         self.assertIn("VAR-SKU", kwargs["message"])
         self.assertIn("staff_alert@test.com", kwargs["recipient_list"])
+
+
+class ReviewModerationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="reviewer", password="pass12345", email="rev@test.com"
+        )
+        self.admin = User.objects.create_superuser(
+            username="admin", password="pass12345", email="admin@test.com"
+        )
+        self.cat = Category.objects.create(name="Review Cat")
+        self.product = Product.objects.create(
+            category=self.cat, name="Reviewable", price=Decimal("15.00"),
+            stock=5, sku="REV-001",
+        )
+
+    def test_new_review_defaults_to_pending(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.post("/api/v1/reviews/", {
+            "product": self.product.id, "rating": 5, "title": "Great", "body": "Love it",
+        }, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["status"], "pending")
+        self.assertEqual(Review.objects.count(), 1)
+
+    def test_public_list_excludes_pending_reviews(self):
+        Review.objects.create(
+            product=self.product, user=self.user, rating=4,
+            title="Approved", status=Review.Status.APPROVED,
+        )
+        Review.objects.create(
+            product=self.product, user=self.admin, rating=2,
+            title="Pending", status=Review.Status.PENDING,
+        )
+        res = self.client.get(f"/api/v1/reviews/?product={self.product.id}")
+        results = res.data["results"] if "results" in res.data else res.data
+        titles = [r["title"] for r in results]
+        self.assertIn("Approved", titles)
+        self.assertNotIn("Pending", titles)
+
+    def test_staff_sees_all_reviews(self):
+        Review.objects.create(
+            product=self.product, user=self.user, rating=4,
+            title="Approved", status=Review.Status.APPROVED,
+        )
+        Review.objects.create(
+            product=self.product, user=self.admin, rating=2,
+            title="Pending", status=Review.Status.PENDING,
+        )
+        self.client.force_authenticate(self.admin)
+        res = self.client.get(f"/api/v1/reviews/?product={self.product.id}")
+        results = res.data["results"] if "results" in res.data else res.data
+        self.assertEqual(len(results), 2)
+
+    def test_staff_can_filter_by_status(self):
+        Review.objects.create(
+            product=self.product, user=self.user, rating=4,
+            title="Approved", status=Review.Status.APPROVED,
+        )
+        Review.objects.create(
+            product=self.product, user=self.admin, rating=2,
+            title="Pending", status=Review.Status.PENDING,
+        )
+        self.client.force_authenticate(self.admin)
+        res = self.client.get(f"/api/v1/reviews/?status=pending")
+        results = res.data["results"] if "results" in res.data else res.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["title"], "Pending")
+
+    def test_approve_action_sets_approved(self):
+        review = Review.objects.create(
+            product=self.product, user=self.user, rating=3,
+            title="Needs Approval",
+        )
+        self.client.force_authenticate(self.admin)
+        res = self.client.post(f"/api/v1/reviews/{review.id}/approve/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        review.refresh_from_db()
+        self.assertEqual(review.status, Review.Status.APPROVED)
+
+    def test_reject_action_sets_rejected(self):
+        review = Review.objects.create(
+            product=self.product, user=self.user, rating=3,
+            title="Needs Rejection",
+        )
+        self.client.force_authenticate(self.admin)
+        res = self.client.post(f"/api/v1/reviews/{review.id}/reject/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        review.refresh_from_db()
+        self.assertEqual(review.status, Review.Status.REJECTED)
+
+    def test_non_staff_cannot_approve(self):
+        review = Review.objects.create(
+            product=self.product, user=self.user, rating=3,
+            title="Mine",
+        )
+        self.client.force_authenticate(self.user)
+        res = self.client.post(f"/api/v1/reviews/{review.id}/approve/")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_can_update_own_pending_review(self):
+        review = Review.objects.create(
+            product=self.product, user=self.user, rating=2,
+            title="Old Title",
+        )
+        self.client.force_authenticate(self.user)
+        res = self.client.patch(f"/api/v1/reviews/{review.id}/", {"title": "Updated"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        review.refresh_from_db()
+        self.assertEqual(review.title, "Updated")
+        # Status stays pending
+        self.assertEqual(review.status, Review.Status.PENDING)

@@ -1,8 +1,10 @@
 from django.db.models import Avg, Count
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
 
 from .filters import PostgresSearchFilter
 from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
@@ -63,29 +65,58 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """Product reviews. Anyone can read; authenticated users can create/update/delete their own."""
+    """Product reviews. Anyone can read approved reviews.
+
+    Authenticated users can create reviews (one per product) and edit/delete
+    their own. Staff can see all reviews regardless of status, filter by
+    status via ``?status=``, and approve/reject via dedicated actions.
+    """
 
     serializer_class = ReviewSerializer
-    filterset_fields = ("product", "rating")
+    filterset_fields = ("product", "rating", "status")
     ordering_fields = ("created_at", "rating")
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
+        if self.action in ("approve", "reject"):
+            return [IsAdminUser()]
         # create/update/delete all require auth; update/delete are further
         # scoped to the author's own reviews in get_queryset.
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        qs = Review.objects.select_related("user")
-        # Restrict edits/deletes to the author's own reviews. Listing/retrieving
-        # by product is handled by the filter backend (?product=<id>).
+        qs = Review.objects.select_related("user", "product")
+        user = self.request.user
+
+        # Restrict edits/deletes to the author's own reviews.
         if self.action in ("update", "partial_update", "destroy"):
-            return qs.filter(user=self.request.user)
+            return qs.filter(user=user)
+
+        # Non-staff users see only approved reviews (public).
+        # Staff can optionally filter by status via ?status=.
+        if self.action in ("list", "retrieve"):
+            if not (user and user.is_staff):
+                qs = qs.filter(status=Review.Status.APPROVED)
+
         return qs
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        review = self.get_object()
+        review.status = Review.Status.APPROVED
+        review.save(update_fields=["status"])
+        return Response({"detail": "Review approved.", "status": review.status})
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        review = self.get_object()
+        review.status = Review.Status.REJECTED
+        review.save(update_fields=["status"])
+        return Response({"detail": "Review rejected.", "status": review.status})
 
 
 class WishlistItemViewSet(viewsets.ModelViewSet):

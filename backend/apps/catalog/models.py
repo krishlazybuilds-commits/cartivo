@@ -3,6 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
 
 from .validators import validate_image_size
 
@@ -159,9 +160,20 @@ class Review(models.Model):
     """Product review with a 1–5 star rating.
 
     Each user may leave only one review per product (enforced by unique_together
-    and a CheckConstraint). Reviews are public and displayed on product pages as
-    social proof.
+    and a CheckConstraint). Reviews go through a moderation workflow: new reviews
+    are PENDING until approved by staff.
     """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
 
     product = models.ForeignKey(
         Product,

@@ -45,6 +45,7 @@ export default function ProductReviews({ productId }) {
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submittedPending, setSubmittedPending] = useState(false);
 
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
@@ -84,11 +85,11 @@ export default function ProductReviews({ productId }) {
         method: "POST",
         body: JSON.stringify({ product: productId, rating, title, body }),
       });
-      toast("Thanks for your review!", "success");
+      toast("Your review has been submitted for approval.", "success");
+      setSubmittedPending(true);
       setRating(0);
       setTitle("");
       setBody("");
-      await load();
     } catch (err) {
       toast(err.message || "Couldn't post your review", "error");
     } finally {
@@ -105,7 +106,9 @@ export default function ProductReviews({ productId }) {
 
       {/* Write-a-review form */}
       {user ? (
-        alreadyReviewed ? (
+        submittedPending ? (
+          <p className="reviews-note">Your review is pending approval and will appear once reviewed.</p>
+        ) : alreadyReviewed ? (
           <p className="reviews-note">You&apos;ve already reviewed this product.</p>
         ) : (
           <form className="review-form" onSubmit={submit}>

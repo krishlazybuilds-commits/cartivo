@@ -62,19 +62,31 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
 
     class Meta:
         model = Review
         fields = (
             "id",
             "product",
+            "product_name",
             "username",
             "rating",
             "title",
             "body",
+            "status",
             "created_at",
         )
-        read_only_fields = ("id", "username", "created_at")
+        read_only_fields = ("id", "product_name", "username", "created_at")
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if request and request.user and request.user.is_staff:
+            fields["status"].read_only = False
+        else:
+            fields["status"].read_only = True
+        return fields
 
     def validate(self, data):
         request = self.context.get("request")
