@@ -545,3 +545,117 @@ class ProductFlagsTests(APITestCase):
         self.assertEqual(res.data["badge"], "Clearance")
         self.assertEqual(res.data["display_badge"], "Clearance")
         self.assertEqual(res.data["effective_price"], "15.00")
+
+
+class WarehouseStockEdgeCaseTests(APITestCase):
+    """Edge cases for warehouse stock management."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="WH Edge")
+        self.product = Product.objects.create(
+            category=self.category, name="WH Product",
+            price=Decimal("10.00"), sku="WH-EDGE-1", stock=5,
+        )
+
+    def test_no_active_warehouses_auto_creates_central(self):
+        """When no active warehouses exist, create_order_and_items self-heals."""
+        from apps.orders.services import create_order_and_items
+
+        Warehouse.objects.all().delete()
+
+        order_kwargs = {
+            "shipping_full_name": "Test", "shipping_address": "123 St",
+            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_country": "US",
+        }
+        order, _ = create_order_and_items(
+            order_kwargs={**order_kwargs, "user": None, "guest_email": "nowh@test.com"},
+            items=[{"product_id": self.product.id, "quantity": 1}],
+        )
+        self.assertIsNotNone(order.warehouse)
+        self.assertEqual(order.warehouse.code, "CENTRAL")
+
+    def test_deactivated_warehouse_skipped_for_fulfillment(self):
+        """Deactivated warehouses should not be selected for order fulfillment."""
+        from apps.catalog.models import Warehouse, WarehouseStock
+        from apps.orders.services import create_order_and_items
+
+        Warehouse.objects.all().delete()
+        wh_active = Warehouse.objects.create(name="Active WH", code="ACTV", is_active=True)
+        wh_inactive = Warehouse.objects.create(name="Inactive WH", code="NOPE", is_active=False)
+        WarehouseStock.objects.create(warehouse=wh_inactive, product=self.product, stock=10)
+        WarehouseStock.objects.create(warehouse=wh_active, product=self.product, stock=3)
+
+        order_kwargs = {
+            "shipping_full_name": "Test", "shipping_address": "123 St",
+            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_country": "US",
+        }
+        items = [{"product_id": self.product.id, "quantity": 3}]
+        order, _ = create_order_and_items(
+            order_kwargs={**order_kwargs, "user": None, "guest_email": "deact@test.com"},
+            items=items,
+        )
+        # Should pick active WH (stock=3) even though inactive has 10
+        self.assertEqual(order.warehouse, wh_active)
+
+    def test_exact_warehouse_stock_succeeds(self):
+        """Ordering exactly the available stock in a warehouse succeeds."""
+        from apps.catalog.models import Warehouse, WarehouseStock
+        from apps.orders.services import create_order_and_items
+
+        Warehouse.objects.all().delete()
+        wh = Warehouse.objects.create(name="Exact WH", code="EXACT", is_active=True)
+        WarehouseStock.objects.create(warehouse=wh, product=self.product, stock=5)
+
+        order_kwargs = {
+            "shipping_full_name": "Exact Test", "shipping_address": "5 Exact St",
+            "shipping_city": "Exact", "shipping_postal_code": "55555",
+            "shipping_country": "US",
+        }
+        order, _ = create_order_and_items(
+            order_kwargs={**order_kwargs, "user": None, "guest_email": "exact@test.com"},
+            items=[{"product_id": self.product.id, "quantity": 5}],
+        )
+        self.assertEqual(order.items.count(), 1)
+
+    def test_order_exceeding_all_warehouse_stock_raises_error(self):
+        """Ordering more than total available across all warehouses fails."""
+        from apps.catalog.models import Warehouse, WarehouseStock
+        from apps.orders.models import Order
+        from apps.orders.services import CheckoutError, create_order_and_items
+
+        Warehouse.objects.all().delete()
+        wh = Warehouse.objects.create(name="Limited WH", code="LIMIT", is_active=True)
+        WarehouseStock.objects.create(warehouse=wh, product=self.product, stock=3)
+
+        order_kwargs = {
+            "shipping_full_name": "Over Test", "shipping_address": "99 Over St",
+            "shipping_city": "Over", "shipping_postal_code": "99999",
+            "shipping_country": "US",
+        }
+        with self.assertRaises(CheckoutError):
+            create_order_and_items(
+                order_kwargs={**order_kwargs, "user": None, "guest_email": "overwh@test.com"},
+                items=[{"product_id": self.product.id, "quantity": 5}],
+            )
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_warehouse_stock_filter_by_warehouse(self):
+        """Warehouse stock endpoint filters correctly by warehouse."""
+        from apps.catalog.models import Warehouse, WarehouseStock
+
+        User = get_user_model()
+        staff = User.objects.create_superuser("whstaff", "wh@test.com", "pass")
+        self.client.force_authenticate(staff)
+
+        wh1 = Warehouse.objects.create(name="Filter WH A", code="FILA", is_active=True)
+        wh2 = Warehouse.objects.create(name="Filter WH B", code="FILB", is_active=True)
+        WarehouseStock.objects.create(warehouse=wh1, product=self.product, stock=5)
+        WarehouseStock.objects.create(warehouse=wh2, product=self.product, stock=10)
+
+        res = self.client.get(f"/api/v1/warehouse-stocks/?warehouse={wh1.id}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data["results"] if "results" in res.data else res.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["stock"], 5)
