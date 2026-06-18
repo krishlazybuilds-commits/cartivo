@@ -75,9 +75,29 @@ class ProductViewSet(viewsets.ModelViewSet):
         return qs.order_by("-created_at", "id")
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "related"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
+
+    @action(detail=True, methods=["get"])
+    def related(self, request, slug=None):
+        """Return up to 4 related products from the same category,
+        excluding the current product, ordered by highest-rated first."""
+        product = self.get_object()
+        related_qs = (
+            Product.objects
+            .filter(category=product.category)
+            .exclude(pk=product.pk)
+            .select_related("category")
+            .prefetch_related("variants", "images")
+            .annotate(
+                avg_rating=Avg("reviews__rating"),
+                review_count=Count("reviews"),
+            )
+            .order_by("-avg_rating", "-created_at")[:4]
+        )
+        serializer = self.get_serializer(related_qs, many=True)
+        return Response(serializer.data)
 
     EXPORT_FIELDS = [
         "id", "name", "slug", "sku", "category_name",

@@ -479,6 +479,86 @@ class WarehouseTests(APITestCase):
         self.assertEqual(res.data["count"], 1)
 
 
+class RelatedProductsTests(APITestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Tech")
+        self.other_cat = Category.objects.create(name="Books")
+        self.product = Product.objects.create(
+            category=self.category, name="Main Product",
+            price=Decimal("20.00"), stock=5, sku="MAIN-01",
+        )
+        # 3 related products in same category
+        self.related = []
+        for i in range(3):
+            p = Product.objects.create(
+                category=self.category, name=f"Related {i}",
+                price=Decimal(f"{10 + i}.00"), stock=3, sku=f"REL-{i:02d}",
+            )
+            self.related.append(p)
+        # 1 product in different category (should NOT be related)
+        self.unrelated = Product.objects.create(
+            category=self.other_cat, name="Unrelated",
+            price=Decimal("15.00"), stock=2, sku="UNREL-01",
+        )
+
+    def test_related_returns_same_category_products(self):
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        slugs = {p["slug"] for p in res.data}
+        for p in self.related:
+            self.assertIn(p.slug, slugs)
+        self.assertNotIn(self.unrelated.slug, slugs)
+        self.assertNotIn(self.product.slug, slugs)
+
+    def test_related_excludes_current_product(self):
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
+        slugs = {p["slug"] for p in res.data}
+        self.assertNotIn(self.product.slug, slugs)
+
+    def test_related_returns_max_four(self):
+        # Add a 4th product to same category
+        Product.objects.create(
+            category=self.category, name="Related 4",
+            price=Decimal("14.00"), stock=3, sku="REL-04",
+        )
+        Product.objects.create(
+            category=self.category, name="Related 5",
+            price=Decimal("15.00"), stock=3, sku="REL-05",
+        )
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
+        self.assertLessEqual(len(res.data), 4)
+
+    def test_related_empty_when_alone_in_category(self):
+        empty_cat = Category.objects.create(name="Empty Cat")
+        lone = Product.objects.create(
+            category=empty_cat, name="Lone Wolf",
+            price=Decimal("99.00"), stock=1, sku="LONE-01",
+        )
+        res = self.client.get(f"/api/v1/products/{lone.slug}/related/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 0)
+
+    def test_related_is_publicly_accessible(self):
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_related_returns_serialized_with_ratings(self):
+        # Add a review to one of the related products
+        user = get_user_model().objects.create_user("rater", "rater@test.com", "pass")
+        from apps.catalog.models import Review
+        rated = self.related[0]
+        Review.objects.create(
+            product=rated, user=user, rating=5,
+            title="Great", status=Review.Status.APPROVED,
+        )
+        res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # The rated product should be among results with correct fields
+        rated_result = next(p for p in res.data if p["slug"] == rated.slug)
+        self.assertEqual(rated_result["avg_rating"], 5.0)
+        self.assertEqual(rated_result["review_count"], 1)
+
+
 class ProductFlagsTests(APITestCase):
     def setUp(self):
         self.staff = User.objects.create_superuser("staff", "staff@test.com", "pass")

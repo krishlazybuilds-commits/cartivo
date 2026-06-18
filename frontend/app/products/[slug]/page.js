@@ -11,6 +11,7 @@ import JsonLd from "../../components/JsonLd";
 import GalleryImages from "../../components/GalleryImages";
 import RecentlyViewedTracker from "../../components/RecentlyViewedTracker";
 import RecentlyViewed from "../../components/RecentlyViewed";
+import RelatedProducts from "../../components/RelatedProducts";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
@@ -186,6 +187,8 @@ export default async function ProductDetailPage(props) {
             </Reveal>
 
             <ProductReviews productId={product.id} />
+
+            <RelatedProducts product={product} />
 
             <RecentlyViewed />
           </div>
