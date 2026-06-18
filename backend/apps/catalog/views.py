@@ -1,14 +1,30 @@
+import csv
+import io
+from decimal import Decimal
+
 from django.db.models import Avg, Count
+from django.http import StreamingHttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .filters import PostgresSearchFilter
 from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
-from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WarehouseSerializer, WarehouseStockSerializer, WishlistItemSerializer
+from .serializers import (
+    CategorySerializer,
+    ProductImageSerializer,
+    ProductImportSerializer,
+    ProductSerializer,
+    ProductVariantSerializer,
+    ReviewSerializer,
+    WarehouseSerializer,
+    WarehouseStockSerializer,
+    WishlistItemSerializer,
+)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -62,6 +78,158 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
+
+    EXPORT_FIELDS = [
+        "id", "name", "slug", "sku", "category_name",
+        "price", "sale_price", "stock", "description",
+        "is_active", "is_featured", "is_new", "on_sale", "badge",
+    ]
+
+    def _product_rows(self):
+        qs = self.get_queryset().select_related("category")
+        for p in qs:
+            yield {f: getattr(p, f, "") for f in self.EXPORT_FIELDS}
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        fmt = request.query_params.get("format", "csv")
+
+        if fmt == "xlsx":
+            return self._export_xlsx()
+        return self._export_csv()
+
+    def _export_csv(self):
+        rows = list(self._product_rows())
+
+        def stream():
+            buffer = io.StringIO()
+            writer = csv.DictWriter(buffer, fieldnames=self.EXPORT_FIELDS)
+            writer.writeheader()
+            yield buffer.getvalue()
+            for row in rows:
+                buffer = io.StringIO()
+                row_out = {k: str(v) if v is not None else "" for k, v in row.items()}
+                writer = csv.DictWriter(buffer, fieldnames=self.EXPORT_FIELDS)
+                writer.writerow(row_out)
+                yield buffer.getvalue()
+
+        response = StreamingHttpResponse(stream(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="products.csv"'
+        return response
+
+    def _export_xlsx(self):
+        from openpyxl import Workbook
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Products"
+        ws.append(self.EXPORT_FIELDS)
+        for row in self._product_rows():
+            ws.append([str(row[f]) if row[f] is not None else "" for f in self.EXPORT_FIELDS])
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        from django.http import HttpResponse
+        response = HttpResponse(
+            output.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="products.xlsx"'
+        return response
+
+    @action(detail=False, methods=["post"], parser_classes=[MultiPartParser, FormParser])
+    def import_products(self, request):
+        ser = ProductImportSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        file = ser.validated_data["file"]
+
+        ext = file.name.rsplit(".", 1)[-1].lower() if "." in file.name else ""
+        if ext == "xlsx":
+            return self._import_xlsx(file)
+        return self._import_csv(file)
+
+    def _import_csv(self, file):
+        decoded = file.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(decoded))
+        return self._process_rows(reader)
+
+    def _import_xlsx(self, file):
+        from openpyxl import load_workbook
+
+        wb = load_workbook(file, read_only=True)
+        ws = wb.active
+        rows_iter = ws.iter_rows(values_only=True)
+        header = [str(c).strip().lower() if c else "" for c in next(rows_iter, [])]
+        rows = [dict(zip(header, [str(c) if c is not None else "" for c in row])) for row in rows_iter]
+        return self._process_rows(rows)
+
+    def _process_rows(self, rows):
+        created = 0
+        updated = 0
+        errors = []
+
+        for i, row in enumerate(rows, start=2):
+            sku = (row.get("sku") or "").strip()
+            name = (row.get("name") or "").strip()
+            if not sku or not name:
+                errors.append(f"Row {i}: missing sku or name")
+                continue
+
+            price_raw = (row.get("price") or "").strip()
+            try:
+                price = Decimal(price_raw) if price_raw else Decimal("0")
+            except Exception:
+                errors.append(f"Row {i}: invalid price '{price_raw}'")
+                continue
+
+            cat_name = (row.get("category_name") or "").strip()
+            category = None
+            if cat_name:
+                category = Category.objects.filter(name__iexact=cat_name).first()
+
+            defaults = {
+                "name": name,
+                "price": price,
+                "description": (row.get("description") or "").strip(),
+                "is_active": (row.get("is_active") or "").strip().lower() in ("1", "true", "yes"),
+                "is_featured": (row.get("is_featured") or "").strip().lower() in ("1", "true", "yes"),
+                "is_new": (row.get("is_new") or "").strip().lower() in ("1", "true", "yes"),
+                "on_sale": (row.get("on_sale") or "").strip().lower() in ("1", "true", "yes"),
+                "badge": (row.get("badge") or "").strip(),
+            }
+
+            sale_price_raw = (row.get("sale_price") or "").strip()
+            if sale_price_raw:
+                try:
+                    defaults["sale_price"] = Decimal(sale_price_raw)
+                except Exception:
+                    errors.append(f"Row {i}: invalid sale_price '{sale_price_raw}'")
+                    continue
+
+            stock_raw = (row.get("stock") or "").strip()
+            try:
+                defaults["stock"] = int(stock_raw) if stock_raw else 0
+            except ValueError:
+                errors.append(f"Row {i}: invalid stock '{stock_raw}'")
+                continue
+
+            if category:
+                defaults["category"] = category
+
+            _, is_created = Product.objects.update_or_create(sku=sku, defaults=defaults)
+            if is_created:
+                created += 1
+            else:
+                updated += 1
+
+        return Response({
+            "created": created,
+            "updated": updated,
+            "errors": errors,
+            "total": created + updated + len(errors),
+        })
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

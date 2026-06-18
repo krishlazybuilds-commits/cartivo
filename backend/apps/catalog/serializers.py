@@ -138,6 +138,13 @@ class WishlistItemSerializer(serializers.ModelSerializer):
         return value
 
 
+class ProductImportSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    class Meta:
+        fields = ("file",)
+
+
 class WarehouseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Warehouse

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminTabs from "../../components/AdminTabs";
@@ -49,6 +49,12 @@ export default function AdminCatalogPage() {
   const [catBusy, setCatBusy] = useState(false);
   const [catToDelete, setCatToDelete] = useState(null);
 
+  // Export/import state.
+  const [exportBusy, setExportBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importRef = useRef(null);
+
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
 
@@ -88,6 +94,51 @@ export default function AdminCatalogPage() {
       loadCategories();
     }
   }, [isAdmin, loadProducts, loadCategories]);
+
+  async function handleExport(fmt) {
+    setExportBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/products/export/?format=${fmt}`, {
+        credentials: "include",
+        headers: { "X-CSRFToken": document.cookie.match(/csrf=[^;]+/)?.[0]?.split("=")?.[1] ?? "" },
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `products.${fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportBusy(true);
+    setImportResult(null);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const data = await authFetch("/products/import_products/", { method: "POST", body: fd });
+      setImportResult(data);
+      await loadProducts();
+    } catch (err) {
+      setError(extractError(err.data, err.message));
+    } finally {
+      setImportBusy(false);
+      if (importRef.current) importRef.current.value = "";
+    }
+  }
 
   function openNew() {
     setEditing(null);
@@ -362,10 +413,39 @@ export default function AdminCatalogPage() {
             <div className="admin-panel">
               <div className="admin-panel-head">
                 <h3>Products</h3>
-                <button type="button" className="btn btn-primary" onClick={openNew}>
-                  + New product
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy}>
+                    {exportBusy ? "Exporting…" : "Export CSV"}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => handleExport("xlsx")} disabled={exportBusy}>
+                    {exportBusy ? "Exporting…" : "Export Excel"}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => importRef.current?.click()} disabled={importBusy}>
+                    {importBusy ? "Importing…" : "Import"}
+                  </button>
+                  <input
+                    ref={importRef}
+                    type="file"
+                    accept=".csv,.xlsx"
+                    style={{ display: "none" }}
+                    onChange={handleImportFile}
+                  />
+                  <button type="button" className="btn btn-primary" onClick={openNew}>
+                    + New product
+                  </button>
+                </div>
               </div>
+
+              {importResult && (
+                <div style={{ marginBottom: "1rem", padding: "0.75rem", borderRadius: 6, background: importResult.errors?.length ? "#fef3c7" : "#d1fae5" }}>
+                  <strong>Import result:</strong> {importResult.created} created, {importResult.updated} updated
+                  {importResult.errors?.length > 0 && (
+                    <ul style={{ margin: "0.5rem 0 0", fontSize: "0.85rem" }}>
+                      {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
 
               {loading ? (
                 <p>Loading products…</p>
