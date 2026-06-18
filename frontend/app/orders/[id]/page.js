@@ -182,6 +182,33 @@ export default function OrderDetailPage() {
                   </div>
                 )}
 
+                {order.status !== "pending" && (
+                  <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--line)", paddingTop: "1.5rem" }}>
+                    <button className="btn btn-ghost" type="button" onClick={async () => {
+                      try {
+                        const res = await fetch(
+                          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/orders/${id}/invoice/`,
+                          { credentials: "include" }
+                        );
+                        if (!res.ok) throw new Error("Download failed");
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `invoice-${String(order.order_number ?? order.id).slice(0, 8).toUpperCase()}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } catch (e) {
+                        setError(e.message);
+                      }
+                    }}>
+                      Download Invoice (PDF)
+                    </button>
+                  </div>
+                )}
+
                 {order.status === "pending" && (
                   <div style={{ marginTop: "1.5rem" }}>
                     {payError && <p className="auth-error" role="alert">{payError}</p>}

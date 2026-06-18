@@ -171,8 +171,12 @@ class Order(models.Model):
             ),
         ]
 
+    @property
+    def items_total(self):
+        return sum((item.subtotal for item in self.items.all()), start=Decimal("0"))
+
     def recalculate_total(self):
-        subtotal = sum((item.subtotal for item in self.items.all()), start=Decimal("0"))
+        subtotal = self.items_total
         self.total = max(subtotal - self.discount + self.shipping_cost + self.tax_amount, Decimal("0"))
         return self.total
 

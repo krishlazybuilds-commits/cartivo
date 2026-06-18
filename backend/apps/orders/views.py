@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, models as django_models, transaction
 from django.db.models import F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -653,6 +654,31 @@ class OrderViewSet(
         order.carrier = carrier
         order.save(update_fields=["tracking_number", "carrier"])
         return Response(self.get_serializer(order).data)
+
+    @extend_schema(
+        summary="Download invoice PDF",
+        description="Generate and download a PDF invoice for a paid order.",
+        responses={200: {"type": "string", "format": "binary"}},
+        tags=["orders"],
+    )
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def invoice(self, request, pk=None):
+        order = self.get_object()
+        if order.status == "pending":
+            return Response(
+                {"detail": "Invoice is not available until the order is paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        html = render_to_string("orders/invoice.html", {"order": order})
+        from xhtml2pdf import pisa
+        pdf_io = io.BytesIO()
+        pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_io)
+        if pisa_status.err:
+            return Response({"detail": "Failed to generate invoice."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        pdf_io.seek(0)
+        response = HttpResponse(pdf_io.read(), content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="invoice-{order.order_number_short}.pdf"'
+        return response
 
     EXPORT_FIELDS = [
         "order_number", "status", "total", "discount", "shipping_cost",

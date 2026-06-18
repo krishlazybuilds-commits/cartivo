@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1e293b;
+    line-height: 1.5;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .header h1 {
+    font-size: 22pt;
+    margin: 0;
+    color: #1e293b;
+  }
+  .header .meta {
+    text-align: right;
+    font-size: 10pt;
+    color: #64748b;
+  }
+  .section {
+    margin-bottom: 1.5rem;
+  }
+  .section h2 {
+    font-size: 11pt;
+    text-transform: uppercase;
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+  }
+  table.items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+  }
+  table.items th {
+    text-align: left;
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: 9pt;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  table.items td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  table.items .qty, table.items .price, table.items .total {
+    text-align: right;
+  }
+  table.summary {
+    width: 100%;
+    max-width: 320px;
+    margin-left: auto;
+  }
+  table.summary td {
+    padding: 0.3rem 0;
+  }
+  table.summary .label {
+    color: #64748b;
+  }
+  table.summary .value {
+    text-align: right;
+  }
+  table.summary .grand td {
+    border-top: 2px solid #1e293b;
+    padding-top: 0.5rem;
+    font-weight: bold;
+    font-size: 13pt;
+  }
+  .address p {
+    margin: 0;
+    color: #334155;
+  }
+  .footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+    font-size: 9pt;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Cartivo</h1>
+    <p style="margin: 0.2rem 0 0; color: #64748b; font-size: 10pt;">Invoice</p>
+  </div>
+  <div class="meta">
+    <div><strong>Invoice #</strong> {{ order.order_number_short }}</div>
+    <div><strong>Date</strong> {{ order.created_at|date:"M d, Y" }}</div>
+    <div><strong>Status</strong> {{ order.get_status_display }}</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Bill to</h2>
+  <div class="address">
+    <p><strong>{{ order.shipping_full_name }}</strong></p>
+    <p>{{ order.shipping_address }}</p>
+    <p>{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+    <p>{{ order.shipping_country }}</p>
+    {% if order.user %}<p>{{ order.user.email }}</p>{% elif order.guest_email %}<p>{{ order.guest_email }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>Items</h2>
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:50%">Product</th>
+        <th class="qty" style="width:10%">Qty</th>
+        <th class="price" style="width:20%">Unit price</th>
+        <th class="total" style="width:20%">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in order.items.all %}
+      <tr>
+        <td>{{ item.product.name }}{% if item.variant %} — {{ item.variant.name }}{% endif %}</td>
+        <td class="qty">{{ item.quantity }}</td>
+        <td class="price">${{ item.unit_price|floatformat:2 }}</td>
+        <td class="total">${{ item.subtotal|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<table class="summary">
+  <tr>
+    <td class="label">Subtotal</td>
+    <td class="value">${{ order.items_total|floatformat:2 }}</td>
+  </tr>
+  {% if order.discount > 0 %}
+  <tr>
+    <td class="label">Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td>
+    <td class="value">−${{ order.discount|floatformat:2 }}</td>
+  </tr>
+  {% endif %}
+  {% if order.shipping_cost > 0 %}
+  <tr>
+    <td class="label">Shipping</td>
+    <td class="value">${{ order.shipping_cost|floatformat:2 }}</td>
+  </tr>
+  {% endif %}
+  {% if order.tax_amount > 0 %}
+  <tr>
+    <td class="label">Tax</td>
+    <td class="value">${{ order.tax_amount|floatformat:2 }}</td>
+  </tr>
+  {% endif %}
+  <tr class="grand">
+    <td class="label">Total</td>
+    <td class="value">${{ order.total|floatformat:2 }}</td>
+  </tr>
+</table>
+
+<div class="footer">
+  <p>Thank you for your order! — Cartivo</p>
+</div>
+
+</body>
+</html>
