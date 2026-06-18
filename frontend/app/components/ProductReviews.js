@@ -45,6 +45,9 @@ export default function ProductReviews({ productId }) {
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextUrl, setNextUrl] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [submittedPending, setSubmittedPending] = useState(false);
 
   const [rating, setRating] = useState(0);
@@ -58,6 +61,8 @@ export default function ProductReviews({ productId }) {
       const res = await fetch(`${API_URL}/reviews/?product=${productId}`);
       const data = await res.json();
       setReviews(data.results ?? data);
+      setNextUrl(data.next ?? null);
+      setTotalCount(data.count ?? (data.results ?? data).length);
     } catch {
       setReviews([]);
     } finally {
@@ -65,12 +70,27 @@ export default function ProductReviews({ productId }) {
     }
   }, [productId]);
 
+  async function loadMore() {
+    if (!nextUrl || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(nextUrl);
+      const data = await res.json();
+      setReviews((prev) => [...prev, ...(data.results ?? data)]);
+      setNextUrl(data.next ?? null);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   useEffect(() => {
     load();
   }, [load]);
 
-  const count = reviews.length;
-  const avg = count ? reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
+  const count = totalCount;
+  const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const alreadyReviewed = user && reviews.some((r) => r.username === user.username);
 
   async function submit(e) {
@@ -142,22 +162,35 @@ export default function ProductReviews({ productId }) {
       {/* Review list */}
       {loading ? (
         <p className="reviews-note">Loading reviews…</p>
-      ) : count === 0 ? (
+      ) : reviews.length === 0 ? (
         <p className="reviews-note">No reviews yet. Be the first to share your thoughts.</p>
       ) : (
-        <ul className="review-list">
-          {reviews.map((r) => (
-            <li key={r.id} className="review-item">
-              <div className="review-item-head">
-                <StarRating value={r.rating} showCount={false} size="0.95rem" />
-                <span className="review-author">{r.username}</span>
-                <span className="review-date">{formatDate(r.created_at)}</span>
-              </div>
-              {r.title && <h4 className="review-title">{r.title}</h4>}
-              {r.body && <p className="review-body">{r.body}</p>}
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="review-list">
+            {reviews.map((r) => (
+              <li key={r.id} className="review-item">
+                <div className="review-item-head">
+                  <StarRating value={r.rating} showCount={false} size="0.95rem" />
+                  <span className="review-author">{r.username}</span>
+                  <span className="review-date">{formatDate(r.created_at)}</span>
+                </div>
+                {r.title && <h4 className="review-title">{r.title}</h4>}
+                {r.body && <p className="review-body">{r.body}</p>}
+              </li>
+            ))}
+          </ul>
+          {nextUrl && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={loadMore}
+              disabled={loadingMore}
+              style={{ marginTop: "1rem" }}
+            >
+              {loadingMore ? "Loading…" : "Load more reviews"}
+            </button>
+          )}
+        </>
       )}
     </section>
   );
