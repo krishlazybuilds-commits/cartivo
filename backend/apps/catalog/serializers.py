@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
+from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -127,3 +127,34 @@ class WishlistItemSerializer(serializers.ModelSerializer):
         if request and WishlistItem.objects.filter(user=request.user, product=value).exists():
             raise serializers.ValidationError("This product is already in your wishlist.")
         return value
+
+
+class WarehouseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Warehouse
+        fields = ("id", "name", "code", "address", "is_active", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class WarehouseStockSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    variant_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = WarehouseStock
+        fields = (
+            "id",
+            "warehouse",
+            "product",
+            "product_name",
+            "variant",
+            "variant_name",
+            "stock",
+        )
+        read_only_fields = ("id", "product_name")
+        extra_kwargs = {
+            "variant": {"required": False, "allow_null": True},
+        }
+
+    def get_variant_name(self, obj):
+        return obj.variant.name if obj.variant else None

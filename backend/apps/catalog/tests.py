@@ -7,7 +7,7 @@ from django.db import connection
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.catalog.models import Category, Product, Review, WishlistItem
+from apps.catalog.models import Category, Product, Review, Warehouse, WarehouseStock, WishlistItem
 
 User = get_user_model()
 
@@ -393,3 +393,87 @@ class ReviewModerationTests(APITestCase):
         self.assertEqual(review.title, "Updated")
         # Status stays pending
         self.assertEqual(review.status, Review.Status.PENDING)
+
+
+class WarehouseTests(APITestCase):
+    def setUp(self):
+        self.staff = User.objects.create_superuser("staff", "staff@test.com", "pass")
+        self.user = User.objects.create_user("user", "user@test.com", "pass")
+        self.category = Category.objects.create(name="Warehouse Test Cat")
+        self.product = Product.objects.create(
+            category=self.category, name="Test Product", price=Decimal("10.00"), stock=10, sku="WH-TP",
+        )
+
+    def test_non_staff_cannot_create_warehouse(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.post("/api/v1/warehouses/", {"name": "X", "code": "X"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_can_create_warehouse(self):
+        self.client.force_authenticate(self.staff)
+        res = self.client.post(
+            "/api/v1/warehouses/",
+            {"name": "Main Warehouse", "code": "MAIN", "address": "123 Street"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        # Migration 0010 seeds a default CENTRAL warehouse
+        self.assertEqual(Warehouse.objects.count(), 2)
+
+    def test_staff_can_list_warehouses(self):
+        Warehouse.objects.create(name="A", code="A")
+        Warehouse.objects.create(name="B", code="B")
+        self.client.force_authenticate(self.staff)
+        res = self.client.get("/api/v1/warehouses/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Migration 0010 seeds a default CENTRAL warehouse
+        self.assertEqual(res.data["count"], 3)
+
+    def test_staff_can_update_warehouse(self):
+        w = Warehouse.objects.create(name="Old", code="OLD")
+        self.client.force_authenticate(self.staff)
+        res = self.client.patch(f"/api/v1/warehouses/{w.id}/", {"name": "New"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        w.refresh_from_db()
+        self.assertEqual(w.name, "New")
+
+    def test_staff_can_delete_warehouse(self):
+        w = Warehouse.objects.create(name="Temp", code="TMP")
+        self.client.force_authenticate(self.staff)
+        res = self.client.delete(f"/api/v1/warehouses/{w.id}/")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        # Only the seeded CENTRAL warehouse remains
+        self.assertEqual(Warehouse.objects.count(), 1)
+
+    def test_staff_can_create_warehouse_stock(self):
+        w = Warehouse.objects.create(name="W", code="W")
+        self.client.force_authenticate(self.staff)
+        res = self.client.post(
+            "/api/v1/warehouse-stocks/",
+            {"warehouse": w.id, "product": self.product.id, "stock": 50, "variant": None},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        # The product was created after migration, so only 1 stock entry
+        self.assertEqual(WarehouseStock.objects.count(), 1)
+
+    def test_staff_can_update_warehouse_stock(self):
+        central = Warehouse.objects.get(code="CENTRAL")
+        ws = WarehouseStock.objects.create(warehouse=central, product=self.product, stock=10)
+        self.client.force_authenticate(self.staff)
+        res = self.client.patch(f"/api/v1/warehouse-stocks/{ws.id}/", {"stock": 99}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        ws.refresh_from_db()
+        self.assertEqual(ws.stock, 99)
+
+    def test_warehouse_stock_filter_by_warehouse(self):
+        w1 = Warehouse.objects.create(name="W1", code="W1")
+        w2 = Warehouse.objects.create(name="W2", code="W2")
+        WarehouseStock.objects.create(warehouse=w1, product=self.product, stock=5)
+        central = Warehouse.objects.get(code="CENTRAL")
+        WarehouseStock.objects.create(warehouse=w2, product=self.product, stock=10)
+        self.client.force_authenticate(self.staff)
+        res = self.client.get(f"/api/v1/warehouse-stocks/?warehouse={w1.id}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Only the stock entry for w1 (excludes CENTRAL seed + w2)
+        self.assertEqual(res.data["count"], 1)

@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthentic
 from rest_framework.response import Response
 
 from .filters import PostgresSearchFilter
-from .models import Category, Product, ProductImage, ProductVariant, Review, WishlistItem
-from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WishlistItemSerializer
+from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
+from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, ProductVariantSerializer, ReviewSerializer, WarehouseSerializer, WarehouseStockSerializer, WishlistItemSerializer
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -163,3 +163,18 @@ class ProductImageViewSet(viewsets.ModelViewSet):
     def get_parsers(self):
         from rest_framework.parsers import MultiPartParser, JSONParser
         return [MultiPartParser(), JSONParser()]
+
+
+class WarehouseViewSet(viewsets.ModelViewSet):
+    """Staff-only: manage warehouses."""
+    queryset = Warehouse.objects.all()
+    serializer_class = WarehouseSerializer
+    permission_classes = [IsAdminUser]
+
+
+class WarehouseStockViewSet(viewsets.ModelViewSet):
+    """Staff-only: manage stock levels per warehouse."""
+    queryset = WarehouseStock.objects.select_related("product", "variant", "warehouse").all()
+    serializer_class = WarehouseStockSerializer
+    permission_classes = [IsAdminUser]
+    filterset_fields = ("warehouse", "product")
