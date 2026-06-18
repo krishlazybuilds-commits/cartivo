@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import Reveal from "../components/Reveal";
 import { useAuth } from "../lib/auth";
@@ -11,6 +12,7 @@ import { useCart } from "../lib/cart";
 import { useToast } from "../lib/toast";
 import { formatPrice } from "../lib/format";
 import { ProductGridSkeleton } from "../components/Skeleton";
+import { API_URL } from "../lib/api";
 
 /**
  * Page component rendering the user's wishlist.
@@ -19,11 +21,59 @@ import { ProductGridSkeleton } from "../components/Skeleton";
  * @returns {JSX.Element} The rendered wishlist page.
  */
 export default function WishlistPage() {
+  return (
+    <Suspense fallback={<main><section className="features"><div className="container"><ProductGridSkeleton /></div></section></main>}>
+      <WishlistContent />
+    </Suspense>
+  );
+}
+
+function WishlistContent() {
   const { user, loading: authLoading } = useAuth();
   const { items, loading, removeById } = useWishlist();
   const { addItem } = useCart();
   const toast = useToast();
-  const [busy, setBusy] = useState(null); // wishlist item id currently mutating
+  const [busy, setBusy] = useState(null);
+  const searchParams = useSearchParams();
+
+  // Shared-view mode: ?products=id1,id2
+  const sharedIds = searchParams.get("products")?.split(",").filter(Boolean) ?? [];
+  const isSharedView = sharedIds.length > 0;
+  const [sharedProducts, setSharedProducts] = useState([]);
+  const [sharedLoading, setSharedLoading] = useState(isSharedView);
+
+  useEffect(() => {
+    if (!isSharedView) return;
+    (async () => {
+      setSharedLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/products/?ids=${sharedIds.join(",")}`);
+        const data = await res.json();
+        setSharedProducts(data.results ?? data);
+      } catch {
+        setSharedProducts([]);
+      } finally {
+        setSharedLoading(false);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleShare() {
+    const ids = items.map((i) => i.product).join(",");
+    const url = `${window.location.origin}/wishlist?products=${ids}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast("Share link copied to clipboard!", "success"),
+      () => toast("Couldn't copy link", "error"),
+    );
+  }
+
+  function handleExport() {
+    const text = items.map((i) => `${i.product_name} — ${formatPrice(i.product_price)}`).join("\n");
+    navigator.clipboard.writeText(text).then(
+      () => toast("Wishlist copied to clipboard!", "success"),
+      () => toast("Couldn't copy list", "error"),
+    );
+  }
 
   async function handleRemove(itemId) {
     setBusy(itemId);
@@ -53,6 +103,49 @@ export default function WishlistPage() {
     }
   }
 
+  // Shared-view render
+  if (isSharedView) {
+    return (
+      <main>
+        <section className="features">
+          <div className="container">
+            <Reveal>
+              <div className="section-head center">
+                <span className="eyebrow">Shared wishlist</span>
+                <h2>Someone shared their favourites</h2>
+              </div>
+            </Reveal>
+            {sharedLoading ? (
+              <ProductGridSkeleton />
+            ) : sharedProducts.length === 0 ? (
+              <p className="reviews-note">No products found.</p>
+            ) : (
+              <div className="feature-grid">
+                {sharedProducts.map((p) => (
+                  <article key={p.id} className="feature-card product-card">
+                    <Link href={`/products/${p.slug}`} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
+                      <div className="product-image">
+                        {p.image ? (
+                          <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
+                        ) : (
+                          <span className="product-image-ph" aria-hidden="true">{p.name?.[0] ?? "?"}</span>
+                        )}
+                      </div>
+                      <h3>{p.name}</h3>
+                      <div className="product-meta">
+                        <span className="product-price">{formatPrice(p.effective_price ?? p.price)}</span>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <>
       <main>
@@ -64,6 +157,17 @@ export default function WishlistPage() {
                 <h2>Saved for later</h2>
               </div>
             </Reveal>
+
+            {!(loading || authLoading) && items.length > 0 && (
+              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", marginBottom: "1.5rem" }}>
+                <button type="button" className="btn btn-ghost" onClick={handleShare}>
+                  Share link
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={handleExport}>
+                  Copy list
+                </button>
+              </div>
+            )}
 
             {loading || authLoading ? (
               <ProductGridSkeleton />

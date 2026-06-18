@@ -33,6 +33,14 @@ vi.mock("../../lib/toast", () => ({
   useToast: () => mockToast,
 }));
 
+vi.mock("../../lib/api", () => ({
+  API_URL: "http://localhost:8000/api/v1",
+}));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("../../lib/format", () => ({
   formatPrice: (v) => `$${Number(v).toFixed(2)}`,
 }));
