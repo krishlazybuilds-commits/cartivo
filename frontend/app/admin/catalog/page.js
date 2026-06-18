@@ -34,6 +34,8 @@ export default function AdminCatalogPage() {
   const [products, setProducts] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -69,7 +71,9 @@ export default function AdminCatalogPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await authFetch(`/products/?page=${page}`);
+      const params = new URLSearchParams({ page: String(page) });
+      if (query) params.set("search", query);
+      const data = await authFetch(`/products/?${params.toString()}`);
       const results = data.results ?? data;
       setProducts(results);
       setCount(data.count ?? results.length);
@@ -78,7 +82,7 @@ export default function AdminCatalogPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, query]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -95,6 +99,16 @@ export default function AdminCatalogPage() {
       loadCategories();
     }
   }, [isAdmin, loadProducts, loadCategories]);
+
+  const debounceRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      setQuery(search.trim());
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
 
   async function handleExport(fmt) {
     setExportBusy(true);
@@ -414,7 +428,15 @@ export default function AdminCatalogPage() {
             <div className="admin-panel">
               <div className="admin-panel-head">
                 <h3>Products</h3>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    type="search"
+                    placeholder="Search by name or SKU"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Search products"
+                    style={{ minWidth: 200 }}
+                  />
                   <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy}>
                     {exportBusy ? "Exporting…" : "Export CSV"}
                   </button>
@@ -451,7 +473,7 @@ export default function AdminCatalogPage() {
               {loading ? (
                 <AdminTableSkeleton columns={7} rows={6} />
               ) : products.length === 0 ? (
-                <p>No products yet.</p>
+                <p>{query ? `No products match "${query}".` : "No products yet."}</p>
               ) : (
                 <div className="admin-table-wrap">
                   <table className="admin-table">
