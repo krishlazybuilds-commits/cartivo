@@ -151,6 +151,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         f"Available: {wh_stock.stock}.",
                     )
 
+        order_kwargs.setdefault("currency", getattr(settings, "DEFAULT_CURRENCY", "usd"))
         order_kwargs["warehouse"] = selected_warehouse
         order = Order.objects.create(**order_kwargs)
 
@@ -257,10 +258,11 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
 
 
 def build_stripe_line_items(order_items, shipping_cost, tax_amount):
+    currency = settings.DEFAULT_CURRENCY
     line_items = [
         {
             "price_data": {
-                "currency": "usd",
+                "currency": currency,
                 "unit_amount": int(item.unit_price * 100),
                 "product_data": {"name": item.product.name},
             },
@@ -271,7 +273,7 @@ def build_stripe_line_items(order_items, shipping_cost, tax_amount):
     if shipping_cost > 0:
         line_items.append({
             "price_data": {
-                "currency": "usd",
+                "currency": currency,
                 "unit_amount": int(shipping_cost * 100),
                 "product_data": {"name": "Shipping"},
             },
@@ -280,7 +282,7 @@ def build_stripe_line_items(order_items, shipping_cost, tax_amount):
     if tax_amount > 0:
         line_items.append({
             "price_data": {
-                "currency": "usd",
+                "currency": currency,
                 "unit_amount": int(tax_amount * 100),
                 "product_data": {"name": "Tax"},
             },

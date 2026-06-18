@@ -36,7 +36,7 @@ function buildProductJsonLd(product) {
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/products/${product.slug}`,
-      priceCurrency: "USD",
+      priceCurrency: "USD",  // TODO: make dynamic when multi-currency is active
       price: Number(product.effective_price ?? product.price).toFixed(2),
       itemCondition: "https://schema.org/NewCondition",
       availability: product.in_stock

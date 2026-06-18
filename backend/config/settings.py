@@ -547,6 +547,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 # Products at or below this stock level trigger a low-stock alert email to admins.
 LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "5"))
 
+# Default currency for Stripe charges and price display.
+DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "usd")
+
 # --- Site media assets -------------------------------------------------------
 # Background video for the auth pages, served via /api/auth-video/ (a redirect).
 # Defaults to a free, license-clear scenery clip (Pexels). For production,

@@ -403,7 +403,7 @@ class OrderViewSet(
                 # UI/receipt.
                 coupon = stripe.Coupon.create(
                     amount_off=int(order.discount * 100),
-                    currency="usd",
+                    currency=settings.DEFAULT_CURRENCY,
                     duration="once",
                     name=f"Discount for Order {order.order_number_short}",
                 )
@@ -872,7 +872,7 @@ class GuestCheckoutView(APIView):
             if order.discount > 0:
                 stripe_coupon = stripe.Coupon.create(
                     amount_off=int(order.discount * 100),
-                    currency="usd",
+                    currency=settings.DEFAULT_CURRENCY,
                     duration="once",
                     name=f"Discount for Order {order.order_number_short}",
                 )

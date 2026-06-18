@@ -149,6 +149,9 @@ class Order(models.Model):
         ("dhl", "DHL"),
         ("other", "Other"),
     ]
+    # Currency snapshot at order time (e.g. "usd").
+    currency = models.CharField(max_length=10, default="usd")
+
     # Shipment tracking — set by staff when the order is shipped.
     tracking_number = models.CharField(max_length=255, blank=True, default="")
     carrier = models.CharField(max_length=20, choices=CARRIER_CHOICES, blank=True, default="")
