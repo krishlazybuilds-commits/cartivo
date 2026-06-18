@@ -9,6 +9,8 @@ import StarRating from "../../components/StarRating";
 import ProductReviews from "../../components/ProductReviews";
 import JsonLd from "../../components/JsonLd";
 import GalleryImages from "../../components/GalleryImages";
+import RecentlyViewedTracker from "../../components/RecentlyViewedTracker";
+import RecentlyViewed from "../../components/RecentlyViewed";
 import { apiFetch } from "../../lib/api";
 import { formatPrice } from "../../lib/format";
 
@@ -184,9 +186,13 @@ export default async function ProductDetailPage(props) {
             </Reveal>
 
             <ProductReviews productId={product.id} />
+
+            <RecentlyViewed />
           </div>
         </section>
       </main>
+
+      <RecentlyViewedTracker product={product} />
     </>
   );
 }

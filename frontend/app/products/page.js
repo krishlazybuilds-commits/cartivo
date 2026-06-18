@@ -1,11 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import ShopFilters from "../components/ShopFilters";
 import Reveal from "../components/Reveal";
 import WishlistButton from "../components/WishlistButton";
-import StarRating from "../components/StarRating";
+import ProductCard from "../components/ProductCard";
 import { apiFetch } from "../lib/api";
-import { formatPrice } from "../lib/format";
 
 export const metadata = {
   title: "Shop — Cartivo",
@@ -105,49 +103,9 @@ export default async function ProductsPage(props) {
             <div className="feature-grid">
               {products.map((p, i) => (
                 <Reveal key={p.id} delay={i * 30}>
-                  <div className="feature-card product-card" style={{ position: "relative" }}>
-                    <Link href={`/products/${p.slug}`} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                      <div className="product-image">
-                        {p.image ? (
-                          <Image src={p.image} alt={p.name} width={400} height={300} className="product-img" />
-                        ) : (
-                          <span className="product-image-ph" aria-hidden="true">
-                            {p.name?.[0] ?? "?"}
-                          </span>
-                        )}
-                        {(p.display_badge) && (
-                          <span style={{
-                            position: "absolute", top: "0.5rem", left: "0.5rem",
-                            background: p.on_sale ? "#e11d48" : p.is_new ? "#2563eb" : "#111",
-                            color: "#fff", fontSize: "0.7rem", fontWeight: 600,
-                            padding: "0.15rem 0.55rem", borderRadius: 4, zIndex: 2,
-                          }}>
-                            {p.display_badge}
-                          </span>
-                        )}
-                      </div>
-                      <span className="product-cat">{p.category_name ?? "Product"}</span>
-                      <h3>{p.name}</h3>
-                      {p.review_count > 0 && (
-                        <StarRating value={p.avg_rating ?? 0} count={p.review_count} size="0.85rem" />
-                      )}
-                      <p>{p.description}</p>
-                      <div className="product-meta">
-                        <span className="product-price">
-                          {formatPrice(p.effective_price ?? p.price)}
-                          {p.on_sale && p.sale_price && (
-                            <span style={{ fontSize: "0.78em", opacity: 0.5, textDecoration: "line-through", marginLeft: "0.3rem" }}>
-                              {formatPrice(p.price)}
-                            </span>
-                          )}
-                        </span>
-                        <span className={p.in_stock ? "product-stock" : "product-stock out"}>
-                          {p.in_stock ? "In stock" : "Out of stock"}
-                        </span>
-                      </div>
-                    </Link>
+                  <ProductCard product={p} showRating>
                     <WishlistButton productId={p.id} product={p} className="product-card-wishlist" />
-                  </div>
+                  </ProductCard>
                 </Reveal>
               ))}
             </div>

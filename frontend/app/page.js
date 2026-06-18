@@ -5,6 +5,7 @@ import Features from "./components/Features";
 import HowItWorks from "./components/HowItWorks";
 import WhyCartivo from "./components/WhyCartivo";
 import CTA from "./components/CTA";
+import RecentlyViewed from "./components/RecentlyViewed";
 import JsonLd from "./components/JsonLd";
 
 export default function Home() {
@@ -30,6 +31,7 @@ export default function Home() {
         <Hero />
         <Categories />
         <FeaturedProducts />
+        <RecentlyViewed />
         <Features />
         <HowItWorks />
         <WhyCartivo />
