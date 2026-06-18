@@ -142,6 +142,17 @@ class Order(models.Model):
     # Customer-submitted refund request reason. Non-empty signals a pending request.
     refund_request_reason = models.TextField(blank=True, default="")
 
+    CARRIER_CHOICES = [
+        ("ups", "UPS"),
+        ("fedex", "FedEx"),
+        ("usps", "USPS"),
+        ("dhl", "DHL"),
+        ("other", "Other"),
+    ]
+    # Shipment tracking — set by staff when the order is shipped.
+    tracking_number = models.CharField(max_length=255, blank=True, default="")
+    carrier = models.CharField(max_length=20, choices=CARRIER_CHOICES, blank=True, default="")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

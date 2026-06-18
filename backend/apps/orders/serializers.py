@@ -62,6 +62,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "items",
             "created_at",
             "refund_request_reason",
+            "tracking_number",
+            "carrier",
         )
         read_only_fields = ("id", "order_number", "status", "total", "discount", "shipping_cost", "tax_amount", "coupon_code", "items", "created_at")
 

@@ -1598,3 +1598,59 @@ class ProductVariantOrderTests(APITestCase):
             
         order = Order.objects.get(guest_email="guestvar@test.com")
         self.assertEqual(order.items.first().variant, self.variant_red)
+
+
+class TrackingTests(APITestCase):
+    def setUp(self):
+        self.staff = User.objects.create_superuser("staff", "staff@test.com", "pass")
+        self.user = User.objects.create_user("user", "user@test.com", "pass")
+        self.category = Category.objects.create(name="Gadgets")
+        self.product = Product.objects.create(
+            category=self.category, name="Widget", price=Decimal("10.00"),
+            stock=5, sku="TRK-001",
+        )
+        self.order = Order.objects.create(
+            user=self.user,
+            total=Decimal("10.00"),
+            shipping_full_name="Test User",
+            shipping_address="123 St",
+            shipping_city="City",
+            shipping_postal_code="12345",
+            shipping_country="US",
+            status=Order.Status.PAID,
+        )
+
+    def test_non_staff_cannot_update_tracking(self):
+        self.client.force_authenticate(self.user)
+        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "1Z999AA10123456784"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_can_set_tracking(self):
+        self.client.force_authenticate(self.staff)
+        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "1Z999AA10123456784", "carrier": "ups"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.tracking_number, "1Z999AA10123456784")
+        self.assertEqual(self.order.carrier, "ups")
+
+    def test_tracking_requires_number(self):
+        self.client.force_authenticate(self.staff)
+        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"carrier": "fedex"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_tracking_rejects_invalid_carrier(self):
+        self.client.force_authenticate(self.staff)
+        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "ABC123", "carrier": "dhl"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.carrier, "dhl")
+
+    def test_tracking_exposed_in_order_detail(self):
+        self.order.tracking_number = "9400111899223096774535"
+        self.order.carrier = "usps"
+        self.order.save(update_fields=["tracking_number", "carrier"])
+        self.client.force_authenticate(self.user)
+        res = self.client.get(f"/api/v1/orders/{self.order.id}/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["tracking_number"], "9400111899223096774535")
+        self.assertEqual(res.data["carrier"], "usps")

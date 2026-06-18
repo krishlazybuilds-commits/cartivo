@@ -40,6 +40,16 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [trackingInputs, setTrackingInputs] = useState({});
+
+  const CARRIER_OPTIONS = [
+    { value: "", label: "Select carrier" },
+    { value: "ups", label: "UPS" },
+    { value: "fedex", label: "FedEx" },
+    { value: "usps", label: "USPS" },
+    { value: "dhl", label: "DHL" },
+    { value: "other", label: "Other" },
+  ];
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
@@ -89,6 +99,25 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    } catch (err) {
+      setError(extractError(err.data, err.message));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function updateTracking(orderId) {
+    const input = trackingInputs[orderId];
+    if (!input?.tracking_number?.trim()) return;
+    setBusyId(orderId);
+    setError(null);
+    try {
+      const updated = await authFetch(`/orders/${orderId}/tracking/`, {
+        method: "PATCH",
+        body: JSON.stringify({ tracking_number: input.tracking_number.trim(), carrier: input.carrier || "" }),
+      });
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      setTrackingInputs((prev) => ({ ...prev, [orderId]: { ...prev[orderId], saved: true } }));
     } catch (err) {
       setError(extractError(err.data, err.message));
     } finally {
@@ -194,6 +223,12 @@ export default function AdminOrdersPage() {
                                   Refund Requested
                                 </span>
                               )}
+                              {o.tracking_number && (
+                                <span style={{ fontSize: "0.78rem", marginTop: "0.2rem" }}>
+                                  <strong>Tracking:</strong> {o.tracking_number}
+                                  {o.carrier ? ` (${o.carrier.toUpperCase()})` : ""}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td style={{ padding: "0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
@@ -209,7 +244,38 @@ export default function AdminOrdersPage() {
                                 {STATUS_LABELS[s]}
                               </button>
                             ))}
-                            {next.length === 0 && <span style={{ opacity: 0.4, fontSize: "0.85em" }}>—</span>}
+                            {["paid", "shipped"].includes(o.status) && (
+                              <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.3rem", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                                <input
+                                  type="text"
+                                  placeholder="Tracking #"
+                                  value={trackingInputs[o.id]?.tracking_number ?? o.tracking_number ?? ""}
+                                  onChange={(e) => setTrackingInputs((prev) => ({ ...prev, [o.id]: { ...prev[o.id], tracking_number: e.target.value } }))}
+                                  style={{ width: 130, fontSize: "0.8rem", padding: "0.25rem 0.4rem" }}
+                                  disabled={busy}
+                                />
+                                <select
+                                  value={trackingInputs[o.id]?.carrier ?? o.carrier ?? ""}
+                                  onChange={(e) => setTrackingInputs((prev) => ({ ...prev, [o.id]: { ...prev[o.id], carrier: e.target.value } }))}
+                                  style={{ fontSize: "0.8rem", padding: "0.25rem 0.4rem", width: 90 }}
+                                  disabled={busy}
+                                >
+                                  {CARRIER_OPTIONS.map((c) => (
+                                    <option key={c.value} value={c.value}>{c.label}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost"
+                                  style={{ fontSize: "0.78rem", padding: "0.25rem 0.5rem" }}
+                                  disabled={busy || !(trackingInputs[o.id]?.tracking_number ?? o.tracking_number ?? "")}
+                                  onClick={() => updateTracking(o.id)}
+                                >
+                                  {busy ? "…" : o.tracking_number ? "Update" : "Save"}
+                                </button>
+                              </div>
+                            )}
+                            {next.length === 0 && !["paid", "shipped"].includes(o.status) && <span style={{ opacity: 0.4, fontSize: "0.85em" }}>—</span>}
                           </td>
                         </tr>
                       );

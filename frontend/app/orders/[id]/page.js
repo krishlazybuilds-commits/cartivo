@@ -172,6 +172,16 @@ export default function OrderDetailPage() {
                   </p>
                 </div>
 
+                {order.tracking_number && ["shipped", "delivered"].includes(order.status) && (
+                  <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--line)", paddingTop: "1.5rem" }}>
+                    <h3 style={{ marginBottom: "0.75rem", fontSize: "1rem" }}>Tracking</h3>
+                    <p style={{ color: "var(--slate)", lineHeight: 1.8 }}>
+                      <strong>Carrier:</strong> {order.carrier ? order.carrier.toUpperCase() : "N/A"}<br />
+                      <strong>Tracking #:</strong> {order.tracking_number}
+                    </p>
+                  </div>
+                )}
+
                 {order.status === "pending" && (
                   <div style={{ marginTop: "1.5rem" }}>
                     {payError && <p className="auth-error" role="alert">{payError}</p>}

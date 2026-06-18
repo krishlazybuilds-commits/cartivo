@@ -624,6 +624,34 @@ class OrderViewSet(
 
         return Response(self.get_serializer(order).data)
 
+    @extend_schema(
+        summary="Update tracking info (staff only)",
+        description="Set or update the tracking number and carrier for a shipped order.",
+        request={"application/json": {"type": "object", "properties": {"tracking_number": {"type": "string"}, "carrier": {"type": "string"}}, "required": ["tracking_number"]}},
+        responses={200: OrderSerializer},
+        tags=["orders"],
+    )
+    @action(detail=True, methods=["patch"], url_path="tracking", permission_classes=[permissions.IsAdminUser])
+    def update_tracking(self, request, pk=None):
+        order = self.get_object()
+        tracking_number = request.data.get("tracking_number", "").strip()
+        if not tracking_number:
+            return Response(
+                {"detail": "Tracking number is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        carrier = request.data.get("carrier", "").strip()
+        if carrier and carrier not in dict(Order.CARRIER_CHOICES):
+            return Response(
+                {"detail": f"Invalid carrier. Choose from: {', '.join(dict(Order.CARRIER_CHOICES).keys())}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.tracking_number = tracking_number
+        order.carrier = carrier
+        order.save(update_fields=["tracking_number", "carrier"])
+        return Response(self.get_serializer(order).data)
+
 
 def _handle_checkout_completed(event):
     """Mark the matching order PAID and queue its confirmation email.
