@@ -251,6 +251,61 @@ class ProductViewSet(viewsets.ModelViewSet):
             "total": created + updated + len(errors),
         })
 
+    @action(detail=False, methods=["post"], url_path="bulk-stock")
+    def bulk_stock(self, request):
+        """Update stock for multiple products and/or variants at once."""
+        from django.db import transaction
+
+        products = request.data.get("products", [])
+        variants = request.data.get("variants", [])
+
+        if not products and not variants:
+            return Response({"detail": "Provide products or variants."}, status=status.HTTP_400_BAD_REQUEST)
+
+        updated = 0
+        errors = []
+
+        with transaction.atomic():
+            for item in products:
+                pid = item.get("id")
+                stock = item.get("stock")
+                if pid is None or stock is None:
+                    errors.append(f"Invalid product entry: {item}")
+                    continue
+                try:
+                    stock = int(stock)
+                    if stock < 0:
+                        raise ValueError
+                except (TypeError, ValueError):
+                    errors.append(f"Invalid stock for product {pid}: {item.get('stock')}")
+                    continue
+                count = Product.objects.filter(id=pid).update(stock=stock)
+                if count:
+                    updated += 1
+                else:
+                    errors.append(f"Product {pid} not found")
+
+            for item in variants:
+                vid = item.get("id")
+                stock = item.get("stock")
+                if vid is None or stock is None:
+                    errors.append(f"Invalid variant entry: {item}")
+                    continue
+                try:
+                    stock = int(stock)
+                    if stock < 0:
+                        raise ValueError
+                except (TypeError, ValueError):
+                    errors.append(f"Invalid stock for variant {vid}: {item.get('stock')}")
+                    continue
+                count = ProductVariant.objects.filter(id=vid).update(stock=stock)
+                if count:
+                    updated += 1
+                else:
+                    errors.append(f"Variant {vid} not found")
+
+        return Response({"updated": updated, "errors": errors})
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Product reviews. Anyone can read approved reviews.

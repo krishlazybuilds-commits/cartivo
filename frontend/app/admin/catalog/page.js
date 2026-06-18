@@ -58,6 +58,11 @@ export default function AdminCatalogPage() {
   const [importResult, setImportResult] = useState(null);
   const importRef = useRef(null);
 
+  // Bulk stock editing state
+  const [stockEdits, setStockEdits] = useState({});
+  const [savingStock, setSavingStock] = useState(false);
+  const hasStockEdits = Object.keys(stockEdits).length > 0;
+
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
 
@@ -152,6 +157,21 @@ export default function AdminCatalogPage() {
     } finally {
       setImportBusy(false);
       if (importRef.current) importRef.current.value = "";
+    }
+  }
+
+  async function handleBulkStock() {
+    setSavingStock(true);
+    setError(null);
+    try {
+      const products = Object.entries(stockEdits).map(([id, stock]) => ({ id: Number(id), stock: Number(stock) }));
+      await authFetch("/products/bulk-stock/", { method: "POST", body: JSON.stringify({ products }) });
+      setStockEdits({});
+      await loadProducts();
+    } catch (err) {
+      setError(extractError(err.data, err.message));
+    } finally {
+      setSavingStock(false);
     }
   }
 
@@ -456,6 +476,11 @@ export default function AdminCatalogPage() {
                   <button type="button" className="btn btn-primary" onClick={openNew}>
                     + New product
                   </button>
+                  {hasStockEdits && (
+                    <button type="button" className="btn btn-ghost" onClick={handleBulkStock} disabled={savingStock}>
+                      {savingStock ? "Saving…" : `Save stock changes (${Object.keys(stockEdits).length})`}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -500,7 +525,24 @@ export default function AdminCatalogPage() {
                             {formatPrice(p.effective_price ?? p.price)}
                             {p.on_sale && p.sale_price && <span style={{ fontSize: "0.78em", opacity: 0.5, textDecoration: "line-through", marginLeft: "0.3rem" }}>{formatPrice(p.price)}</span>}
                           </td>
-                          <td>{p.stock}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              value={stockEdits[p.id] ?? p.stock}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setStockEdits((prev) => {
+                                  if (val === "" || Number(val) === p.stock) {
+                                    const { [p.id]: _, ...rest } = prev;
+                                    return rest;
+                                  }
+                                  return { ...prev, [p.id]: val };
+                                });
+                              }}
+                              style={{ width: 70, padding: "0.2rem 0.4rem", fontSize: "0.88rem" }}
+                            />
+                          </td>
                           <td>
                             <span className={p.is_active ? "product-stock" : "product-stock out"}>
                               {p.is_active ? "Active" : "Hidden"}

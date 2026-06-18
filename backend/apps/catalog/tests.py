@@ -260,7 +260,7 @@ class LowStockAlertTaskTests(APITestCase):
             stock=2,
         )
 
-    @patch("apps.catalog.tasks.send_mail")
+    @patch("apps.catalog.tasks.send_html_email")
     def test_base_product_low_stock_email_sent(self, mock_send_mail):
         from apps.catalog.tasks import send_low_stock_alert_task
         send_low_stock_alert_task(self.prod.id)
@@ -268,10 +268,10 @@ class LowStockAlertTaskTests(APITestCase):
         mock_send_mail.assert_called_once()
         kwargs = mock_send_mail.call_args[1]
         self.assertIn("Base Product", kwargs["subject"])
-        self.assertIn("BASE-SKU", kwargs["message"])
+        self.assertIn("BASE-SKU", kwargs["text_body"])
         self.assertIn("staff_alert@test.com", kwargs["recipient_list"])
 
-    @patch("apps.catalog.tasks.send_mail")
+    @patch("apps.catalog.tasks.send_html_email")
     def test_variant_low_stock_email_sent(self, mock_send_mail):
         from apps.catalog.tasks import send_low_stock_alert_task
         send_low_stock_alert_task(self.prod.id, variant_id=self.variant.id)
@@ -279,7 +279,7 @@ class LowStockAlertTaskTests(APITestCase):
         mock_send_mail.assert_called_once()
         kwargs = mock_send_mail.call_args[1]
         self.assertIn("Base Product — Variant Product", kwargs["subject"])
-        self.assertIn("VAR-SKU", kwargs["message"])
+        self.assertIn("VAR-SKU", kwargs["text_body"])
         self.assertIn("staff_alert@test.com", kwargs["recipient_list"])
 
 
