@@ -41,6 +41,7 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [trackingInputs, setTrackingInputs] = useState({});
+  const [exportBusy, setExportBusy] = useState(false);
 
   const CARRIER_OPTIONS = [
     { value: "", label: "Select carrier" },
@@ -125,6 +126,29 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function handleExport(fmt) {
+    setExportBusy(true);
+    setError(null);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const res = await fetch(`${base}/orders/export/?format=${fmt}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orders.${fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   if (authLoading || !user?.is_staff) return null;
 
   return (
@@ -169,6 +193,12 @@ export default function AdminOrdersPage() {
               />
               Refund requests only
             </label>
+            <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy} style={{ marginLeft: "auto" }}>
+              {exportBusy ? "Exporting…" : "Export CSV"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => handleExport("xlsx")} disabled={exportBusy}>
+              {exportBusy ? "Exporting…" : "Export Excel"}
+            </button>
           </div>
 
           {error && <p className="auth-error" role="alert">{error}</p>}

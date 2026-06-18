@@ -1,10 +1,12 @@
+import csv
+import io
 import logging
 
 import stripe
 from django.conf import settings
 from django.db import IntegrityError, models as django_models, transaction
 from django.db.models import F
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -651,6 +653,92 @@ class OrderViewSet(
         order.carrier = carrier
         order.save(update_fields=["tracking_number", "carrier"])
         return Response(self.get_serializer(order).data)
+
+    EXPORT_FIELDS = [
+        "order_number", "status", "total", "discount", "shipping_cost",
+        "tax_amount", "coupon_code", "currency", "customer",
+        "shipping_full_name", "shipping_city", "shipping_country",
+        "created_at", "tracking_number", "carrier", "items_count",
+    ]
+
+    def _order_rows(self):
+        qs = self.get_queryset().prefetch_related("items__product", "items__variant")
+        for o in qs:
+            customer = o.user.username if o.user_id else (o.guest_email or "")
+            items_summary = "; ".join(
+                f"{i.product.name}{' - ' + i.variant.name if i.variant else ''} x{i.quantity}"
+                for i in o.items.all()
+            )
+            yield {
+                "order_number": str(o.order_number),
+                "status": o.status,
+                "total": str(o.total),
+                "discount": str(o.discount),
+                "shipping_cost": str(o.shipping_cost),
+                "tax_amount": str(o.tax_amount),
+                "coupon_code": o.coupon.code if o.coupon else "",
+                "currency": o.currency,
+                "customer": customer,
+                "shipping_full_name": o.shipping_full_name,
+                "shipping_city": o.shipping_city,
+                "shipping_country": o.shipping_country,
+                "created_at": o.created_at.isoformat() if o.created_at else "",
+                "tracking_number": o.tracking_number,
+                "carrier": o.carrier,
+                "items_count": o.items.count(),
+                "items_summary": items_summary,
+            }
+
+    def _export_csv(self):
+        rows = list(self._order_rows())
+
+        def stream():
+            buffer = io.StringIO()
+            writer = csv.DictWriter(buffer, fieldnames=self.EXPORT_FIELDS + ["items_summary"])
+            writer.writeheader()
+            yield buffer.getvalue()
+            for row in rows:
+                buffer = io.StringIO()
+                row_out = {k: str(v) if v is not None else "" for k, v in row.items()}
+                writer = csv.DictWriter(buffer, fieldnames=self.EXPORT_FIELDS + ["items_summary"])
+                writer.writerow(row_out)
+                yield buffer.getvalue()
+
+        response = StreamingHttpResponse(stream(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="orders.csv"'
+        return response
+
+    def _export_xlsx(self):
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Orders"
+        headers = self.EXPORT_FIELDS + ["items_summary"]
+        ws.append(headers)
+        for row in self._order_rows():
+            ws.append([str(row[h]) if row[h] is not None else "" for h in headers])
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        response = HttpResponse(output.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = 'attachment; filename="orders.xlsx"'
+        return response
+
+    @extend_schema(
+        summary="Export orders (staff only)",
+        description="Download all orders as CSV or XLSX. Staff only.",
+        parameters=[
+            {"name": "format", "in": "query", "required": False, "schema": {"type": "string", "enum": ["csv", "xlsx"]}},
+        ],
+        responses={200: {"type": "string", "format": "binary"}},
+        tags=["orders"],
+    )
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAdminUser])
+    def export(self, request):
+        fmt = request.query_params.get("format", "csv")
+        if fmt == "xlsx":
+            return self._export_xlsx()
+        return self._export_csv()
 
 
 def _handle_checkout_completed(event):
