@@ -105,8 +105,8 @@ describe("AdminUsersPage — rendering", () => {
   it("shows loading indicator while fetching", async () => {
     mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
     mockAuthFetch.mockReturnValue(new Promise(() => {}));
-    render(<AdminUsersPage />);
-    expect(await screen.findByText(/loading users/i)).toBeInTheDocument();
+    const { container } = render(<AdminUsersPage />);
+    await waitFor(() => expect(container.querySelector(".skeleton")).toBeInTheDocument());
   });
 
   it("shows error on fetch failure", async () => {

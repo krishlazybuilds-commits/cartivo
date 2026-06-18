@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
+import { AdminTableSkeleton } from "../../components/Skeleton";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 
 const STATUS_LABELS = {
@@ -205,7 +206,7 @@ export default function AdminOrdersPage() {
 
           <div className="admin-content">
             {loading ? (
-              <p>Loading orders…</p>
+              <AdminTableSkeleton columns={6} rows={6} />
             ) : orders.length === 0 ? (
               <p>No orders found.</p>
             ) : (

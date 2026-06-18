@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminTabs from "../components/AdminTabs";
 import Reveal from "../components/Reveal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { AdminTableSkeleton, AdminStatsSkeleton } from "../components/Skeleton";
 import { useAuth, authFetch, extractError } from "../lib/auth";
 
 function formatDate(value) {
@@ -140,7 +141,7 @@ export default function AdminUsersPage() {
 
             <AdminTabs />
 
-            {stats && (
+            {stats ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
                 {[
                   { label: "All-time revenue", value: `$${Number(stats?.all_time?.revenue ?? 0).toFixed(2)}` },
@@ -158,6 +159,8 @@ export default function AdminUsersPage() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <AdminStatsSkeleton count={8} />
             )}
             {stats?.top_products?.length > 0 && (
               <div className="order-card" style={{ marginBottom: "2rem" }}>
@@ -200,7 +203,7 @@ export default function AdminUsersPage() {
 
             <div className="admin-content">
             {loading ? (
-              <p>Loading users…</p>
+              <AdminTableSkeleton columns={5} rows={6} />
             ) : users.length === 0 ? (
               <div className="admin-empty">
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

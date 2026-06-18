@@ -103,3 +103,60 @@ export function ProductGridSkeleton({ count = 6 }) {
     </div>
   );
 }
+
+export function AdminTableSkeleton({ columns = 5, rows = 6 }) {
+  return (
+    <div className="admin-table-wrap" style={{ overflowX: "auto" }}>
+      <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            {Array.from({ length: columns }).map((_, c) => (
+              <th key={c} style={{ textAlign: c === columns - 1 ? "right" : "left", padding: "0.6rem" }}>
+                <Skeleton
+                  width="60%"
+                  height="0.8rem"
+                  style={{ marginLeft: c === columns - 1 ? "auto" : 0 }}
+                />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, r) => (
+            <tr key={r} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
+              {Array.from({ length: columns }).map((_, c) => (
+                <td key={c} style={{ padding: "0.6rem" }}>
+                  <Skeleton
+                    width={c === columns - 1 ? "70px" : `${50 + ((r + c) % 4) * 12}%`}
+                    height="0.9rem"
+                    style={{ marginLeft: c === columns - 1 ? "auto" : 0 }}
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function AdminStatsSkeleton({ count = 8 }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+        gap: "1rem",
+        marginBottom: "2rem",
+      }}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="order-card" style={{ textAlign: "center", padding: "1rem" }}>
+          <Skeleton width="60%" height="1.5rem" style={{ margin: "0 auto 0.4rem" }} />
+          <Skeleton width="80%" height="0.78rem" style={{ margin: "0 auto" }} />
+        </div>
+      ))}
+    </div>
+  );
+}

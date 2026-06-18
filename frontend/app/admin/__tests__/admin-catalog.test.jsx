@@ -109,8 +109,8 @@ describe("AdminCatalogPage — rendering", () => {
     mockUseAuth.mockReturnValue({ user: staffUser, loading: false });
     mockAuthFetch.mockReturnValueOnce(new Promise(() => {})); // products (pending)
     mockAuthFetch.mockResolvedValueOnce([]); // categories
-    render(<AdminCatalogPage />);
-    expect(await screen.findByText(/loading products/i)).toBeInTheDocument();
+    const { container } = render(<AdminCatalogPage />);
+    await waitFor(() => expect(container.querySelector(".skeleton")).toBeInTheDocument());
   });
 
   it("shows error on fetch failure", async () => {

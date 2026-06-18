@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import { AdminTableSkeleton } from "../../components/Skeleton";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 
 const EMPTY_FORM = {
@@ -200,7 +201,7 @@ export default function AdminCouponsPage() {
           {/* Table */}
           <div className="admin-content">
             {loading ? (
-              <p>Loading coupons…</p>
+              <AdminTableSkeleton columns={6} rows={5} />
             ) : coupons.length === 0 ? (
               <p>No coupons yet.</p>
             ) : (

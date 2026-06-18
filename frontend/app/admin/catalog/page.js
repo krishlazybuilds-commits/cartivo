@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import { AdminTableSkeleton } from "../../components/Skeleton";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 import { formatPrice } from "../../lib/format";
 
@@ -448,7 +449,7 @@ export default function AdminCatalogPage() {
               )}
 
               {loading ? (
-                <p>Loading products…</p>
+                <AdminTableSkeleton columns={7} rows={6} />
               ) : products.length === 0 ? (
                 <p>No products yet.</p>
               ) : (
