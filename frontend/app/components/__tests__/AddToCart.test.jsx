@@ -12,6 +12,10 @@ vi.mock("../../lib/toast", () => ({
   useToast: () => mockToast,
 }));
 
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }) => <a href={href} {...props}>{children}</a>,
+}));
+
 import AddToCart from "../AddToCart";
 
 const props = { productId: 1, productName: "Test Product", productPrice: "19.99", inStock: true };
@@ -125,6 +129,33 @@ describe("AddToCart — add to cart button", () => {
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith("Couldn't add to cart", "error");
     });
+  });
+});
+
+describe("AddToCart — continue shopping", () => {
+  it("does not show 'Continue shopping' before adding", () => {
+    render(<AddToCart {...props} />);
+    expect(screen.queryByRole("link", { name: /continue shopping/i })).not.toBeInTheDocument();
+  });
+
+  it("shows a 'Continue shopping' link to /products after a successful add", async () => {
+    mockAddItem.mockResolvedValue(undefined);
+    render(<AddToCart {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
+    const link = await screen.findByRole("link", { name: /continue shopping/i });
+    expect(link).toHaveAttribute("href", "/products");
+  });
+
+  it("keeps the 'Continue shopping' link visible after the 2s added state resets", async () => {
+    vi.useFakeTimers();
+    mockAddItem.mockResolvedValue(undefined);
+    render(<AddToCart {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /add to cart/i }));
+    await act(async () => {});
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(screen.getByText("Add to cart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continue shopping/i })).toBeInTheDocument();
+    vi.useRealTimers();
   });
 });
 

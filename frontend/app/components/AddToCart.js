@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { useCart } from "../lib/cart";
 import { useToast } from "../lib/toast";
@@ -13,6 +14,7 @@ export default function AddToCart({ productId, productName, productPrice, inStoc
     variants.length === 1 ? variants[0].id : null
   );
   const [addStatus, setAddStatus] = useState("idle");
+  const [hasAdded, setHasAdded] = useState(false);
 
   const activeVariants = variants.filter((v) => v.is_active);
   const selectedVariant = activeVariants.find((v) => v.id === variantId) ?? null;
@@ -38,6 +40,7 @@ export default function AddToCart({ productId, productName, productPrice, inStoc
         variantId: selectedVariant?.id ?? null,
       });
       setAddStatus("added");
+      setHasAdded(true);
       toast(`Added ${quantity} to cart`, "success");
       setTimeout(() => setAddStatus("idle"), 2000);
     } catch (err) {
@@ -113,6 +116,19 @@ export default function AddToCart({ productId, productName, productPrice, inStoc
               </span>
             </span>
           </button>
+          {hasAdded && (
+            <Link
+              href="/products"
+              className="btn btn-ghost"
+              style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 12H5" />
+                <path d="m12 19-7-7 7-7" />
+              </svg>
+              Continue shopping
+            </Link>
+          )}
         </>
       )}
     </div>
