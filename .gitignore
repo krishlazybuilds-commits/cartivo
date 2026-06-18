@@ -40,3 +40,6 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# opencode plans and working files
+.opencode/
