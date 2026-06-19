@@ -284,7 +284,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
     "DEFAULT_THROTTLE_RATES": {
+        # Generic scopes used by the default DRF throttles (AnonRateThrottle / UserRateThrottle).
+        # These apply to ALL endpoints that do not declare their own throttle_classes.
+        "anon": "60/min",
+        "user": "300/min",
+        # Custom per-endpoint scopes (used by views with explicit throttle_classes).
         "contact": "5/hour",
         "login": "10/min",
         "register": "5/hour",
