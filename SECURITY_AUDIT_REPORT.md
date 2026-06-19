@@ -126,15 +126,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 10. Unpinned Docker Base Images (Supply Chain Risk)
+#### ~~10. Unpinned Docker Base Images (Supply Chain Risk)~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **Files** | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` |
-| **Description** | The Dockerfiles use floating tags (`python:3.12-slim`, `node:20-slim`) instead of specific SHA256 digests. The docker-compose uses `postgres:16`, `redis:7-alpine`, and `minio/minio:latest`. |
-| **Impact** | Floating tags can be silently updated to malicious or compromised versions if the upstream registry is compromised (e.g., via supply chain attack on Docker Hub). The `minio/minio:latest` tag is especially risky as it always pulls the latest release. |
-| **Remediation** | Pin all base images to specific SHA256 digests. For example: `python:3.12-slim@sha256:abc123...`. Update images deliberately after reviewing changelogs and scanning for vulnerabilities. |
+| **Description** | Dockerfiles and docker-compose used floating tags instead of pinned SHA256 digests. |
+| **Fix Applied** | All 7 image references pinned to manifest-list SHA256 digests: `python:3.12-slim`, `node:20-slim` (×3 stages), `postgres:16`, `redis:7-alpine`, `minio/minio`, `minio/mc`. Images must be deliberately updated by changing the digest after reviewing upstream changelogs. |
 
 ---
 
@@ -445,7 +445,7 @@ Set job-level permissions where different jobs need different access. |
 | ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Require current password for email change requests~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle`~~ ✅ **DONE** (2026-06-19) | Medium |
-| **P1** | Pin Docker base images to SHA digests | Low |
+| ~~**P1**~~ | ~~Pin Docker base images to SHA digests~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Set explicit `permissions` in GitHub Actions CI | Low |
 | **P1** | Remove `|| true` from `npm audit` in CI | Low |
 | **P1** | Sanitize contact form `name` before using in email subject | Low |
