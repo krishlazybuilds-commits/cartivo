@@ -2,13 +2,13 @@
 # Multi-stage build with standalone output for minimal image size (~50MB vs ~300MB).
 
 # --- Stage 1: Dependencies ---
-FROM node:20-slim AS deps
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
 # --- Stage 2: Builder ---
-FROM node:20-slim AS builder
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -27,7 +27,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # --- Stage 3: Runner ---
-FROM node:20-slim AS runner
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
