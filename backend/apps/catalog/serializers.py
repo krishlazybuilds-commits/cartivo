@@ -26,6 +26,13 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "sku", "price", "effective_price", "stock", "in_stock", "is_active")
         read_only_fields = ("id", "effective_price", "in_stock")
 
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if request and not (request.user and request.user.is_staff):
+            fields.pop("stock", None)
+        return fields
+
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
@@ -67,6 +74,13 @@ class ProductSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "slug", "created_at", "updated_at")
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if request and not (request.user and request.user.is_staff):
+            fields.pop("stock", None)
+        return fields
 
 
 class ReviewSerializer(serializers.ModelSerializer):

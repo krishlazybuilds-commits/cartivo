@@ -2,8 +2,6 @@ import csv
 import io
 import logging
 
-import weasyprint
-
 import stripe
 from django.conf import settings
 from django.db import IntegrityError, models as django_models, transaction
@@ -678,6 +676,7 @@ class OrderViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
         html = render_to_string("orders/invoice.html", {"order": order})
+        import weasyprint
         pdf = weasyprint.HTML(string=html).write_pdf()
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="invoice-{order.order_number_short}.pdf"'
