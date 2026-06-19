@@ -162,15 +162,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 13. Contact Form Email Header Injection Potential
+#### ~~13. Contact Form Email Header Injection Potential~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `backend/apps/contact/views.py` |
-| **Description** | The contact form constructs the email subject using an f-string: `subject=f"[Cartivo Contact] Message from {name}"`. The `name` field strips `\r` and `\n` but does **not** sanitize other email header injection characters** such as `\0`, `\t`, `:`, `<`, `>`, or `@`. While Django's `send_mail` does provide some protection, it is not a complete defense against all header injection techniques. |
-| **Impact** | A crafted `name` value could potentially inject additional email headers (e.g., `Bcc:`, `Cc:`, `Reply-To:`), redirecting the contact form submission to attacker-controlled addresses or enabling email spam relay. |
-| **Remediation** | Sanitize the `name` field before using it in the subject. Use a dedicated library like `email.utils.formataddr` or ` bleach` to strip special characters. Better yet, use a fixed subject and put the user's name in the email body. |
+| **Description** | The `name` field was only stripped of `\r\n` — other header injection chars (`\0`, `\t`, `:`, `<`, `>`, `@`) could pass through into the email subject. |
+| **Fix Applied** | Added `_sanitize_name()` function that strips all characters unsafe for email headers. Dangerous whitespace (`\r\n\f\v\t\x00`) is collapsed to spaces. Anything outside `[\w\s'.-]` (colons, `@`, angle brackets, semicolons, etc.) is removed entirely. |
 
 ---
 
@@ -442,7 +442,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Pin Docker base images to SHA digests~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Set explicit `permissions` in GitHub Actions CI~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Remove `|| true` from `npm audit` in CI~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Sanitize contact form `name` before using in email subject | Low |
+| ~~**P1**~~ | ~~Sanitize contact form `name` before using in email subject~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Add rate limiting to Next.js revalidation endpoint | Low |
 | **P2** | Migrate from `xhtml2pdf` to `WeasyPrint` or audit invoice template sanitization | Medium |
 | **P2** | Fix exception handling in `PasswordResetConfirmView` | Low |
