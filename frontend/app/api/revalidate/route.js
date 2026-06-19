@@ -1,5 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
+import { rateLimit } from "../../lib/rate-limit";
 
 /**
  * On-demand revalidation endpoint.
@@ -17,6 +18,20 @@ import { NextResponse } from "next/server";
  *   { "tag": "categories" }         — revalidate all category pages
  */
 export async function POST(request) {
+  // Rate-limit by IP: 10 requests per minute as defense-in-depth.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const { allowed, retryAfter } = rateLimit({
+    key: `revalidate:${ip}`,
+    windowMs: 60_000,
+    max: 10,
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { revalidated: false, message: `Too many requests. Retry in ${retryAfter}s.` },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    );
+  }
+
   const { tag, secret } = await request.json();
 
   const expectedSecret = process.env.REVALIDATION_SECRET;
