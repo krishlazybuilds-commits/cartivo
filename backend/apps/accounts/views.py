@@ -686,10 +686,19 @@ class EmailChangeRequestView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
-        request=inline_serializer("EmailChangeRequest", fields={"email": drf_serializers.EmailField()}),
+        request=inline_serializer("EmailChangeRequest", fields={
+            "email": drf_serializers.EmailField(),
+            "current_password": drf_serializers.CharField(write_only=True),
+        }),
         responses={200: inline_serializer("EmailChangeRequestResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        current_password = request.data.get("current_password")
+        if not current_password:
+            return Response({"detail": "Current password is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(current_password):
+            return Response({"detail": "Current password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
+
         new_email = normalize_email(request.data.get("email", "").strip().lower())
         if not new_email:
             return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
