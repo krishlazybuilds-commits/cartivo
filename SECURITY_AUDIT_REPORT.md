@@ -13,7 +13,7 @@
 
 Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature security posture**. The codebase demonstrates good security awareness: JWT tokens in `httpOnly` cookies with CSRF protection, Django security headers, rate limiting on critical endpoints, strict CORS configuration, input validation via DRF serializers, and Django's security middleware. However, **several gaps exist** that could be exploited for account takeover, session fixation, credential leakage via logs, and CSRF on unauthenticated endpoints.
 
-**Overall Risk Rating:** **MEDIUM** — The application is reasonably secure for general use, but the HIGH-severity issues around session management, CSRF gaps, and log injection should be addressed before production deployment. **3 of 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging in `GoogleLoginView` and `enforce_csrf` cleaned up on 2026-06-19).
+**Overall Risk Rating:** **MEDIUM** — The application is reasonably secure for general use, but the HIGH-severity issues around session management, CSRF gaps, and log injection should be addressed before production deployment. **5 of 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19).
 
 ---
 
@@ -45,27 +45,25 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 3. Password Reset Does Not Invalidate Existing Sessions
+#### ~~3. Password Reset Does Not Invalidate Existing Sessions~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | HIGH |
+| **Severity** | ~~HIGH~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Description** | When a user successfully resets their password via `PasswordResetConfirmView`, the code saves the new password but **does not invalidate or blacklist any existing refresh tokens**. The `OutstandingToken` table retains all previous tokens. |
-| **Impact** | If an attacker has stolen a user's refresh token (via XSS, malware, or network sniffing), they can continue to generate new access tokens even after the legitimate user resets their password. The password reset is effectively useless for evicting the attacker. This is a classic session fixation/account takeover scenario. |
-| **Remediation** | After `user.save()`, add `OutstandingToken.objects.filter(user=user).delete()` to invalidate all existing refresh tokens. This forces the user to re-authenticate with their new password on all devices. |
+| **Fix Applied** | Added `_revoke_all_refresh_tokens(user)` helper that blacklists every `OutstandingToken` for the user via `BlacklistedToken.objects.get_or_create()`. Called immediately after `user.save()` in the reset confirm flow. The response intentionally does **not** set new auth cookies — the user must re-authenticate on every device after a reset. Test coverage: `test_reset_blacklists_existing_refresh_tokens`, `test_reset_does_not_set_auth_cookies`. |
 
 ---
 
-#### 4. Change Password Does Not Invalidate Other Sessions
+#### ~~4. Change Password Does Not Invalidate Other Sessions~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | HIGH |
+| **Severity** | ~~HIGH~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `backend/apps/accounts/views.py` (ChangePasswordView) |
-| **Description** | `ChangePasswordView` validates the current password, sets the new password, and returns a success response. It does **not blacklist or delete any existing refresh tokens** for the user. |
-| **Impact** | If an attacker has compromised a user's session (e.g., via a stolen refresh token on another device), the user cannot evict the attacker by changing their password. The attacker continues to have access indefinitely. This violates the security principle that a password change should revoke all existing sessions. |
-| **Remediation** | After `user.save()`, add `OutstandingToken.objects.filter(user=user).delete()` to force re-authentication on all devices. Optionally, re-issue a new access/refresh token pair for the current device to avoid logging out the user who just changed their password. |
+| **Fix Applied** | After `user.save()`, the view calls `_revoke_all_refresh_tokens(user)` to blacklist every outstanding refresh token. It then mints a **fresh** access/refresh pair via `RefreshToken.for_user(user)` and attaches them as cookies on the response, so the user who just authenticated by entering their current password is not logged out of the device they're using. Other devices and any attacker holding a stolen token are evicted. Test coverage: `test_change_password_blacklists_existing_refresh_tokens`, `test_change_password_reissues_auth_cookies_for_current_device`, `test_change_password_fresh_refresh_token_still_works`. |
 
 ---
 
@@ -445,7 +443,7 @@ Set job-level permissions where different jobs need different access. |
 |----------|--------|--------|
 | **P0** | Add `enforce_csrf()` to all unauthenticated POST endpoints (register, password reset request, email verify, contact, subscribe, guest checkout, etc.) | Low |
 | ~~**P0**~~ | ~~Add `DEFAULT_THROTTLE_CLASSES` to DRF settings to close the rate-limiting gap~~ ✅ **DONE** (commit `e1f6dd1`) | Low |
-| **P0** | Invalidate all refresh tokens on password reset and password change | Low |
+| ~~**P0**~~ | ~~Invalidate all refresh tokens on password reset and password change~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Require current password for email change requests | Low |
 | **P1** | Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle` | Medium |

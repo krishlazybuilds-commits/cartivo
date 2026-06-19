@@ -454,6 +454,30 @@ class PasswordResetConfirmTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data["detail"], "Reset link is invalid or has expired.")
 
+    def test_reset_blacklists_existing_refresh_tokens(self):
+        # Simulate an active session (or a stolen refresh token) on another device.
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        old_refresh = str(RefreshToken.for_user(self.user))
+        # Sanity: token validates before reset.
+        RefreshToken(old_refresh)
+
+        res = self.client.post(self.URL, self._valid_payload(), format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        # The stolen refresh token must now be rejected.
+        with self.assertRaises(TokenError):
+            RefreshToken(old_refresh)
+
+    def test_reset_does_not_set_auth_cookies(self):
+        # Reset is initiated by anonymous email link, so the response must
+        # never log the user in automatically — they have to re-authenticate.
+        res = self.client.post(self.URL, self._valid_payload(), format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertNotIn("access_token", res.cookies)
+        self.assertNotIn("refresh_token", res.cookies)
+
 
 class ChangePasswordTests(APITestCase):
     URL = "/api/v1/auth/me/password/"
@@ -505,6 +529,58 @@ class ChangePasswordTests(APITestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(self.NEW_PASS))
         self.assertFalse(self.user.check_password(self.OLD_PASS))
+
+    def test_change_password_blacklists_existing_refresh_tokens(self):
+        # Simulate an attacker holding a stolen refresh token on another device.
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        attacker_refresh = str(RefreshToken.for_user(self.user))
+        # Sanity: token validates before the change.
+        RefreshToken(attacker_refresh)
+
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": self.NEW_PASS},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        # Attacker's refresh token must now be rejected.
+        with self.assertRaises(TokenError):
+            RefreshToken(attacker_refresh)
+
+    def test_change_password_reissues_auth_cookies_for_current_device(self):
+        # The user who just authenticated by entering their current password
+        # should not be logged out of the device they're using; the response
+        # must carry a fresh access/refresh cookie pair.
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": self.NEW_PASS},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", res.cookies)
+        self.assertIn("refresh_token", res.cookies)
+        self.assertTrue(res.cookies["access_token"]["httponly"])
+        self.assertTrue(res.cookies["refresh_token"]["httponly"])
+
+    def test_change_password_fresh_refresh_token_still_works(self):
+        # The newly issued refresh token (returned in the cookie) must validate
+        # — i.e. we did not blacklist the token we just minted for the user.
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        self.client.force_authenticate(self.user)
+        res = self.client.post(
+            self.URL,
+            {"current_password": self.OLD_PASS, "new_password": self.NEW_PASS},
+            format="json",
+        )
+        new_refresh = res.cookies["refresh_token"].value
+        # Should not raise.
+        RefreshToken(new_refresh)
 
 
 class ProductionSettingsTests(SimpleTestCase := __import__("django.test", fromlist=["SimpleTestCase"]).SimpleTestCase):

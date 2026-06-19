@@ -88,6 +88,24 @@ def set_auth_cookies(response, access=None, refresh=None):
         )
 
 
+def _revoke_all_refresh_tokens(user):
+    """Blacklist every outstanding refresh token for the given user.
+
+    Used on password change/reset to evict any attacker holding a stolen
+    refresh token on another device. Safe to call even if the simplejwt
+    blacklist app is not present (the import will fail loudly in that case
+    rather than silently leaving sessions alive).
+    """
+    from rest_framework_simplejwt.token_blacklist.models import (
+        BlacklistedToken,
+        OutstandingToken,
+    )
+
+    outstanding = OutstandingToken.objects.filter(user=user)
+    for token in outstanding:
+        BlacklistedToken.objects.get_or_create(token=token)
+
+
 @extend_schema(
     tags=["auth"],
     summary="Register a new account",
@@ -211,9 +229,21 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        request.user.set_password(serializer.validated_data["new_password"])
-        request.user.save(update_fields=["password"])
-        return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+
+        # Revoke every outstanding refresh token so a stolen session on
+        # another device cannot continue to mint access tokens.
+        _revoke_all_refresh_tokens(user)
+
+        # Re-issue a fresh access/refresh pair for the current device so the
+        # user who just authenticated by entering their current password is
+        # not logged out of the session they're using.
+        refresh = RefreshToken.for_user(user)
+        response = Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, access=refresh.access_token, refresh=refresh)
+        return response
 
 
 @extend_schema(
@@ -580,6 +610,12 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(new_password)
         user.save(update_fields=["password"])
+
+        # Revoke every outstanding refresh token. Password reset is the
+        # primary recovery path after a session compromise, so the user
+        # must re-authenticate on every device after the reset.
+        _revoke_all_refresh_tokens(user)
+
         return Response({"detail": "Password reset successful."})
 
 
