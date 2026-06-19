@@ -174,15 +174,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 14. No Rate Limiting on Next.js Revalidation Endpoint
+#### ~~14. No Rate Limiting on Next.js Revalidation Endpoint~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
-| **File** | `frontend/app/api/revalidate/route.js` |
-| **Description** | The `/api/revalidate` endpoint accepts a `tag` and `secret` and calls `revalidateTag(tag)` with no rate limiting. If the `REVALIDATION_SECRET` is exposed or brute-forced, an attacker can trigger unlimited revalidation requests. |
-| **Impact** | If the secret is compromised, an attacker can cause a Denial of Service by constantly forcing ISR revalidation, overloading the Next.js server and the backend API. |
-| **Remediation** | Add a simple rate limiter (e.g., using `lru-cache` or Upstash Redis) to the revalidation route. Limit to e.g., 10 requests per minute per IP. Also, rotate the `REVALIDATION_SECRET` regularly. |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `frontend/app/lib/rate-limit.js` (new), `frontend/app/api/revalidate/route.js` |
+| **Description** | The `/api/revalidate` endpoint had no rate limiting — an attacker who brute-forced the secret could trigger unlimited revalidation. |
+| **Fix Applied** | Created a lightweight in-memory sliding-window rate limiter in `lib/rate-limit.js`. Applied to the revalidation route: 10 requests per minute per IP (keyed by `X-Forwarded-For`), returns `429` with `Retry-After` header when exceeded. The secret remains the primary protection; rate limiting is defense-in-depth. |
 
 ---
 
@@ -443,7 +443,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Set explicit `permissions` in GitHub Actions CI~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Remove `|| true` from `npm audit` in CI~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Sanitize contact form `name` before using in email subject~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Add rate limiting to Next.js revalidation endpoint | Low |
+| ~~**P1**~~ | ~~Add rate limiting to Next.js revalidation endpoint~~ ✅ **DONE** (2026-06-19) | Low |
 | **P2** | Migrate from `xhtml2pdf` to `WeasyPrint` or audit invoice template sanitization | Medium |
 | **P2** | Fix exception handling in `PasswordResetConfirmView` | Low |
 | **P2** | Verify all `marked()` outputs are sanitized with `sanitize-html` | Medium |
