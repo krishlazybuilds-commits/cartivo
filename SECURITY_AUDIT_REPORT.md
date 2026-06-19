@@ -198,15 +198,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 16. Password Reset Confirm Exception Handling Gap
+#### ~~16. Password Reset Confirm Exception Handling Gap~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Description** | The `PasswordResetConfirmView` catches `(User.DoesNotExist, ValueError)` when decoding the UID and validating the token. However, `urlsafe_base64_decode` can raise `binascii.Error` (a subclass of `ValueError`? No, `binascii.Error` is not a subclass of `ValueError`), and `force_str` on arbitrary bytes can raise `UnicodeDecodeError`. These exceptions are not caught. |
-| **Impact** | An attacker can send a malformed `uid` (e.g., non-UTF-8 bytes after base64 decoding) to cause an unhandled exception. This results in a **500 Internal Server Error** instead of a controlled 400 response, potentially leaking stack traces in DEBUG mode and creating a minor information disclosure vector. |
-| **Remediation** | Catch `Exception` broadly around the decoding block, or explicitly catch `(User.DoesNotExist, ValueError, binascii.Error, UnicodeDecodeError)`. Return a generic `400 Invalid link` for all errors. |
+| **Description** | `except (User.DoesNotExist, ValueError)` missed `binascii.Error` (not a subclass of `ValueError` in Python 3.10) and `UnicodeDecodeError`. |
+| **Fix Applied** | Changed to bare `except Exception` around the UID decoding block. All malformed inputs return a controlled `400 Invalid link` instead of a 500 error. |
 
 ---
 
@@ -355,15 +355,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 29. `binascii.Error` Not Caught in Password Reset
+#### ~~29. `binascii.Error` Not Caught in Password Reset~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | LOW |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into finding #16 fix) |
 | **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Description** | This is a more specific variant of finding #16. The `urlsafe_base64_decode` function can raise `binascii.Error` for malformed base64 input, which is not a subclass of `ValueError`. |
-| **Impact** | Causes a 500 error instead of a controlled 400 response for malformed reset links. |
-| **Remediation** | Wrap the UID decoding in a broad `try/except Exception` block for the password reset flow. |
+| **Description** | `binascii.Error` was not caught by the narrow `except` clause. |
+| **Fix Applied** | Resolved as part of finding #16 — the catch is now `except Exception` which covers all possible decoding errors. |
 
 ---
 
@@ -445,7 +445,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Sanitize contact form `name` before using in email subject~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Add rate limiting to Next.js revalidation endpoint~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P2**~~ | ~~Migrate from `xhtml2pdf` to `WeasyPrint`~~ ✅ **DONE** (2026-06-19) | Medium |
-| **P2** | Fix exception handling in `PasswordResetConfirmView` | Low |
+| ~~**P2**~~ | ~~Fix exception handling in `PasswordResetConfirmView`~~ ✅ **DONE** (2026-06-19) | Low |
 | **P2** | Verify all `marked()` outputs are sanitized with `sanitize-html` | Medium |
 | **P2** | Add `report-uri` to Content Security Policy | Low |
 | **P3** | Hide exact `stock` values from public API | Low |
