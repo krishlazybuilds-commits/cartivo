@@ -138,21 +138,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 11. No CI Workflow Permissions (GitHub Actions)
+#### ~~11. No CI Workflow Permissions (GitHub Actions)~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `.github/workflows/ci.yml` |
-| **Description** | The GitHub Actions workflow does not declare `permissions:` at the workflow or job level. The default `GITHUB_TOKEN` may have excessive permissions (e.g., write access to repository contents, issues, packages). |
-| **Impact** | If a compromised action or malicious PR exploits the workflow, it could potentially modify repository contents, publish packages, or access secrets. This is a supply chain and privilege escalation risk. |
-| **Remediation** | Add explicit minimum permissions to the workflow:
-```yaml
-permissions:
-  contents: read
-  security-events: write  # if using code scanning
-```
-Set job-level permissions where different jobs need different access. |
+| **Description** | The GitHub Actions workflow did not declare `permissions:`, leaving the default `GITHUB_TOKEN` with excessive write access. |
+| **Fix Applied** | Added `permissions: contents: read` at the workflow level. No job in the CI pipeline requires write access to the repository. |
 
 ---
 
@@ -446,7 +440,7 @@ Set job-level permissions where different jobs need different access. |
 | ~~**P1**~~ | ~~Require current password for email change requests~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle`~~ ✅ **DONE** (2026-06-19) | Medium |
 | ~~**P1**~~ | ~~Pin Docker base images to SHA digests~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Set explicit `permissions` in GitHub Actions CI | Low |
+| ~~**P1**~~ | ~~Set explicit `permissions` in GitHub Actions CI~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Remove `|| true` from `npm audit` in CI | Low |
 | **P1** | Sanitize contact form `name` before using in email subject | Low |
 | **P1** | Add rate limiting to Next.js revalidation endpoint | Low |
