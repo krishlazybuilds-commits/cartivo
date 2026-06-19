@@ -23,6 +23,19 @@ MAX_NAME = 120
 MAX_EMAIL = 254
 MAX_MESSAGE = 5000
 
+# Characters allowed in the contact-form name when used in the email subject.
+# Strips anything that could be used for header injection (newlines, null bytes,
+# colons, angle brackets, @, semicolons, tabs, etc.).
+_SAFE_NAME_RE = re.compile(r"[^\w\s'.\-]")
+_DANGEROUS_WS_RE = re.compile(r"[\r\n\f\v\t\x00]+")
+
+
+def _sanitize_name(raw: str) -> str:
+    """Strip characters unsafe for use in email headers, then collapse whitespace."""
+    s = _DANGEROUS_WS_RE.sub(" ", raw)
+    s = _SAFE_NAME_RE.sub("", s)
+    return s.strip()
+
 
 class ContactRateThrottle(AnonRateThrottle):
     scope = "contact"
@@ -50,7 +63,7 @@ class ContactRateThrottle(AnonRateThrottle):
 @throttle_classes([ContactRateThrottle])
 def contact(request):
     enforce_csrf(request)
-    name = re.sub(r"[\r\n]", "", request.data.get("name", "").strip())
+    name = _sanitize_name(request.data.get("name", ""))
     email = normalize_email(request.data.get("email", "").strip())
     message = request.data.get("message", "").strip()
 
