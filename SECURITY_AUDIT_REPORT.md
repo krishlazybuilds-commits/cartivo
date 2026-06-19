@@ -13,7 +13,7 @@
 
 Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature security posture**. The codebase demonstrates good security awareness: JWT tokens in `httpOnly` cookies with CSRF protection, Django security headers, rate limiting on critical endpoints, strict CORS configuration, input validation via DRF serializers, and Django's security middleware. However, **several gaps exist** that could be exploited for account takeover, session fixation, credential leakage via logs, and CSRF on unauthenticated endpoints.
 
-**Overall Risk Rating:** **LOW-MEDIUM** — The application is reasonably secure for general use. **All 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19; email-change password confirmation added on 2026-06-19).
+**Overall Risk Rating:** **LOW-MEDIUM** — The application is reasonably secure for general use. **All 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19; email-change password confirmation added on 2026-06-19). **All 5 MEDIUM findings and 5 of 10 LOW findings are also resolved**, including: IP spoofing in rate limiting, unpinned Docker images, CI permissions, npm audit suppression, contact form header injection, revalidation rate limiting, xhtml2pdf migration, password reset exception handling, stock exposure in public API, COOP header, conditional HSTS, db.sqlite3 verification, and HSTS on API responses.
 
 ---
 
@@ -233,29 +233,27 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-### 🟢 LOW (10 findings)
+### 🟢 LOW (5 open + 5 resolved)
 
-#### 19. Product Stock Levels Exposed in Public API
+#### ~~19. Product Stock Levels Exposed in Public API~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | LOW |
-| **File** | `backend/apps/catalog/serializers.py` (ProductSerializer, ProductVariantSerializer) |
-| **Description** | The `ProductSerializer` includes the `stock` field (read-only for public, but still visible). The `ProductVariantSerializer` also exposes `stock` for authenticated users. |
-| **Impact** | An attacker can scrape the catalog to determine exact stock levels for every product and variant. This is business intelligence leakage that competitors could exploit for inventory planning or to time purchase bots. |
-| **Remediation** | For public (non-staff) requests, exclude the `stock` field or return a boolean `in_stock` instead of the exact quantity. |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/apps/catalog/serializers.py` (ProductSerializer, ProductVariantSerializer) |
+| **Fix Applied** | Both `ProductSerializer` and `ProductVariantSerializer` now override `get_fields()` to exclude the `stock` field when the request user is not staff. Public API users see only the boolean `in_stock` field. Staff users continue to see exact stock values. |
 
 ---
 
-#### 20. No `SECURE_CROSS_ORIGIN_OPENER_POLICY` in Django
+#### ~~20. No `SECURE_CROSS_ORIGIN_OPENER_POLICY` in Django~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | LOW |
-| **File** | `backend/config/settings.py` |
-| **Description** | Django's `SecurityMiddleware` supports `SECURE_CROSS_ORIGIN_OPENER_POLICY` (COOP) to prevent cross-origin window manipulation attacks. This setting is not configured. |
-| **Impact** | Without COOP, a malicious cross-origin page could use `window.opener` to manipulate the application's window (e.g., navigate it to a phishing page). This is a low-severity issue because the application primarily uses SameSite cookies and API-driven flows. |
-| **Remediation** | Add `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` or `"same-origin"` to the production settings. |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/config/settings.py` |
+| **Fix Applied** | Added `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` to the production settings block. This sends the `Cross-Origin-Opener-Policy: same-origin-allow-popups` header on all Django responses, preventing cross-origin window manipulation while allowing popups from the same origin. |
 
 ---
 
@@ -295,15 +293,14 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 24. No HSTS Header on Django API Responses
+#### ~~24. No HSTS Header on Django API Responses~~ ✅ VERIFIED
 
 | | |
 |---|---|
-| **Severity** | LOW |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Verified on 2026-06-19 — Already configured |
 | **File** | `backend/config/settings.py` |
-| **Description** | The Next.js frontend sets `Strict-Transport-Security` via `next.config.mjs`, but Django's `SECURE_HSTS_SECONDS` is only set in the production settings block. If the API is accessed directly or via a different route, the HSTS header might be missing. |
-| **Impact** | If a user accesses the API directly over HTTP, they will not receive the HSTS header. This is a minor SSL stripping protection gap. |
-| **Remediation** | Ensure `SECURE_HSTS_SECONDS` is consistently set in all production environments. Verify that the reverse proxy also adds HSTS headers for API responses. |
+| **Verification** | `SECURE_HSTS_SECONDS=31536000`, `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`, and `SECURE_HSTS_PRELOAD=True` are all set in the production settings block (lines 484-486). The Next.js frontend also sets `Strict-Transport-Security` via `next.config.mjs`. No action needed. |
 
 ---
 
@@ -319,15 +316,14 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 26. Next.js HSTS Set Unconditionally
+#### ~~26. Next.js HSTS Set Unconditionally~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | LOW |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
 | **File** | `frontend/next.config.mjs` |
-| **Description** | The `Strict-Transport-Security` header with `max-age=31536000` is set in the `next.config.mjs` headers, which applies to **all environments** (including development). |
-| **Impact** | If a developer accesses the local dev server over HTTP, the browser will cache the HSTS policy and may refuse to connect to `localhost` over HTTP for up to a year. This can cause confusing development issues. |
-| **Remediation** | Make the HSTS header conditional on `process.env.NODE_ENV === "production"` or a custom `ENABLE_HSTS` flag. |
+| **Fix Applied** | The `Strict-Transport-Security` header is now conditional on `process.env.NODE_ENV === "production"`. Development environments no longer send HSTS, preventing the browser from caching a year-long HSTS policy for `localhost`. |
 
 ---
 
@@ -343,15 +339,14 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 28. `db.sqlite3` File Exists in Workspace
+#### ~~28. `db.sqlite3` File Exists in Workspace~~ ✅ VERIFIED
 
 | | |
 |---|---|
-| **Severity** | LOW |
+| **Severity** | ~~LOW~~ |
+| **Status** | **RESOLVED** — Verified on 2026-06-19 — Not tracked by git |
 | **File** | `backend/db.sqlite3` |
-| **Description** | A `db.sqlite3` file exists in the backend directory. It is listed in `.gitignore` (`db.sqlite3`), so it should not be committed to version control. |
-| **Impact** | If accidentally committed (e.g., via `git add -f` or a `.gitignore` misconfiguration), it could contain sensitive data: user passwords (hashed), email addresses, order details, and potentially API keys. It also bloats the repository. |
-| **Remediation** | Verify it is not tracked by git: `git ls-files | grep db.sqlite3` should return nothing. Consider adding a pre-commit hook to block `.sqlite3` files. Delete it from the workspace if it contains old/development data. |
+| **Verification** | `git ls-files | grep db.sqlite3` returns nothing. The file is properly excluded by `.gitignore`. No action needed. |
 
 ---
 
@@ -448,11 +443,11 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P2**~~ | ~~Fix exception handling in `PasswordResetConfirmView`~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P2**~~ | ~~Verify all `marked()` outputs are sanitized~~ ✅ **DONE** (2026-06-19) — Already compliant | Medium |
 | **P2** | Add `report-uri` to Content Security Policy | Low |
-| **P3** | Hide exact `stock` values from public API | Low |
-| **P3** | Add `SECURE_CROSS_ORIGIN_OPENER_POLICY` to Django | Low |
-| **P3** | Make Next.js HSTS conditional on production | Low |
+| ~~**P3**~~ | ~~Hide exact `stock` values from public API~~ ✅ **DONE** (2026-06-19) | Low |
+| ~~**P3**~~ | ~~Add `SECURE_CROSS_ORIGIN_OPENER_POLICY` to Django~~ ✅ **DONE** (2026-06-19) | Low |
+| ~~**P3**~~ | ~~Make Next.js HSTS conditional on production~~ ✅ **DONE** (2026-06-19) | Low |
 | **P3** | Consider requiring email verification before checkout | Low |
-| **P3** | Verify `db.sqlite3` is not tracked by git | Low |
+| ~~**P3**~~ | ~~Verify `db.sqlite3` is not tracked by git~~ ✅ **DONE** (2026-06-19) — Already compliant | Low |
 
 ---
 

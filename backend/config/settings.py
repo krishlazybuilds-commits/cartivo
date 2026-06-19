@@ -494,6 +494,7 @@ if not DEBUG:
     # Misc hardening headers.
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
 
 # --- Internationalization ----------------------------------------------------
