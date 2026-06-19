@@ -102,27 +102,27 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ### 🟡 MEDIUM (12 findings)
 
-#### 8. IP Spoofing in Rate Limiting (Admin Login Middleware)
+#### ~~8. IP Spoofing in Rate Limiting (Admin Login Middleware)~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
-| **File** | `backend/config/middleware.py` (AdminLoginRateMiddleware) |
-| **Description** | The middleware uses `HTTP_X_FORWARDED_FOR` to determine the client IP: `xff = request.META.get("HTTP_X_FORWARDED_FOR"); return xff.split(",")[0].strip()`. If the application is **not** deployed behind a trusted reverse proxy (e.g., Nginx, Cloudflare), an attacker can send a custom `X-Forwarded-For` header to bypass the rate limit entirely. |
-| **Impact** | An attacker can bypass the 10-requests-per-5-minutes lockout on the Django admin login by rotating the `X-Forwarded-For` header on each request. This enables brute-force attacks against the admin panel. |
-| **Remediation** | Ensure the application is **always** deployed behind a trusted reverse proxy that strips or overwrites the `X-Forwarded-For` header. Alternatively, use `django-ratelimit` with `django-ipware` configured for trusted proxy ranges. Add a check that `X-Forwarded-For` is only trusted when `REMOTE_ADDR` is in a known proxy IP range. |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/config/utils.py` (new), `backend/config/middleware.py`, `backend/config/throttling.py`, `backend/config/settings.py` |
+| **Description** | The middleware used `HTTP_X_FORWARDED_FOR` to determine the client IP without verifying the request came from a trusted proxy. An attacker could send a forged `X-Forwarded-For` header to bypass rate limits. |
+| **Fix Applied** | Created `config/utils.py` with `get_client_ip()` that only trusts `X-Forwarded-For` when `REMOTE_ADDR` is in the `TRUSTED_PROXIES` list. `AdminLoginRateMiddleware._get_ip()` now delegates to this function. Added `TRUSTED_PROXIES` setting (env var, comma-separated, defaults to empty — secure by default). |
 
 ---
 
-#### 9. IP Spoofing in DRF Throttles
+#### ~~9. IP Spoofing in DRF Throttles~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into finding #8 fix) |
 | **File** | `backend/config/throttling.py` (UserOrAnonRateThrottle) |
-| **Description** | The `UserOrAnonRateThrottle` inherits from `SimpleRateThrottle` and uses `get_ident()` which checks `HTTP_X_FORWARDED_FOR` before `REMOTE_ADDR`. The same IP spoofing issue applies to all rate-limited API endpoints. |
-| **Impact** | Attackers can bypass rate limits on the login endpoint, password reset, registration, and other throttled endpoints by sending a forged `X-Forwarded-For` header. |
-| **Remediation** | Same as finding #8. Use a trusted proxy configuration. Consider `django-ipware` with explicit `TRUSTED_PROXIES` settings. |
+| **Description** | `UserOrAnonRateThrottle` inherited DRF's `get_ident()` which trusts `X-Forwarded-For` unconditionally. |
+| **Fix Applied** | Overrode `get_ident()` on `UserOrAnonRateThrottle` to use `get_client_ip()` from `config/utils.py`, ensuring all DRF throttled endpoints use the same safe IP resolution. |
 
 ---
 
@@ -444,7 +444,7 @@ Set job-level permissions where different jobs need different access. |
 | ~~**P0**~~ | ~~Invalidate all refresh tokens on password reset and password change~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Require current password for email change requests~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle` | Medium |
+| ~~**P1**~~ | ~~Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle`~~ ✅ **DONE** (2026-06-19) | Medium |
 | **P1** | Pin Docker base images to SHA digests | Low |
 | **P1** | Set explicit `permissions` in GitHub Actions CI | Low |
 | **P1** | Remove `|| true` from `npm audit` in CI | Low |
