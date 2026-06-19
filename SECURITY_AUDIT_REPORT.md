@@ -13,13 +13,13 @@
 
 Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature security posture**. The codebase demonstrates good security awareness: JWT tokens in `httpOnly` cookies with CSRF protection, Django security headers, rate limiting on critical endpoints, strict CORS configuration, input validation via DRF serializers, and Django's security middleware. However, **several gaps exist** that could be exploited for account takeover, session fixation, credential leakage via logs, and CSRF on unauthenticated endpoints.
 
-**Overall Risk Rating:** **MEDIUM** — The application is reasonably secure for general use, but the remaining HIGH-severity issue around email-change flow should be addressed before production deployment. **6 of 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19).
+**Overall Risk Rating:** **LOW-MEDIUM** — The application is reasonably secure for general use. **All 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19; email-change password confirmation added on 2026-06-19).
 
 ---
 
 ## Findings by Severity
 
-### 🔴 HIGH (7 findings)
+### 🔴 HIGH (7 findings — all resolved)
 
 #### ~~1. CSRF Vulnerability on Unauthenticated POST Endpoints~~ ✅ FIXED
 
@@ -87,15 +87,16 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 7. Email Change Without Password Confirmation
+#### ~~7. Email Change Without Password Confirmation~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | HIGH |
-| **File** | `backend/apps/accounts/views.py` (EmailChangeRequestView) |
-| **Description** | `EmailChangeRequestView` allows an authenticated user to request an email change **without re-authenticating or confirming their current password**. It generates a secure token and sends a confirmation email to the new address. |
-| **Impact** | If an attacker compromises a user's session (e.g., via XSS, stolen refresh token, or physical device access), they can immediately change the email address. Once the email is changed, the attacker can initiate a password reset and take full control of the account. The legitimate user is locked out. This is a critical account takeover vector. |
-| **Remediation** | Require the current password in the `EmailChangeRequestView` request body. Verify the password against `user.check_password()` before allowing the email change request. This is a standard security practice for sensitive account modifications. |
+| **Severity** | ~~HIGH~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/apps/accounts/views.py` (EmailChangeRequestView) |
+| **Description** | `EmailChangeRequestView` allowed an authenticated user to request an email change **without re-authenticating or confirming their current password**. |
+| **Impact** | If an attacker compromises a user's session (e.g., via XSS, stolen refresh token, or physical device access), they could immediately change the email address and initiate a password reset to take over the account. |
+| **Fix Applied** | Added a `current_password` field requirement to `EmailChangeRequestView.post`. The view now checks `request.user.check_password(current_password)` before allowing the email change. Returns `403 Current password is incorrect` on mismatch. The `inline_serializer` schema also updated to include the new field. |
 
 ---
 
@@ -442,7 +443,7 @@ Set job-level permissions where different jobs need different access. |
 | ~~**P0**~~ | ~~Add `DEFAULT_THROTTLE_CLASSES` to DRF settings to close the rate-limiting gap~~ ✅ **DONE** (commit `e1f6dd1`) | Low |
 | ~~**P0**~~ | ~~Invalidate all refresh tokens on password reset and password change~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Require current password for email change requests | Low |
+| ~~**P1**~~ | ~~Require current password for email change requests~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle` | Medium |
 | **P1** | Pin Docker base images to SHA digests | Low |
 | **P1** | Set explicit `permissions` in GitHub Actions CI | Low |
