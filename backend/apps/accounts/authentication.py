@@ -30,15 +30,11 @@ def enforce_csrf(request):
 
     Safe methods (GET/HEAD/OPTIONS/TRACE) are skipped by the middleware itself.
     """
-    logger.info("enforce_csrf — request method: %s, origin: %s, referer: %s",
-                request.method, request.META.get("HTTP_ORIGIN"), request.META.get("HTTP_REFERER"))
-    logger.info("enforce_csrf — cookies keys: %s", list(request.COOKIES.keys()))
-    logger.info("enforce_csrf — X-CSRFToken header: %s", request.META.get("HTTP_X_CSRFTOKEN", "(not set)"))
     check = _CSRFCheck(lambda req: None)
     check.process_request(request)
     reason = check.process_view(request, None, (), {})
     if reason:
-        logger.warning("CSRF check FAILED: %s", reason)
+        logger.warning("CSRF check failed: %s", reason)
         raise exceptions.PermissionDenied(f"CSRF Failed: {reason}")
 
 
