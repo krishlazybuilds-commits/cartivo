@@ -475,6 +475,10 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     # Trust the X-Forwarded-Proto header set by a TLS-terminating proxy/load balancer.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Trusted proxy IPs for client IP resolution. Only requests from these IPs
+    # will have their X-Forwarded-For header honored by rate-limiters and IP
+    # logging. Set via TRUSTED_PROXIES env var (comma-separated).
+    TRUSTED_PROXIES = env_list("TRUSTED_PROXIES", default=[])
 
     # HTTP Strict Transport Security: force https for the configured duration.
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))  # 1 year

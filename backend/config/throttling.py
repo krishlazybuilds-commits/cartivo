@@ -10,6 +10,8 @@ keyed by ``scope``.
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.throttling import SimpleRateThrottle
 
+from .utils import get_client_ip
+
 
 class UserOrAnonRateThrottle(SimpleRateThrottle):
     """Per-user throttle for authenticated requests; per-IP for anonymous.
@@ -19,6 +21,9 @@ class UserOrAnonRateThrottle(SimpleRateThrottle):
     exhaust the entire anonymous allocation.  Instead each IP gets its own
     bucket while authenticated users continue to be limited per-account.
     """
+
+    def get_ident(self, request):
+        return get_client_ip(request) or ""
 
     def get_cache_key(self, request, view):
         if request.user and request.user.is_authenticated:

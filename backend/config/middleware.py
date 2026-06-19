@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponseForbidden
 
+from .utils import get_client_ip
+
 _ADMIN_LOGIN_RE = re.compile(r"^/admin/login/")
 _RATE = 10       # max attempts
 _PERIOD = 300    # seconds (5 minutes)
@@ -32,7 +34,4 @@ class AdminLoginRateMiddleware:
 
     @staticmethod
     def _get_ip(request):
-        xff = request.META.get("HTTP_X_FORWARDED_FOR")
-        if xff:
-            return xff.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR", "")
+        return get_client_ip(request)
