@@ -600,7 +600,7 @@ class PasswordResetConfirmView(APIView):
         try:
             pk = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=pk)
-        except (User.DoesNotExist, ValueError):
+        except Exception:
             return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not default_token_generator.check_token(user, token):
