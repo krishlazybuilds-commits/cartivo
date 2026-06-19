@@ -150,15 +150,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 12. npm Audit Ignores Critical Vulnerabilities
+#### ~~12. npm Audit Ignores Critical Vulnerabilities~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
-| **File** | `.github/workflows/ci.yml` (line 127) |
-| **Description** | The CI runs `npm audit --audit-level=critical || true`, which means **even CRITICAL vulnerabilities will not fail the build**. The `|| true` unconditionally returns success. |
-| **Impact** | Critical vulnerabilities in production Node.js dependencies (e.g., Next.js, React, or their transitive dependencies) can be introduced without any CI failure. The team may be unaware of severe security issues in the frontend. The `esbuild` and `postcss` overrides suggest past vulnerability awareness, but the `|| true` bypass defeats the purpose. |
-| **Remediation** | Remove `|| true` and set `audit-level=high` or `audit-level=critical`. For known acceptable risks, use `npm audit --ignore` with specific advisories in `package.json` rather than blanket suppression. |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **File** | `.github/workflows/ci.yml` |
+| **Description** | CI ran `npm audit --audit-level=critical || true`, meaning critical vulnerabilities never failed the build. |
+| **Fix Applied** | Changed to `npm audit --audit-level=critical --omit=dev`. The `|| true` blanket suppression is removed. Dev-only dependencies (vitest, esbuild, etc.) are excluded via `--omit=dev` rather than suppressing all results. Critical vulnerabilities in production dependencies now fail the build. |
 
 ---
 
@@ -441,7 +441,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle`~~ ✅ **DONE** (2026-06-19) | Medium |
 | ~~**P1**~~ | ~~Pin Docker base images to SHA digests~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Set explicit `permissions` in GitHub Actions CI~~ ✅ **DONE** (2026-06-19) | Low |
-| **P1** | Remove `|| true` from `npm audit` in CI | Low |
+| ~~**P1**~~ | ~~Remove `|| true` from `npm audit` in CI~~ ✅ **DONE** (2026-06-19) | Low |
 | **P1** | Sanitize contact form `name` before using in email subject | Low |
 | **P1** | Add rate limiting to Next.js revalidation endpoint | Low |
 | **P2** | Migrate from `xhtml2pdf` to `WeasyPrint` or audit invoice template sanitization | Medium |
