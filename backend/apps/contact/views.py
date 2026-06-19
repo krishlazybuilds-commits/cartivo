@@ -13,6 +13,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework import status
 
 from apps.accounts.email_utils import normalize_email, is_disposable_email
+from apps.accounts.authentication import enforce_csrf
 from apps.orders.email_utils import send_html_email
 from .models import NewsletterSubscriber
 
@@ -48,6 +49,7 @@ class ContactRateThrottle(AnonRateThrottle):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def contact(request):
+    enforce_csrf(request)
     name = re.sub(r"[\r\n]", "", request.data.get("name", "").strip())
     email = normalize_email(request.data.get("email", "").strip())
     message = request.data.get("message", "").strip()
@@ -95,6 +97,7 @@ def contact(request):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def subscribe(request):
+    enforce_csrf(request)
     email = normalize_email(request.data.get("email", "").strip().lower())
     if not email:
         return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)

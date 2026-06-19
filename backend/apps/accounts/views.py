@@ -117,6 +117,7 @@ class RegisterView(generics.CreateAPIView):
     throttle_classes = [RegisterRateThrottle]
 
     def create(self, request, *args, **kwargs):
+        enforce_csrf(request)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -540,6 +541,7 @@ class PasswordResetRequestView(APIView):
         responses={200: inline_serializer("PasswordResetRequestResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        enforce_csrf(request)
         email = request.data.get("email", "").strip()
         # Always return the same 200 to avoid leaking whether an email exists.
         generic_response = Response(
@@ -587,6 +589,7 @@ class PasswordResetConfirmView(APIView):
         responses={200: inline_serializer("PasswordResetConfirmResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        enforce_csrf(request)
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
         new_password = request.data.get("new_password", "")
@@ -657,6 +660,7 @@ class EmailVerifyView(APIView):
         responses={200: inline_serializer("EmailVerifyResponse", fields={"detail": drf_serializers.CharField()})},
     )
     def post(self, request):
+        enforce_csrf(request)
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
         if not all([uid, token]):

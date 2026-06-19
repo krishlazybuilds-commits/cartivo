@@ -19,6 +19,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 
 from apps.cart.models import Cart
 from apps.catalog.models import Product
+from apps.accounts.authentication import enforce_csrf
 from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle, OrderLookupThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
@@ -157,6 +158,7 @@ class ShippingEstimateView(APIView):
         tags=["orders"],
     )
     def post(self, request):
+        enforce_csrf(request)
         ser = ShippingEstimateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         result = calculate_estimate(
@@ -182,6 +184,7 @@ class ValidateCouponView(APIView):
         tags=["orders"],
     )
     def post(self, request):
+        enforce_csrf(request)
         ser = ValidateCouponSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         code = ser.validated_data["code"].strip().upper()
@@ -943,6 +946,7 @@ class GuestCheckoutView(APIView):
         tags=["orders"],
     )
     def post(self, request):
+        enforce_csrf(request)
         ser = GuestCheckoutSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data

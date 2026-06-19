@@ -13,7 +13,7 @@
 
 Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature security posture**. The codebase demonstrates good security awareness: JWT tokens in `httpOnly` cookies with CSRF protection, Django security headers, rate limiting on critical endpoints, strict CORS configuration, input validation via DRF serializers, and Django's security middleware. However, **several gaps exist** that could be exploited for account takeover, session fixation, credential leakage via logs, and CSRF on unauthenticated endpoints.
 
-**Overall Risk Rating:** **MEDIUM** — The application is reasonably secure for general use, but the HIGH-severity issues around session management, CSRF gaps, and log injection should be addressed before production deployment. **5 of 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19).
+**Overall Risk Rating:** **MEDIUM** — The application is reasonably secure for general use, but the remaining HIGH-severity issue around email-change flow should be addressed before production deployment. **6 of 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19).
 
 ---
 
@@ -21,16 +21,14 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ### 🔴 HIGH (7 findings)
 
-#### 1. CSRF Vulnerability on Unauthenticated POST Endpoints
+#### ~~1. CSRF Vulnerability on Unauthenticated POST Endpoints~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | HIGH |
-| **Files** | `backend/apps/accounts/views.py` (RegisterView, PasswordResetRequestView, EmailVerifyView), `backend/apps/orders/views.py` (GuestCheckoutView, ShippingEstimateView, ValidateCouponView), `backend/apps/contact/views.py` (contact, subscribe) |
-| **Description** | DRF's `APIView` is exempt from Django's `CsrfViewMiddleware` by default. The project implements CSRF enforcement via `CookieJWTAuthentication.authenticate()`, which calls `enforce_csrf()`. However, this **only runs when a valid JWT cookie is present**. For unauthenticated requests (no cookie), or endpoints with `authentication_classes = []`, `enforce_csrf()` is never called. This leaves multiple state-changing POST endpoints unprotected against cross-origin request forgery. |
-| **Impact** | An attacker can craft a malicious page that triggers POST requests to the application without the user's knowledge. Affected endpoints include: user registration (account creation spam), password reset requests (email bombing), email verification (if token is known), guest checkout (fraudulent orders), contact form spam, and newsletter subscription abuse. |
-| **Remediation** | Add `enforce_csrf(request)` to every POST endpoint that accepts cookies, regardless of authentication state. Alternatively, create a custom `UnauthenticatedPOSTPermission` or middleware that enforces CSRF for all unsafe HTTP methods across the API. |
-| **Example Fix** | In `RegisterView.create()`, add `enforce_csrf(request)` as the first call. In `PasswordResetRequestView.post()`, add `enforce_csrf(request)`. For all `@api_view` function views (contact, subscribe), add `enforce_csrf(request)` to the POST handlers. |
+| **Severity** | ~~HIGH~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/apps/accounts/views.py`, `backend/apps/orders/views.py`, `backend/apps/contact/views.py` |
+| **Fix Applied** | Added an explicit `enforce_csrf(request)` call as the first line of every state-changing unauthenticated POST handler: `RegisterView.create`, `PasswordResetRequestView.post`, `PasswordResetConfirmView.post`, `EmailVerifyView.post`, `GuestCheckoutView.post`, `ShippingEstimateView.post`, `ValidateCouponView.post`, `contact()`, and `subscribe()`. Authenticated views (e.g. `EmailChangeConfirmView`, `ChangePasswordView`) were already covered transparently by `CookieJWTAuthentication.authenticate()`, which calls `enforce_csrf` whenever a JWT cookie is present. All 205 backend tests pass. |
 
 ---
 
@@ -229,15 +227,14 @@ Set job-level permissions where different jobs need different access. |
 
 ---
 
-#### 18. Newsletter Subscription Missing CSRF Protection
+#### ~~18. Newsletter Subscription Missing CSRF Protection~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into Finding #1 fix) |
 | **File** | `backend/apps/contact/views.py` (subscribe function) |
-| **Description** | The `subscribe` view is a POST endpoint with `@permission_classes([AllowAny])` but does not call `enforce_csrf(request)`. It also has no explicit `throttle_classes`. |
-| **Impact** | An attacker can trick a victim into subscribing to a newsletter without consent (CSRF). Additionally, without rate limiting, the attacker can subscribe arbitrary email addresses at scale, potentially causing the application to be flagged as a spam source or abusing the email provider's sending limits. |
-| **Remediation** | Add `enforce_csrf(request)` to the `subscribe` view. Add a throttle class (e.g., `ContactRateThrottle`). |
+| **Fix Applied** | Added `enforce_csrf(request)` to the `subscribe` function. Throttling was already in place via `@throttle_classes([ContactRateThrottle])`. |
 
 ---
 
@@ -441,7 +438,7 @@ Set job-level permissions where different jobs need different access. |
 
 | Priority | Action | Effort |
 |----------|--------|--------|
-| **P0** | Add `enforce_csrf()` to all unauthenticated POST endpoints (register, password reset request, email verify, contact, subscribe, guest checkout, etc.) | Low |
+| ~~**P0**~~ | ~~Add `enforce_csrf()` to all unauthenticated POST endpoints (register, password reset request, email verify, contact, subscribe, guest checkout, etc.)~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P0**~~ | ~~Add `DEFAULT_THROTTLE_CLASSES` to DRF settings to close the rate-limiting gap~~ ✅ **DONE** (commit `e1f6dd1`) | Low |
 | ~~**P0**~~ | ~~Invalidate all refresh tokens on password reset and password change~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
