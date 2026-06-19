@@ -210,15 +210,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 17. Markdown Rendering Without Verified Sanitization
+#### ~~17. Markdown Rendering Without Verified Sanitization~~ ✅ AUDITED — NO ACTION NEEDED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
-| **File** | `frontend` (blog pages, product descriptions — not fully read) |
-| **Description** | The project includes `marked==18.0.5` (a Markdown parser) and `sanitize-html==2.17.5` (an HTML sanitizer). The presence of both suggests Markdown is rendered to HTML somewhere. However, without reading every component, it is **not verified** that `marked` output is consistently passed through `sanitize-html` before being rendered to the DOM. |
-| **Impact** | If Markdown content (e.g., blog posts, product descriptions, or reviews) is rendered directly to HTML without sanitization, it could enable Stored XSS attacks. An attacker with content-writing privileges (or via a user-generated content feature) could inject `<script>` tags or event handlers. |
-| **Remediation** | Audit all uses of `marked()` in the frontend. Ensure every instance is wrapped with `DOMPurify` or `sanitize-html` before insertion into the DOM. Never use `dangerouslySetInnerHTML` with raw Markdown output. |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Audit completed 2026-06-19 |
+| **Files** | `frontend/app/blog/[slug]/page.js` |
+| **Description** | The project includes `marked` and `sanitize-html`. Audit was needed to verify consistent sanitization. |
+| **Audit Result** | Only one `marked()` call exists in the codebase (blog post pages). Its output is already sanitized: `const html = sanitizeHtml(marked(post.content))` at line 26-27. Blog content is also static/first-party (not user-generated). No action needed. |
 
 ---
 
@@ -446,7 +446,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Add rate limiting to Next.js revalidation endpoint~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P2**~~ | ~~Migrate from `xhtml2pdf` to `WeasyPrint`~~ ✅ **DONE** (2026-06-19) | Medium |
 | ~~**P2**~~ | ~~Fix exception handling in `PasswordResetConfirmView`~~ ✅ **DONE** (2026-06-19) | Low |
-| **P2** | Verify all `marked()` outputs are sanitized with `sanitize-html` | Medium |
+| ~~**P2**~~ | ~~Verify all `marked()` outputs are sanitized~~ ✅ **DONE** (2026-06-19) — Already compliant | Medium |
 | **P2** | Add `report-uri` to Content Security Policy | Low |
 | **P3** | Hide exact `stock` values from public API | Low |
 | **P3** | Add `SECURE_CROSS_ORIGIN_OPENER_POLICY` to Django | Low |
