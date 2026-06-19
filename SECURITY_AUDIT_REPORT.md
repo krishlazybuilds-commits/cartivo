@@ -186,15 +186,15 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 
 ---
 
-#### 15. xhtml2pdf for Invoice Generation (HTML Parsing Risks)
+#### ~~15. xhtml2pdf for Invoice Generation (HTML Parsing Risks)~~ ✅ FIXED
 
 | | |
 |---|---|
-| **Severity** | MEDIUM |
-| **File** | `backend/apps/orders/views.py` (OrderViewSet.invoice), `backend/apps/orders/email_utils.py` (send_pdf_email) |
-| **Description** | The project uses `xhtml2pdf==0.2.17` to convert HTML invoices to PDF. `xhtml2pdf` is known to have security issues with HTML parsing, including potential XML external entity (XXE) attacks and insecure handling of CSS/CSS imports. The invoice template (`orders/invoice.html`) renders user-controlled data such as shipping addresses, customer names, and order notes. |
-| **Impact** | If a user injects malicious HTML/CSS into their shipping address or order notes, `xhtml2pdf` might process it in unexpected ways. While Django templates auto-escape by default, complex HTML entities or specially crafted CSS could potentially exploit parser weaknesses. Additionally, `xhtml2pdf` has not been actively maintained and may contain unpatched vulnerabilities. |
-| **Remediation** | Consider migrating to a more secure PDF generation library like `WeasyPrint` (actively maintained, better security record) or `reportlab` with strict input sanitization. Alternatively, ensure all user inputs are stripped of HTML before rendering in the invoice template. |
+| **Severity** | ~~MEDIUM~~ |
+| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Files** | `backend/requirements.txt`, `backend/apps/orders/views.py` |
+| **Description** | `xhtml2pdf==0.2.17` was used for PDF invoice generation. It is unmaintained and has known HTML parsing vulnerabilities (XXE, CSS import attacks). |
+| **Fix Applied** | Replaced `xhtml2pdf` with `weasyprint==69.0`. WeasyPrint is actively maintained with regular security updates. The invoice template (`orders/invoice.html`) needed no changes — its standard CSS works with both libraries. `io` import is still in the file for other uses. |
 
 ---
 
@@ -444,7 +444,7 @@ Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature
 | ~~**P1**~~ | ~~Remove `|| true` from `npm audit` in CI~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Sanitize contact form `name` before using in email subject~~ ✅ **DONE** (2026-06-19) | Low |
 | ~~**P1**~~ | ~~Add rate limiting to Next.js revalidation endpoint~~ ✅ **DONE** (2026-06-19) | Low |
-| **P2** | Migrate from `xhtml2pdf` to `WeasyPrint` or audit invoice template sanitization | Medium |
+| ~~**P2**~~ | ~~Migrate from `xhtml2pdf` to `WeasyPrint`~~ ✅ **DONE** (2026-06-19) | Medium |
 | **P2** | Fix exception handling in `PasswordResetConfirmView` | Low |
 | **P2** | Verify all `marked()` outputs are sanitized with `sanitize-html` | Medium |
 | **P2** | Add `report-uri` to Content Security Policy | Low |
