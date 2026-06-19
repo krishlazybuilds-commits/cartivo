@@ -2,6 +2,8 @@ import csv
 import io
 import logging
 
+import weasyprint
+
 import stripe
 from django.conf import settings
 from django.db import IntegrityError, models as django_models, transaction
@@ -676,13 +678,8 @@ class OrderViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
         html = render_to_string("orders/invoice.html", {"order": order})
-        from xhtml2pdf import pisa
-        pdf_io = io.BytesIO()
-        pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_io)
-        if pisa_status.err:
-            return Response({"detail": "Failed to generate invoice."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        pdf_io.seek(0)
-        response = HttpResponse(pdf_io.read(), content_type="application/pdf")
+        pdf = weasyprint.HTML(string=html).write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="invoice-{order.order_number_short}.pdf"'
         return response
 
