@@ -132,6 +132,7 @@ MIDDLEWARE = [
     "config.middleware.AdminLoginRateMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.PermissionsPolicyMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

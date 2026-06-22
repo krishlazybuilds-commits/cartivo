@@ -12,6 +12,9 @@ _RATE = 10       # max attempts
 _PERIOD = 300    # seconds (5 minutes)
 _PREFIX = "admin_login_rate:"
 
+# Permissions-Policy matching the frontend's policy in next.config.mjs.
+_PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
 
 class AdminLoginRateMiddleware:
     """Rate-limit POSTs to /admin/login/ by IP to prevent brute-force attacks."""
@@ -35,3 +38,20 @@ class AdminLoginRateMiddleware:
     @staticmethod
     def _get_ip(request):
         return get_client_ip(request)
+
+
+class PermissionsPolicyMiddleware:
+    """Set the Permissions-Policy header on every response.
+
+    Mirrors the policy already applied by the Next.js frontend so that direct
+    API clients are also restricted.  Django has no built-in setting for this
+    header, so a small middleware is the cleanest approach.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response["Permissions-Policy"] = _PERMISSIONS_POLICY
+        return response

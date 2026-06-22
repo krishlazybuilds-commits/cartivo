@@ -61,7 +61,7 @@ The following areas were reviewed:
 |----------|-------|----------|------|
 | 🔴 HIGH | 7 | 7 | 0 |
 | 🟡 MEDIUM | 12 | 12 | 0 |
-| 🟢 LOW | 10 | 6 | 4 |
+| 🟢 LOW | 10 | 7 | 3 |
 | ℹ️ INFO | 9 | – | 9 |
 
 ---
@@ -262,15 +262,13 @@ The following areas were reviewed:
 | **File** | `frontend/middleware.js`, `frontend/app/api/csp-report/route.js` (new) |
 | **Fix** | Added `report-uri /api/csp-report` and `report-to csp-endpoint` directives to the CSP header. Created a new `/api/csp-report` endpoint that receives violation reports (POST, rate-limited to 120 req/min/IP) and logs them as structured JSON. Also sets the `Report-To` HTTP header with a 126-day `max_age` for modern browser support. |
 
-### 22. No `Permission-Policy` Header on Django API Responses
+### 22. ~~No `Permission-Policy` Header on Django API Responses~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Status** | **OPEN** |
-| **File** | `backend/config/settings.py` |
-| **Issue** | Next.js frontend sets `Permissions-Policy` via `next.config.mjs`, but Django API responses do not include this header. |
-| **Impact** | Direct API access bypasses the permission restrictions set on the frontend. Minor inconsistency. |
-| **Remediation** | Add `Permission-Policy` to Django's `SECURE_HEADERS` or via a custom middleware. |
+| **Status** | **RESOLVED** |
+| **Files** | `backend/config/middleware.py`, `backend/config/settings.py` |
+| **Fix** | Created `PermissionsPolicyMiddleware` that sets `Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()` on every Django response (matching the frontend's existing policy in `next.config.mjs`). Registered in `MIDDLEWARE` list. |
 
 ### 23. Auth Video Redirects to External CDN (Privacy Leak)
 
