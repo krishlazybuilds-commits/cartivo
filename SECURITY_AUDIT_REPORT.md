@@ -4,479 +4,491 @@
 **Backend:** Django 5.1 + DRF 3.15 + SimpleJWT (Python 3.12)  
 **Frontend:** Next.js 15 + React 18 + TypeScript (Node 20)  
 **Infrastructure:** Docker + PostgreSQL + Redis + MinIO + Celery + Stripe  
-**Date:** 2025-08-01 (last updated: 2026-06-19)  
-**Auditor:** Kimi Work Automated Security Audit  
+**Date:** June 22, 2026  
+**Auditor:** Buffy (Codebuff AI Agent)
 
 ---
 
 ## Executive Summary
 
-Cartivo is a well-architected Django/Next.js e-commerce platform with a **mature security posture**. The codebase demonstrates good security awareness: JWT tokens in `httpOnly` cookies with CSRF protection, Django security headers, rate limiting on critical endpoints, strict CORS configuration, input validation via DRF serializers, and Django's security middleware. However, **several gaps exist** that could be exploited for account takeover, session fixation, credential leakage via logs, and CSRF on unauthenticated endpoints.
+Cartivo is a well-architected e-commerce platform with a **mature security posture**. The codebase demonstrates strong security awareness across the board:
 
-**Overall Risk Rating:** **LOW-MEDIUM** — The application is reasonably secure for general use. **All 7 HIGH findings have been resolved** (rate-limiting gap closed in commit `e1f6dd1`; verbose credential logging cleaned up on 2026-06-19; refresh-token revocation on password reset and change implemented on 2026-06-19; CSRF added to all unauthenticated POST endpoints on 2026-06-19; email-change password confirmation added on 2026-06-19). **All 5 MEDIUM findings and 5 of 10 LOW findings are also resolved**, including: IP spoofing in rate limiting, unpinned Docker images, CI permissions, npm audit suppression, contact form header injection, revalidation rate limiting, xhtml2pdf migration, password reset exception handling, stock exposure in public API, COOP header, conditional HSTS, db.sqlite3 verification, and HSTS on API responses.
+- **Authentication:** httpOnly JWT cookies with CSRF enforcement, refresh token rotation and blacklisting
+- **Rate Limiting:** Per-endpoint scopes (login: 10/min, register: 5/hr, contact: 5/hr) plus global defaults (anon: 60/min, user: 300/min)
+- **CSP:** Per-request nonces with strict policy (no `unsafe-inline` in production)
+- **Input Validation:** DRF serializers with explicit field constraints, disposable email blocking
+- **Infrastructure:** Non-root Docker users, pinned SHA256 digests, least-privilege CI tokens
+
+**All 7 HIGH findings and 12 MEDIUM findings from the previous audit are resolved.** The remaining open items are **5 LOW-severity hardening opportunities**. No critical vulnerabilities were identified.
+
+**Overall Risk Rating: LOW** — Production-ready with minor hardening opportunities.
 
 ---
 
-## Findings by Severity
+## Audit Scope
 
-### 🔴 HIGH (7 findings — all resolved)
+The following areas were reviewed:
 
-#### ~~1. CSRF Vulnerability on Unauthenticated POST Endpoints~~ ✅ FIXED
+### Backend (Python/Django)
+| Area | Files Reviewed |
+|------|---------------|
+| Core configuration | `config/settings.py`, `config/urls.py`, `config/middleware.py`, `config/throttling.py`, `config/utils.py`, `config/celery.py`, `config/health.py`, `config/assets.py` |
+| Authentication | `apps/accounts/views.py`, `apps/accounts/authentication.py`, `apps/accounts/serializers.py`, `apps/accounts/models.py`, `apps/accounts/urls.py`, `apps/accounts/tasks.py`, `apps/accounts/email_utils.py` |
+| Orders & Payments | `apps/orders/views.py`, `apps/orders/serializers.py`, `apps/orders/services.py`, `apps/orders/models.py`, `apps/orders/email_utils.py` |
+| Catalog | `apps/catalog/views.py`, `apps/catalog/serializers.py`, `apps/catalog/validators.py`, `apps/catalog/filters.py`, `apps/catalog/models.py` |
+| Contact | `apps/contact/views.py`, `apps/contact/urls.py`, `apps/contact/models.py` |
+| Infrastructure | `requirements.txt`, `Dockerfile`, `.env.example`, `.env.production.example` |
+
+### Frontend (Next.js/React)
+| Area | Files Reviewed |
+|------|---------------|
+| Core config | `middleware.js`, `next.config.mjs`, `package.json` |
+| API routes | `app/api/revalidate/route.js`, `app/api/health/route.js` |
+| Critical pages | `app/checkout/page.js`, `app/login/page.js`, `app/register/page.js` |
+| Infrastructure | `Dockerfile`, `.env.example` |
+
+### Infrastructure
+| Area | Files Reviewed |
+|------|---------------|
+| CI/CD | `.github/workflows/ci.yml`, `.github/dependabot.yml` |
+| Containerization | `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile` |
+
+---
+
+## Findings Summary
+
+| Severity | Total | Resolved | Open |
+|----------|-------|----------|------|
+| 🔴 HIGH | 7 | 7 | 0 |
+| 🟡 MEDIUM | 12 | 12 | 0 |
+| 🟢 LOW | 10 | 5 | 5 |
+| ℹ️ INFO | 9 | – | 9 |
+
+---
+
+## 🔴 HIGH Findings (7 — All Resolved)
+
+### ~~1. CSRF Vulnerability on Unauthenticated POST Endpoints~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **Files** | `backend/apps/accounts/views.py`, `backend/apps/orders/views.py`, `backend/apps/contact/views.py` |
-| **Fix Applied** | Added an explicit `enforce_csrf(request)` call as the first line of every state-changing unauthenticated POST handler: `RegisterView.create`, `PasswordResetRequestView.post`, `PasswordResetConfirmView.post`, `EmailVerifyView.post`, `GuestCheckoutView.post`, `ShippingEstimateView.post`, `ValidateCouponView.post`, `contact()`, and `subscribe()`. Authenticated views (e.g. `EmailChangeConfirmView`, `ChangePasswordView`) were already covered transparently by `CookieJWTAuthentication.authenticate()`, which calls `enforce_csrf` whenever a JWT cookie is present. All 205 backend tests pass. |
+| **Fix** | `enforce_csrf(request)` added to every state-changing unauthenticated POST handler: `RegisterView.create`, `PasswordResetRequestView.post`, `PasswordResetConfirmView.post`, `EmailVerifyView.post`, `GuestCheckoutView.post`, `ShippingEstimateView.post`, `ValidateCouponView.post`, `contact()`, `subscribe()`. Authenticated views are covered by `CookieJWTAuthentication.authenticate()`. |
 
----
-
-#### ~~2. Missing Default DRF Rate Limiting — Multiple Endpoints Unthrottled~~ ✅ FIXED
+### ~~2. Missing Default DRF Rate Limiting~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed in commit `e1f6dd1` (2026-06-19) |
+| **Status** | **RESOLVED** |
 | **File** | `backend/config/settings.py` |
-| **Fix Applied** | Added `DEFAULT_THROTTLE_CLASSES` with `AnonRateThrottle` (60/min per IP) and `UserRateThrottle` (300/min per user). All endpoints now receive rate limiting by default; custom per-endpoint scopes still override where declared. |
+| **Fix** | Added `DEFAULT_THROTTLE_CLASSES` with `AnonRateThrottle` (60/min) and `UserRateThrottle` (300/min). |
 
----
-
-#### ~~3. Password Reset Does Not Invalidate Existing Sessions~~ ✅ FIXED
+### ~~3. Password Reset Does Not Invalidate Existing Sessions~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Fix Applied** | Added `_revoke_all_refresh_tokens(user)` helper that blacklists every `OutstandingToken` for the user via `BlacklistedToken.objects.get_or_create()`. Called immediately after `user.save()` in the reset confirm flow. The response intentionally does **not** set new auth cookies — the user must re-authenticate on every device after a reset. Test coverage: `test_reset_blacklists_existing_refresh_tokens`, `test_reset_does_not_set_auth_cookies`. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | `_revoke_all_refresh_tokens(user)` blacklists every `OutstandingToken` for the user. User must re-authenticate on every device after a reset. |
 
----
-
-#### ~~4. Change Password Does Not Invalidate Other Sessions~~ ✅ FIXED
+### ~~4. Change Password Does Not Invalidate Other Sessions~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **File** | `backend/apps/accounts/views.py` (ChangePasswordView) |
-| **Fix Applied** | After `user.save()`, the view calls `_revoke_all_refresh_tokens(user)` to blacklist every outstanding refresh token. It then mints a **fresh** access/refresh pair via `RefreshToken.for_user(user)` and attaches them as cookies on the response, so the user who just authenticated by entering their current password is not logged out of the device they're using. Other devices and any attacker holding a stolen token are evicted. Test coverage: `test_change_password_blacklists_existing_refresh_tokens`, `test_change_password_reissues_auth_cookies_for_current_device`, `test_change_password_fresh_refresh_token_still_works`. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | After `user.save()`, all refresh tokens are blacklisted. A fresh access/refresh pair is issued for the current device so the user is not logged out of the device they're using. |
 
----
-
-#### ~~5. Credential Leakage via Verbose Logging (Google Login)~~ ✅ FIXED
+### ~~5. Credential Leakage via Verbose Logging (Google Login)~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **File** | `backend/apps/accounts/views.py` (GoogleLoginView) |
-| **Fix Applied** | Removed `logger.info("Request headers: %s", dict(request.headers))` and `logger.info("Request body: %s", request.data)`. Removed ~10 additional verbose INFO logs that exposed credential length, token issuer/audience, email payload, and full user records. Retained WARNING logs for security failures and a single INFO log on successful login (user pk only, no PII). |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | Removed `logger.info("Request headers: %s", dict(request.headers))`, `logger.info("Request body: %s", request.data)`, and ~10 other verbose INFO logs. Retained WARNING logs for security failures and a single INFO log (user pk only, no PII). |
 
----
-
-#### ~~6. CSRF Token Leakage via Verbose Logging~~ ✅ FIXED
+### ~~6. CSRF Token Leakage via Verbose Logging~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **File** | `backend/apps/accounts/authentication.py` (enforce_csrf function) |
-| **Fix Applied** | Removed the `logger.info("enforce_csrf — X-CSRFToken header: %s", ...)` line that exposed raw CSRF tokens, plus the two adjacent INFO logs that leaked request method/origin/referer and cookie key names. Only the WARNING log on CSRF failure is retained. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/authentication.py` |
+| **Fix** | Removed `logger.info("enforce_csrf — X-CSRFToken header: %s", ...)` and adjacent INFO logs that leaked request method/origin/referer. Only WARNING on failure is retained. |
 
----
-
-#### ~~7. Email Change Without Password Confirmation~~ ✅ FIXED
+### ~~7. Email Change Without Password Confirmation~~
 
 | | |
 |---|---|
 | **Severity** | ~~HIGH~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **Files** | `backend/apps/accounts/views.py` (EmailChangeRequestView) |
-| **Description** | `EmailChangeRequestView` allowed an authenticated user to request an email change **without re-authenticating or confirming their current password**. |
-| **Impact** | If an attacker compromises a user's session (e.g., via XSS, stolen refresh token, or physical device access), they could immediately change the email address and initiate a password reset to take over the account. |
-| **Fix Applied** | Added a `current_password` field requirement to `EmailChangeRequestView.post`. The view now checks `request.user.check_password(current_password)` before allowing the email change. Returns `403 Current password is incorrect` on mismatch. The `inline_serializer` schema also updated to include the new field. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | Added `current_password` field to `EmailChangeRequestView.post`. Returns `403 Current password is incorrect` on mismatch. |
 
 ---
 
-### 🟡 MEDIUM (12 findings)
+## 🟡 MEDIUM Findings (12 — All Resolved)
 
-#### ~~8. IP Spoofing in Rate Limiting (Admin Login Middleware)~~ ✅ FIXED
+### ~~8. IP Spoofing in Rate Limiting (Admin Login Middleware)~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **Files** | `backend/config/utils.py` (new), `backend/config/middleware.py`, `backend/config/throttling.py`, `backend/config/settings.py` |
-| **Description** | The middleware used `HTTP_X_FORWARDED_FOR` to determine the client IP without verifying the request came from a trusted proxy. An attacker could send a forged `X-Forwarded-For` header to bypass rate limits. |
-| **Fix Applied** | Created `config/utils.py` with `get_client_ip()` that only trusts `X-Forwarded-For` when `REMOTE_ADDR` is in the `TRUSTED_PROXIES` list. `AdminLoginRateMiddleware._get_ip()` now delegates to this function. Added `TRUSTED_PROXIES` setting (env var, comma-separated, defaults to empty — secure by default). |
+| **Status** | **RESOLVED** |
+| **Files** | `backend/config/utils.py` (new), `backend/config/middleware.py` |
+| **Fix** | Created `get_client_ip()` that only trusts `X-Forwarded-For` when `REMOTE_ADDR` is in `TRUSTED_PROXIES`. |
 
----
-
-#### ~~9. IP Spoofing in DRF Throttles~~ ✅ FIXED
+### ~~9. IP Spoofing in DRF Throttles~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into finding #8 fix) |
-| **File** | `backend/config/throttling.py` (UserOrAnonRateThrottle) |
-| **Description** | `UserOrAnonRateThrottle` inherited DRF's `get_ident()` which trusts `X-Forwarded-For` unconditionally. |
-| **Fix Applied** | Overrode `get_ident()` on `UserOrAnonRateThrottle` to use `get_client_ip()` from `config/utils.py`, ensuring all DRF throttled endpoints use the same safe IP resolution. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/config/throttling.py` |
+| **Fix** | `UserOrAnonRateThrottle.get_ident()` now delegates to `get_client_ip()`. |
 
----
-
-#### ~~10. Unpinned Docker Base Images (Supply Chain Risk)~~ ✅ FIXED
+### ~~10. Unpinned Docker Base Images~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **Files** | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` |
-| **Description** | Dockerfiles and docker-compose used floating tags instead of pinned SHA256 digests. |
-| **Fix Applied** | All 7 image references pinned to manifest-list SHA256 digests: `python:3.12-slim`, `node:20-slim` (×3 stages), `postgres:16`, `redis:7-alpine`, `minio/minio`, `minio/mc`. Images must be deliberately updated by changing the digest after reviewing upstream changelogs. |
+| **Fix** | All 7 image references pinned to manifest-list SHA256 digests. |
 
----
-
-#### ~~11. No CI Workflow Permissions (GitHub Actions)~~ ✅ FIXED
+### ~~11. No CI Workflow Permissions~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **File** | `.github/workflows/ci.yml` |
-| **Description** | The GitHub Actions workflow did not declare `permissions:`, leaving the default `GITHUB_TOKEN` with excessive write access. |
-| **Fix Applied** | Added `permissions: contents: read` at the workflow level. No job in the CI pipeline requires write access to the repository. |
+| **Fix** | Added `permissions: contents: read` at the workflow level. |
 
----
-
-#### ~~12. npm Audit Ignores Critical Vulnerabilities~~ ✅ FIXED
+### ~~12. npm Audit Ignores Critical Vulnerabilities~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **File** | `.github/workflows/ci.yml` |
-| **Description** | CI ran `npm audit --audit-level=critical || true`, meaning critical vulnerabilities never failed the build. |
-| **Fix Applied** | Changed to `npm audit --audit-level=critical --omit=dev`. The `|| true` blanket suppression is removed. Dev-only dependencies (vitest, esbuild, etc.) are excluded via `--omit=dev` rather than suppressing all results. Critical vulnerabilities in production dependencies now fail the build. |
+| **Fix** | Changed to `npm audit --audit-level=critical --omit=dev`. `|| true` suppression removed. |
 
----
-
-#### ~~13. Contact Form Email Header Injection Potential~~ ✅ FIXED
+### ~~13. Contact Form Email Header Injection Potential~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **File** | `backend/apps/contact/views.py` |
-| **Description** | The `name` field was only stripped of `\r\n` — other header injection chars (`\0`, `\t`, `:`, `<`, `>`, `@`) could pass through into the email subject. |
-| **Fix Applied** | Added `_sanitize_name()` function that strips all characters unsafe for email headers. Dangerous whitespace (`\r\n\f\v\t\x00`) is collapsed to spaces. Anything outside `[\w\s'.-]` (colons, `@`, angle brackets, semicolons, etc.) is removed entirely. |
+| **Fix** | `_sanitize_name()` strips all characters unsafe for email headers: `\r\n\f\v\t\x00` are collapsed; `[^\w\s'.-]` is removed. |
 
----
-
-#### ~~14. No Rate Limiting on Next.js Revalidation Endpoint~~ ✅ FIXED
+### ~~14. No Rate Limiting on Next.js Revalidation Endpoint~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **Files** | `frontend/app/lib/rate-limit.js` (new), `frontend/app/api/revalidate/route.js` |
-| **Description** | The `/api/revalidate` endpoint had no rate limiting — an attacker who brute-forced the secret could trigger unlimited revalidation. |
-| **Fix Applied** | Created a lightweight in-memory sliding-window rate limiter in `lib/rate-limit.js`. Applied to the revalidation route: 10 requests per minute per IP (keyed by `X-Forwarded-For`), returns `429` with `Retry-After` header when exceeded. The secret remains the primary protection; rate limiting is defense-in-depth. |
+| **Fix** | In-memory sliding-window rate limiter: 10 requests/min/IP, returns 429 with `Retry-After`. |
 
----
-
-#### ~~15. xhtml2pdf for Invoice Generation (HTML Parsing Risks)~~ ✅ FIXED
+### ~~15. xhtml2pdf for Invoice Generation~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **RESOLVED** |
 | **Files** | `backend/requirements.txt`, `backend/apps/orders/views.py` |
-| **Description** | `xhtml2pdf==0.2.17` was used for PDF invoice generation. It is unmaintained and has known HTML parsing vulnerabilities (XXE, CSS import attacks). |
-| **Fix Applied** | Replaced `xhtml2pdf` with `weasyprint==69.0`. WeasyPrint is actively maintained with regular security updates. The invoice template (`orders/invoice.html`) needed no changes — its standard CSS works with both libraries. `io` import is still in the file for other uses. |
+| **Fix** | Replaced `xhtml2pdf` with `weasyprint==69.0` (actively maintained). |
 
----
-
-#### ~~16. Password Reset Confirm Exception Handling Gap~~ ✅ FIXED
+### ~~16. Password Reset Confirm Exception Handling Gap~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Description** | `except (User.DoesNotExist, ValueError)` missed `binascii.Error` (not a subclass of `ValueError` in Python 3.10) and `UnicodeDecodeError`. |
-| **Fix Applied** | Changed to bare `except Exception` around the UID decoding block. All malformed inputs return a controlled `400 Invalid link` instead of a 500 error. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | Changed to `except Exception` around UID decoding. All malformed inputs return controlled `400 Invalid link`. |
 
----
-
-#### ~~17. Markdown Rendering Without Verified Sanitization~~ ✅ AUDITED — NO ACTION NEEDED
+### ~~17. Markdown Rendering Without Verified Sanitization~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Audit completed 2026-06-19 |
-| **Files** | `frontend/app/blog/[slug]/page.js` |
-| **Description** | The project includes `marked` and `sanitize-html`. Audit was needed to verify consistent sanitization. |
-| **Audit Result** | Only one `marked()` call exists in the codebase (blog post pages). Its output is already sanitized: `const html = sanitizeHtml(marked(post.content))` at line 26-27. Blog content is also static/first-party (not user-generated). No action needed. |
+| **Status** | **RESOLVED — No action needed** |
+| **File** | `frontend/app/blog/[slug]/page.js` |
+| **Verification** | Only one `marked()` call exists; its output is sanitized via `sanitize-html`. Blog content is first-party, not user-generated. |
 
----
-
-#### ~~18. Newsletter Subscription Missing CSRF Protection~~ ✅ FIXED
+### ~~18. Newsletter Subscription Missing CSRF Protection~~
 
 | | |
 |---|---|
 | **Severity** | ~~MEDIUM~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into Finding #1 fix) |
-| **File** | `backend/apps/contact/views.py` (subscribe function) |
-| **Fix Applied** | Added `enforce_csrf(request)` to the `subscribe` function. Throttling was already in place via `@throttle_classes([ContactRateThrottle])`. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/contact/views.py` |
+| **Fix** | Added `enforce_csrf(request)` to `subscribe()`. Throttling already in place. |
 
 ---
 
-### 🟢 LOW (5 open + 5 resolved)
+## 🟢 LOW Findings
 
-#### ~~19. Product Stock Levels Exposed in Public API~~ ✅ FIXED
-
-| | |
-|---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **Files** | `backend/apps/catalog/serializers.py` (ProductSerializer, ProductVariantSerializer) |
-| **Fix Applied** | Both `ProductSerializer` and `ProductVariantSerializer` now override `get_fields()` to exclude the `stock` field when the request user is not staff. Public API users see only the boolean `in_stock` field. Staff users continue to see exact stock values. |
-
----
-
-#### ~~20. No `SECURE_CROSS_ORIGIN_OPENER_POLICY` in Django~~ ✅ FIXED
+### 19. ~~Product Stock Levels Exposed in Public API~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
-| **Files** | `backend/config/settings.py` |
-| **Fix Applied** | Added `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` to the production settings block. This sends the `Cross-Origin-Opener-Policy: same-origin-allow-popups` header on all Django responses, preventing cross-origin window manipulation while allowing popups from the same origin. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/catalog/serializers.py` |
+| **Fix** | `ProductSerializer` and `ProductVariantSerializer` override `get_fields()` to exclude `stock` for non-staff users. |
 
----
-
-#### 21. Missing CSP `report-uri` / `report-to` Directive
+### 20. ~~No `SECURE_CROSS_ORIGIN_OPENER_POLICY` in Django~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Severity** | LOW |
-| **File** | `frontend/middleware.js` |
-| **Description** | The Content Security Policy is set via `next/headers` in the frontend middleware but does **not** include a `report-uri` or `report-to` directive. |
-| **Impact** | CSP violations (e.g., from a missing script source, XSS attempt, or third-party injection) go unreported. The team has no visibility into CSP violations in production. |
-| **Remediation** | Add a `report-uri` endpoint (e.g., a Sentry CSP endpoint or a custom logging endpoint) and include it in the CSP header: `report-uri https://your-sentry-instance.com/api/csp-report/`. |
-
----
-
-#### 22. No `Permission-Policy` Header in Django API Responses
-
-| | |
-|---|---|
-| **Severity** | LOW |
+| **Status** | **RESOLVED** |
 | **File** | `backend/config/settings.py` |
-| **Description** | The Next.js frontend sets `Permissions-Policy` via `next.config.mjs`, but the Django backend API responses do not include this header. |
-| **Impact** | If the API is accessed directly (e.g., by a mobile app or third-party integration), the browser does not receive the permission policy. This is a minor inconsistency in security posture. |
-| **Remediation** | Add `Permission-Policy` to Django's `SECURE_HEADERS` or via a custom middleware that mirrors the frontend policy. |
+| **Fix** | `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` added. |
 
----
-
-#### 23. `auth_video` Redirects to External CDN (Privacy Leak)
+### 21. CSP Missing `report-uri` / `report-to` Directive
 
 | | |
 |---|---|
-| **Severity** | LOW |
-| **File** | `backend/config/assets.py` (auth_video) |
-| **Description** | The `auth_video` endpoint redirects the user's browser to an external URL (Pexels CDN by default). |
-| **Impact** | The user's IP address and browser fingerprint are leaked to the third-party CDN. If the CDN is compromised, the video asset could be replaced with malicious content. This is a privacy and minor supply chain concern. |
-| **Remediation** | Self-host the video asset or use a trusted CDN with subresource integrity (SRI) checks. Alternatively, proxy the video through the application server. |
-
----
-
-#### ~~24. No HSTS Header on Django API Responses~~ ✅ VERIFIED
-
-| | |
-|---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Verified on 2026-06-19 — Already configured |
-| **File** | `backend/config/settings.py` |
-| **Verification** | `SECURE_HSTS_SECONDS=31536000`, `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`, and `SECURE_HSTS_PRELOAD=True` are all set in the production settings block (lines 484-486). The Next.js frontend also sets `Strict-Transport-Security` via `next.config.mjs`. No action needed. |
-
----
-
-#### 25. Frontend Auth Hint Bypassable via Fake Cookie
-
-| | |
-|---|---|
-| **Severity** | LOW |
+| **Status** | **OPEN** |
 | **File** | `frontend/middleware.js` |
-| **Description** | The middleware checks `hasToken = request.cookies.has("refresh_token")` to determine if a user is "authenticated" and redirects them away from `/login` or `/register`. This is purely a client-side hint. |
-| **Impact** | An attacker can set a fake `refresh_token` cookie (any value) to bypass the middleware redirect. However, the API will still reject the request, so this is only a UI bypass. It could confuse automated scanners or testing tools. |
-| **Remediation** | This is acceptable as a UX optimization, but consider adding a lightweight `/auth/validate` endpoint that the middleware can call to verify the token's actual validity. This adds a network request but improves accuracy. |
+| **Issue** | CSP is set via `next/headers` but does **not** include a `report-uri` or `report-to` directive. |
+| **Impact** | CSP violations (e.g., XSS attempt, missing script source) go unreported. No visibility into violations in production. |
+| **Remediation** | Add `report-uri https://your-sentry-instance.com/api/csp-report/` or a custom logging endpoint. |
 
----
-
-#### ~~26. Next.js HSTS Set Unconditionally~~ ✅ FIXED
+### 22. No `Permission-Policy` Header on Django API Responses
 
 | | |
 |---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 |
+| **Status** | **OPEN** |
+| **File** | `backend/config/settings.py` |
+| **Issue** | Next.js frontend sets `Permissions-Policy` via `next.config.mjs`, but Django API responses do not include this header. |
+| **Impact** | Direct API access bypasses the permission restrictions set on the frontend. Minor inconsistency. |
+| **Remediation** | Add `Permission-Policy` to Django's `SECURE_HEADERS` or via a custom middleware. |
+
+### 23. Auth Video Redirects to External CDN (Privacy Leak)
+
+| | |
+|---|---|
+| **Status** | **OPEN** |
+| **File** | `backend/config/assets.py` / `backend/config/settings.py` |
+| **Issue** | `AUTH_VIDEO_URL` defaults to a Pexels CDN URL. User's IP and browser fingerprint are leaked to a third-party. If the CDN is compromised, the video could be replaced with malicious content. |
+| **Impact** | Privacy concern; minor supply chain risk. |
+| **Remediation** | Self-host the video asset or proxy it through the application server. |
+
+### 24. ~~No HSTS Header on Django API Responses~~ ✅ RESOLVED
+
+| | |
+|---|---|
+| **Status** | **RESOLVED — Already configured** |
+| **File** | `backend/config/settings.py` |
+| **Verification** | `SECURE_HSTS_SECONDS=31536000`, `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`, `SECURE_HSTS_PRELOAD=True` are all set in production settings. |
+
+### 25. Frontend Auth Hint Bypassable via Fake Cookie
+
+| | |
+|---|---|
+| **Status** | **OPEN — Acceptable as-is** |
+| **File** | `frontend/middleware.js` |
+| **Issue** | Middleware checks `request.cookies.has("refresh_token")` without validating the token. An attacker can set a fake cookie to bypass redirects from `/login`/`/register`. |
+| **Impact** | UI-only bypass — API still rejects invalid tokens. Could confuse automated scanners. |
+| **Remediation** | Consider adding a lightweight `/auth/validate` endpoint for middleware validation. Acceptable as a UX optimization. |
+
+### 26. ~~Next.js HSTS Set Unconditionally~~ ✅ RESOLVED
+
+| | |
+|---|---|
+| **Status** | **RESOLVED** |
 | **File** | `frontend/next.config.mjs` |
-| **Fix Applied** | The `Strict-Transport-Security` header is now conditional on `process.env.NODE_ENV === "production"`. Development environments no longer send HSTS, preventing the browser from caching a year-long HSTS policy for `localhost`. |
+| **Fix** | `Strict-Transport-Security` header is now conditional on `NODE_ENV === "production"`. |
 
----
-
-#### 27. No Email Verification Required for Login
+### 27. No Email Verification Required for Login
 
 | | |
 |---|---|
-| **Severity** | LOW |
-| **File** | `backend/apps/accounts/views.py` (LoginView) |
-| **Description** | `LoginView` does not check `user.email_verified` before issuing tokens. A user can log in with an unverified email address. |
-| **Impact** | This is a design choice, not a strict vulnerability. However, it means an attacker who registers an account with someone else's email can immediately use the account. For an e-commerce platform, this could be used for fraud or abuse. |
-| **Remediation** | Consider requiring email verification before allowing checkout or sensitive actions. At minimum, flag unverified accounts in the UI. |
+| **Status** | **OPEN — Design choice** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Issue** | `LoginView` does not check `user.email_verified` before issuing tokens. An attacker who registers with someone else's email can immediately use the account. |
+| **Impact** | Low — design choice. At minimum, flag unverified accounts in the UI. |
+| **Remediation** | Consider requiring email verification before allowing checkout or sensitive actions. |
 
----
-
-#### ~~28. `db.sqlite3` File Exists in Workspace~~ ✅ VERIFIED
+### 28. ~~`db.sqlite3` File Exists in Workspace~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Verified on 2026-06-19 — Not tracked by git |
-| **File** | `backend/db.sqlite3` |
-| **Verification** | `git ls-files | grep db.sqlite3` returns nothing. The file is properly excluded by `.gitignore`. No action needed. |
+| **Status** | **RESOLVED — Not tracked** |
+| **Verification** | `git ls-files | grep db.sqlite3` returns nothing. Properly excluded by `.gitignore`. |
 
----
-
-#### ~~29. `binascii.Error` Not Caught in Password Reset~~ ✅ FIXED
+### 29. ~~`binascii.Error` Not Caught in Password Reset~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Severity** | ~~LOW~~ |
-| **Status** | **RESOLVED** — Fixed on 2026-06-19 (rolled into finding #16 fix) |
-| **File** | `backend/apps/accounts/views.py` (PasswordResetConfirmView) |
-| **Description** | `binascii.Error` was not caught by the narrow `except` clause. |
-| **Fix Applied** | Resolved as part of finding #16 — the catch is now `except Exception` which covers all possible decoding errors. |
+| **Status** | **RESOLVED** |
+| **File** | `backend/apps/accounts/views.py` |
+| **Fix** | Resolved as part of finding #16 — catch is now `except Exception`. |
 
 ---
 
-### ℹ️ INFO (6 findings — Positive Observations)
+## ℹ️ INFO Findings (Positive Observations)
 
-#### 30. Strong JWT Cookie Security
+### 30. Strong JWT Cookie Security
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
-| **File** | `backend/apps/accounts/authentication.py`, `backend/config/settings.py` |
-| **Details** | JWT access and refresh tokens are stored in `httpOnly`, `Secure`, `SameSite=Lax` cookies. The `AUTH_COOKIE_SECURE` defaults to `True` in production. The `CookieJWTAuthentication` class enforces CSRF for cookie-based requests. Refresh tokens are stored in the database (`OutstandingToken`) and blacklisted on logout. This is a strong, modern authentication pattern. |
+| **Files** | `backend/apps/accounts/authentication.py`, `backend/config/settings.py` |
+| **Details** | JWT access and refresh tokens stored in `httpOnly`, `Secure`, `SameSite=Lax` cookies. `CookieJWTAuthentication` enforces CSRF for cookie-based requests. Refresh tokens are stored in DB (`OutstandingToken`) and blacklisted on logout. |
 
----
-
-#### 31. Strict CORS Configuration
+### 31. Strict CORS Configuration
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
 | **File** | `backend/config/settings.py` |
-| **Details** | `CORS_ALLOWED_ORIGINS` is explicitly set to specific origins (not `*`). `CORS_ALLOW_CREDENTIALS = True` is paired with explicit origin lists. The `CORS_URLS_REGEX` restricts CORS to `/api/v1` paths. This prevents unauthorized cross-origin API access. |
+| **Details** | `CORS_ALLOWED_ORIGINS` is explicitly set (not `*`). `CORS_ALLOW_CREDENTIALS = True` paired with explicit origin lists. Production mode validates that all origins use HTTPS and contain no wildcards. |
 
----
-
-#### 32. Django Security Middleware Enabled
+### 32. Django Security Middleware Enabled
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
 | **File** | `backend/config/settings.py` |
-| **Details** | Production settings enable `SecurityMiddleware` with `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD`, `SECURE_CONTENT_TYPE_NOSNIFF`, `SECURE_BROWSER_XSS_FILTER`, and `X_FRAME_OPTIONS = "DENY"`. These are all correctly configured for production. |
+| **Details** | Production settings enable: `SECURE_SSL_REDIRECT`, HSTS (1 year + subdomains + preload), `SECURE_CONTENT_TYPE_NOSNIFF`, `X_FRAME_OPTIONS = "DENY"`, `SECURE_CROSS_ORIGIN_OPENER_POLICY`. |
 
----
-
-#### 33. Custom Admin Login Rate Limiting
+### 33. Custom Admin Login Rate Limiting
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
 | **File** | `backend/config/middleware.py` |
-| **Details** | The `AdminLoginRateMiddleware` provides a custom sliding-window rate limiter for the Django admin login. It prevents brute-force attacks against the admin panel. While the IP spoofing issue exists (finding #8), the presence of this middleware shows good security awareness. |
+| **Details** | `AdminLoginRateMiddleware` provides a custom sliding-window rate limiter for the Django admin login (10 attempts per 5 minutes per IP). |
 
----
-
-#### 34. GitHub Actions Pinned to SHA
+### 34. GitHub Actions Pinned to SHA
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
 | **File** | `.github/workflows/ci.yml` |
-| **Details** | All third-party GitHub Actions (`actions/checkout`, `actions/setup-python`, `actions/setup-node`) are pinned to specific commit SHAs rather than floating tags. This is a strong supply chain security practice that prevents tag-hijacking attacks. |
+| **Details** | All third-party GitHub Actions pinned to specific commit SHAs rather than floating tags. |
 
----
-
-#### 35. Input Validation via DRF Serializers
+### 35. Input Validation via DRF Serializers
 
 | | |
 |---|---|
 | **Status** | ✅ GOOD |
-| **File** | `backend/apps/*/serializers.py` |
-| **Details** | All major endpoints use DRF serializers with explicit `CharField` max lengths, `EmailField`, `IntegerField` with `min_value`/`max_value`, and `DecimalField` with precision limits. The `GuestCheckoutSerializer` validates `quantity` (1–100) and uses `EmailField` for guest email. This prevents basic injection attacks and malformed input. |
+| **Files** | `backend/apps/*/serializers.py` |
+| **Details** | All major endpoints use DRF serializers with explicit `CharField` max lengths, `EmailField`, `IntegerField` with `min_value`/`max_value`, `DecimalField` with precision limits. |
+
+### 36. Comprehensive Rate Limiting Architecture
+
+| | |
+|---|---|
+| **Status** | ✅ GOOD |
+| **Files** | `backend/config/throttling.py`, `backend/config/settings.py` |
+| **Details** | Custom throttle hierarchy: `UserOrAnonRateThrottle` separates authenticated (per-user) and anonymous (per-IP) buckets. `WriteRateThrottle` exempts safe methods. Per-endpoint scopes cover login, register, password reset, contact, cart, orders, payments, coupons, shipping, order velocity, and order lookup. |
+
+### 37. Disposable Email Blocking
+
+| | |
+|---|---|
+| **Status** | ✅ GOOD |
+| **File** | `backend/apps/accounts/email_utils.py` |
+| **Details** | Registry of ~80 known disposable email domains checked at registration, contact form, email change, and newsletter subscription. Gmail alias normalization (`+` stripping, `.` removal) prevents bypasses. |
+
+### 38. Production Startup Validation
+
+| | |
+|---|---|
+| **Status** | ✅ GOOD |
+| **File** | `backend/config/settings.py` |
+| **Details** | Production boot validates: `ALLOWED_HOSTS` (no wildcards), `CORS_ALLOWED_ORIGINS` (HTTPS only, no wildcards), `CSRF_TRUSTED_ORIGINS` (HTTPS only, no wildcards). Missing `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, or S3 credentials causes a hard error. |
 
 ---
 
-## Recommendations Summary
+## New Observations from Current Audit
 
-| Priority | Action | Effort |
-|----------|--------|--------|
-| ~~**P0**~~ | ~~Add `enforce_csrf()` to all unauthenticated POST endpoints (register, password reset request, email verify, contact, subscribe, guest checkout, etc.)~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P0**~~ | ~~Add `DEFAULT_THROTTLE_CLASSES` to DRF settings to close the rate-limiting gap~~ ✅ **DONE** (commit `e1f6dd1`) | Low |
-| ~~**P0**~~ | ~~Invalidate all refresh tokens on password reset and password change~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P0**~~ | ~~Remove or redact verbose logging in `GoogleLoginView` and `enforce_csrf`~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Require current password for email change requests~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Fix IP spoofing in `AdminLoginRateMiddleware` and `UserOrAnonRateThrottle`~~ ✅ **DONE** (2026-06-19) | Medium |
-| ~~**P1**~~ | ~~Pin Docker base images to SHA digests~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Set explicit `permissions` in GitHub Actions CI~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Remove `|| true` from `npm audit` in CI~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Sanitize contact form `name` before using in email subject~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P1**~~ | ~~Add rate limiting to Next.js revalidation endpoint~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P2**~~ | ~~Migrate from `xhtml2pdf` to `WeasyPrint`~~ ✅ **DONE** (2026-06-19) | Medium |
-| ~~**P2**~~ | ~~Fix exception handling in `PasswordResetConfirmView`~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P2**~~ | ~~Verify all `marked()` outputs are sanitized~~ ✅ **DONE** (2026-06-19) — Already compliant | Medium |
-| **P2** | Add `report-uri` to Content Security Policy | Low |
-| ~~**P3**~~ | ~~Hide exact `stock` values from public API~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P3**~~ | ~~Add `SECURE_CROSS_ORIGIN_OPENER_POLICY` to Django~~ ✅ **DONE** (2026-06-19) | Low |
-| ~~**P3**~~ | ~~Make Next.js HSTS conditional on production~~ ✅ **DONE** (2026-06-19) | Low |
-| **P3** | Consider requiring email verification before checkout | Low |
-| ~~**P3**~~ | ~~Verify `db.sqlite3` is not tracked by git~~ ✅ **DONE** (2026-06-19) — Already compliant | Low |
+### N1. Registration Endpoint Behavior on Duplicate Email
 
----
+| | |
+|---|---|
+| **File** | `backend/apps/accounts/views.py` |
+| **Observation** | When a registration attempt uses an existing email, the endpoint returns HTTP 201 (same status as successful registration) without creating a user or sending a verification email. This is intentional anti-enumeration. |
+| **Risk** | Minimal. Rate limiting (5/hour/IP) prevents brute-force enumeration. The timing difference from the skipped email send is negligible. |
 
-## Appendix: Scanned Files
+### N2. Bulk Product Import — File Content Validation
 
-### Backend (Python)
-- `config/settings.py`, `config/urls.py`, `config/throttling.py`, `config/middleware.py`, `config/celery.py`, `config/health.py`, `config/assets.py`
-- `apps/accounts/views.py`, `apps/accounts/serializers.py`, `apps/accounts/models.py`, `apps/accounts/authentication.py`, `apps/accounts/urls.py`, `apps/accounts/tasks.py`, `apps/accounts/email_utils.py`
-- `apps/orders/views.py`, `apps/orders/serializers.py`, `apps/orders/models.py`, `apps/orders/services.py`, `apps/orders/urls.py`, `apps/orders/emails.py`, `apps/orders/email_utils.py`, `apps/orders/tasks.py`
-- `apps/cart/views.py`, `apps/cart/serializers.py`, `apps/cart/models.py`
-- `apps/catalog/views.py`, `apps/catalog/serializers.py`, `apps/catalog/models.py`, `apps/catalog/validators.py`
-- `apps/contact/views.py`, `apps/contact/urls.py`
-- `requirements.txt`, `manage.py`, `Dockerfile`, `.env.example`, `.gitignore`
+| | |
+|---|---|
+| **File** | `backend/apps/catalog/views.py` |
+| **Observation** | The `import_products` action accepts CSV/XLSX files via `MultiPartParser`. No explicit content-type or magic-byte validation beyond file extension. |
+| **Risk** | Low. Non-compliant files produce empty results rather than code execution. `openpyxl` (XLSX parser) should be kept current (currently pinned at reasonable version). |
 
-### Frontend (JavaScript/TypeScript)
-- `middleware.js`, `next.config.mjs`, `eslint.config.mjs`, `package.json`
-- `app/lib/api.ts`, `app/lib/auth.js`, `app/lib/cart.js`
-- `app/checkout/page.js`, `app/api/revalidate/route.js`, `app/api/health/route.js`
-- `app/login/page.js`, `app/register/page.js`, `app/profile/page.js`, `app/orders/page.js`, `app/admin/page.js`
-- `app/components/Nav.js`, `app/components/AddToCart.js`, `app/components/CookieConsent.js`, `app/components/NewsletterForm.js`, `app/components/ProductReviews.js`, `app/components/Footer.js`
-- `app/contact/page.js`, `app/blog/**/*.js`, `app/blog/**/*.tsx`
-- `Dockerfile`, `.env.local`, `.env.example`, `.gitignore`
+### N3. Stripe Webhook — No IP Allow-Listing
 
-### Infrastructure
-- `docker-compose.yml`
-- `.github/workflows/ci.yml`
-- `.github/dependabot.yml`
-- `run-dev.ps1`
+| | |
+|---|---|
+| **File** | `backend/apps/orders/views.py` |
+| **Observation** | Webhook is `@csrf_exempt` (required) and accepts POSTs from any IP. Stripe signature verification is the sole protection. |
+| **Risk** | Low. Signature verification is cryptographically sound. Adding Stripe's published IP ranges would be defense-in-depth. |
+
+### N4. GDPR Views Use Lazy Cross-App Imports
+
+| | |
+|---|---|
+| **Files** | `backend/apps/accounts/views.py` (GDPRExportView, GDPRDeleteView) |
+| **Observation** | Models from `orders`, `catalog`, `cart`, and `contact` are imported inside method bodies rather than at module top level. |
+| **Risk** | None. This is an intentional pattern to avoid circular imports. Functionally equivalent. |
+
+### N5. Guest Price Validation in Frontend Checkout
+
+| | |
+|---|---|
+| **File** | `frontend/app/checkout/page.js` |
+| **Observation** | Guest checkout validates localStorage prices against the server API on mount. If prices differ (due to tampering or changes since the item was added), localStorage is updated. |
+| **Risk** | None. This is a **good** security practice. The backend always charges the real price regardless of what the client sends. |
 
 ---
 
-*Report generated by Kimi Work Security Audit. This assessment is based on static code analysis. A full penetration test with dynamic scanning (OWASP ZAP, Burp Suite) and dependency vulnerability scanning (Snyk, Trivy) is recommended before production launch.*
+## Overall Recommendations Priority
+
+| Priority | Action | Effort | Area |
+|----------|--------|--------|------|
+| **P3** | Add CSP `report-uri` / `report-to` directive | Low | `frontend/middleware.js` |
+| **P3** | Add `Permission-Policy` header to Django responses | Low | `backend/config/settings.py` |
+| **P3** | Self-host auth video to avoid third-party CDN dependency | Medium | `backend/config/settings.py`, `backend/config/assets.py` |
+| **P3** | Consider requiring email verification before checkout | Low | `backend/apps/accounts/views.py` |
+| **P4** | Add Stripe webhook IP allow-listing | Low | `backend/apps/orders/views.py` |
+
+---
+
+## Appendix: Dependency Security
+
+| Dependency | Version | Notes |
+|------------|---------|-------|
+| Django | 5.1.15 | Latest patch in 5.1.x — includes security fixes |
+| djangorestframework | 3.15.2 | Latest stable |
+| djangorestframework-simplejwt | 5.5.1 | Latest — token blacklist support |
+| stripe | 11.4.1 | Latest SDK for Python |
+| sentry-sdk | 2.19.2 | Latest — security patches |
+| weasyprint | 69.0 | Actively maintained replacement for xhtml2pdf |
+| Pillow | 12.2.0 | Latest — includes imaging security fixes |
+| Next.js | 15.5.16 | Latest in 15.x |
+| React | 18.3.1 | Latest stable |
+| TypeScript | 6.0.3 | Latest |
+
+**CI security scanning:**
+- `pip-audit` runs on every push/PR to scan Python dependencies for known vulns
+- `npm audit --audit-level=critical --omit=dev` scans production JS dependencies
+- Critical vulns in production deps **fail the build**
+
+---
+
+*Report generated by Buffy (Codebuff AI Agent) on June 22, 2026. This assessment is based on static code analysis of the current codebase. A full penetration test with dynamic scanning (OWASP ZAP, Burp Suite) is recommended before major production launch.*
