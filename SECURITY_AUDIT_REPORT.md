@@ -61,7 +61,7 @@ The following areas were reviewed:
 |----------|-------|----------|------|
 | 🔴 HIGH | 7 | 7 | 0 |
 | 🟡 MEDIUM | 12 | 12 | 0 |
-| 🟢 LOW | 10 | 7 | 3 |
+| 🟢 LOW | 10 | 8 | 2 |
 | ℹ️ INFO | 9 | – | 9 |
 
 ---
@@ -270,15 +270,13 @@ The following areas were reviewed:
 | **Files** | `backend/config/middleware.py`, `backend/config/settings.py` |
 | **Fix** | Created `PermissionsPolicyMiddleware` that sets `Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()` on every Django response (matching the frontend's existing policy in `next.config.mjs`). Registered in `MIDDLEWARE` list. |
 
-### 23. Auth Video Redirects to External CDN (Privacy Leak)
+### 23. ~~Auth Video Redirects to External CDN (Privacy Leak)~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Status** | **OPEN** |
-| **File** | `backend/config/assets.py` / `backend/config/settings.py` |
-| **Issue** | `AUTH_VIDEO_URL` defaults to a Pexels CDN URL. User's IP and browser fingerprint are leaked to a third-party. If the CDN is compromised, the video could be replaced with malicious content. |
-| **Impact** | Privacy concern; minor supply chain risk. |
-| **Remediation** | Self-host the video asset or proxy it through the application server. |
+| **Status** | **RESOLVED** |
+| **Files** | `backend/config/assets.py`, `backend/config/settings.py` |
+| **Fix** | Changed `auth_video` view to serve a local copy of the video via `FileResponse` instead of redirecting to the Pexels CDN. The video file (`space-loop.mp4`, 5 MB) is stored in `backend/static/videos/` and configured via `AUTH_VIDEO_PATH` (defaults to `static/videos/space-loop.mp4`). The old `AUTH_VIDEO_URL` env-var is still supported for environments that prefer CDN offload — if set, the view redirects there. Added `STATICFILES_DIRS` so `collectstatic` bundles the video for production. |
 
 ### 24. ~~No HSTS Header on Django API Responses~~ ✅ RESOLVED
 

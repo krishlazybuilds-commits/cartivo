@@ -508,6 +508,12 @@ USE_TZ = True
 # --- Static & media ----------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Additional directories from which Django collects static files.
+# Used by collectstatic to find the auth background video and any other
+# bundled assets, so they are available in production via WhiteNoise.
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -566,13 +572,14 @@ LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "5"))
 DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "usd")
 
 # --- Site media assets -------------------------------------------------------
-# Background video for the auth pages, served via /api/auth-video/ (a redirect).
-# Defaults to a free, license-clear scenery clip (Pexels). For production,
-# prefer self-hosting a compressed clip (e.g. in your S3/MinIO media bucket) and
-# pointing this at it, rather than hotlinking a third-party CDN.
-AUTH_VIDEO_URL = os.getenv(
-    "AUTH_VIDEO_URL",
-    "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4",
+# Background video for the auth pages, served via /api/auth-video/.
+# By default the view streams the file from STATICFILES_DIRS/videos/space-loop.mp4
+# (already checked into the repo — no CDN dependency).  Set AUTH_VIDEO_URL to an
+# external URL to switch to redirect mode (e.g. for CDN offload).
+AUTH_VIDEO_URL = os.getenv("AUTH_VIDEO_URL", "")
+AUTH_VIDEO_PATH = os.getenv(
+    "AUTH_VIDEO_PATH",
+    "static/videos/space-loop.mp4",
 )
 
 # --- Email -------------------------------------------------------------------
