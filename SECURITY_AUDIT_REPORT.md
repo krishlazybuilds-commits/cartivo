@@ -61,7 +61,7 @@ The following areas were reviewed:
 |----------|-------|----------|------|
 | 🔴 HIGH | 7 | 7 | 0 |
 | 🟡 MEDIUM | 12 | 12 | 0 |
-| 🟢 LOW | 10 | 8 | 2 |
+| 🟢 LOW | 10 | 9 | 1 |
 | ℹ️ INFO | 9 | – | 9 |
 
 ---
@@ -304,15 +304,13 @@ The following areas were reviewed:
 | **File** | `frontend/next.config.mjs` |
 | **Fix** | `Strict-Transport-Security` header is now conditional on `NODE_ENV === "production"`. |
 
-### 27. No Email Verification Required for Login
+### 27. ~~No Email Verification Required for Login~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Status** | **OPEN — Design choice** |
-| **File** | `backend/apps/accounts/views.py` |
-| **Issue** | `LoginView` does not check `user.email_verified` before issuing tokens. An attacker who registers with someone else's email can immediately use the account. |
-| **Impact** | Low — design choice. At minimum, flag unverified accounts in the UI. |
-| **Remediation** | Consider requiring email verification before allowing checkout or sensitive actions. |
+| **Status** | **RESOLVED** |
+| **Files** | `backend/apps/orders/views.py`, `backend/apps/accounts/views.py` |
+| **Fix** | Added email verification guard to `OrderViewSet.create()` — returns 403 with a clear message if the user's email is not verified. Google login users now have `email_verified=True` set automatically (Google already verifies the email during ID token validation), so Google sign-in remains frictionless. Login itself is unchanged (still no verification check) so users can see their account before verifying. |
 
 ### 28. ~~`db.sqlite3` File Exists in Workspace~~ ✅ RESOLVED
 

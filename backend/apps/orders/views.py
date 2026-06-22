@@ -298,6 +298,14 @@ class OrderViewSet(
         )
 
     def create(self, request, *args, **kwargs):
+        # Require email verification before checkout to prevent an attacker who
+        # registered with someone else's email from immediately placing orders.
+        if not request.user.email_verified:
+            return Response(
+                {"detail": "Please verify your email address before placing an order. Check your inbox for the verification link."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         checkout = CheckoutSerializer(data=request.data, context={"request": request})
         checkout.is_valid(raise_exception=True)
         data = checkout.validated_data

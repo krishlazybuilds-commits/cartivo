@@ -362,6 +362,10 @@ class GoogleLoginView(APIView):
         existing = User.objects.filter(email__iexact=email).first()
         if existing:
             if not existing.has_usable_password():
+                # Ensure the email is marked verified — Google already validated it.
+                if not existing.email_verified:
+                    existing.email_verified = True
+                    existing.save(update_fields=["email_verified"])
                 return existing
             logger.warning("Blocking Google login — user pk=%s has a password set", existing.pk)
             raise ValidationError(
@@ -383,7 +387,9 @@ class GoogleLoginView(APIView):
             last_name=idinfo.get("family_name", "")[:150],
         )
         user.set_unusable_password()
-        user.save(update_fields=["password"])
+        # Google already verified the email during ID token validation.
+        user.email_verified = True
+        user.save(update_fields=["password", "email_verified"])
         logger.info("New Google user created pk=%s", user.pk)
         return user
 
