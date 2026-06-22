@@ -68,10 +68,24 @@ export function middleware(request) {
     "object-src 'none'",
     "worker-src 'self'",
     "upgrade-insecure-requests",
+    // Violation reports are POSTed to /api/csp-report for monitoring.
+    "report-uri /api/csp-report",
+    "report-to csp-endpoint",
   ].join("; ");
+
   const response = NextResponse.next({
     request: { headers: new Headers({ ...Object.fromEntries(request.headers), "x-nonce": nonce }) },
   });
+
+  // The Report-To header tells modern browsers where to send CSP violation
+  // reports.  It complements the older report-uri directive.
+  const reportTo = JSON.stringify({
+    group: "csp-endpoint",
+    max_age: 10886400,
+    endpoints: [{ url: "/api/csp-report" }],
+    include_subdomains: true,
+  });
+  response.headers.set("Report-To", reportTo);
   response.headers.set("x-nonce", nonce);
   response.headers.set("Content-Security-Policy", csp);
   return response;

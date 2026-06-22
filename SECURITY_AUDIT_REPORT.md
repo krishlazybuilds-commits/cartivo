@@ -61,7 +61,7 @@ The following areas were reviewed:
 |----------|-------|----------|------|
 | 🔴 HIGH | 7 | 7 | 0 |
 | 🟡 MEDIUM | 12 | 12 | 0 |
-| 🟢 LOW | 10 | 5 | 5 |
+| 🟢 LOW | 10 | 6 | 4 |
 | ℹ️ INFO | 9 | – | 9 |
 
 ---
@@ -254,15 +254,13 @@ The following areas were reviewed:
 | **File** | `backend/config/settings.py` |
 | **Fix** | `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` added. |
 
-### 21. CSP Missing `report-uri` / `report-to` Directive
+### 21. ~~CSP Missing `report-uri` / `report-to` Directive~~ ✅ RESOLVED
 
 | | |
 |---|---|
-| **Status** | **OPEN** |
-| **File** | `frontend/middleware.js` |
-| **Issue** | CSP is set via `next/headers` but does **not** include a `report-uri` or `report-to` directive. |
-| **Impact** | CSP violations (e.g., XSS attempt, missing script source) go unreported. No visibility into violations in production. |
-| **Remediation** | Add `report-uri https://your-sentry-instance.com/api/csp-report/` or a custom logging endpoint. |
+| **Status** | **RESOLVED** |
+| **File** | `frontend/middleware.js`, `frontend/app/api/csp-report/route.js` (new) |
+| **Fix** | Added `report-uri /api/csp-report` and `report-to csp-endpoint` directives to the CSP header. Created a new `/api/csp-report` endpoint that receives violation reports (POST, rate-limited to 120 req/min/IP) and logs them as structured JSON. Also sets the `Report-To` HTTP header with a 126-day `max_age` for modern browser support. |
 
 ### 22. No `Permission-Policy` Header on Django API Responses
 
