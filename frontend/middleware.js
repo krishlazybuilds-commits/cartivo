@@ -12,15 +12,50 @@ const PROTECTED_ROUTES = ["/orders", "/profile", "/admin"];
  */
 const GUEST_ONLY_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password"];
 
-export function middleware(request) {
+/**
+ * Backend API base URL, used to validate auth tokens from the middleware.
+ */
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+
+/**
+ * Check whether the request carries a valid refresh_token by calling the
+ * backend /auth/validate/ endpoint. This prevents a fake/forged cookie from
+ * bypassing guest-only route redirects (see SECURITY_ANALYSIS_REPORT.md #1).
+ *
+ * Performance: we only call this when the cookie exists, so unauthenticated
+ * visitors (no cookie) never hit the backend — only logged-in sessions do.
+ * If the backend is unreachable we fall back to the cookie-existence heuristic
+ * so that transient network issues don't lock users out or break navigation.
+ */
+async function isTokenValid(request) {
+  const refreshToken = request.cookies.get("refresh_token");
+  if (!refreshToken?.value) return false;
+
+  try {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const res = await fetch(`${API_URL}/auth/validate/`, {
+      method: "GET",
+      headers: { "Cookie": cookieHeader },
+      // Short timeout so a slow backend doesn't block navigation.
+      signal: AbortSignal.timeout(3000),
+    });
+    return res.ok;
+  } catch {
+    // Backend unreachable or timeout — fall back to cookie existence check
+    // so transient issues don't degrade the user experience.
+    return true;
+  }
+}
+
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
-  const hasToken = request.cookies.has("refresh_token");
+  const valid = await isTokenValid(request);
 
   // Protect auth-required pages
   const isProtected = PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
-  if (isProtected && !hasToken) {
+  if (isProtected && !valid) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
@@ -31,7 +66,7 @@ export function middleware(request) {
   const isGuestOnly = GUEST_ONLY_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
-  if (isGuestOnly && hasToken) {
+  if (isGuestOnly && valid) {
     const productsUrl = request.nextUrl.clone();
     productsUrl.pathname = "/products";
     return NextResponse.redirect(productsUrl);

@@ -513,6 +513,65 @@ class LogoutView(APIView):
 
 @extend_schema(
     tags=["auth"],
+    summary="Validate refresh token",
+    description=(
+        "Lightweight endpoint that checks whether the `refresh_token` cookie "
+        "holds a valid, non-expired, non-blacklisted JWT. Returns 200 if valid, "
+        "401 if missing, expired, blacklisted, or malformed.\n\n"
+        "Designed for use by the frontend middleware so it can distinguish "
+        "a genuine session from a fake/forged cookie."
+    ),
+)
+class ValidateView(APIView):
+    """Check whether the refresh_token cookie holds a valid token.
+
+    Returns 200 ``{"valid": true}`` if the refresh token is valid and
+    not blacklisted. Returns 401 ``{"valid": false}`` otherwise.
+
+    This is intentionally lightweight — no CSRF check, no authentication
+    classes, no database queries beyond the simplejwt blacklist lookup.
+    Designed to be called by the Next.js middleware on every navigation.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                "ValidateSuccess",
+                fields={"valid": drf_serializers.BooleanField()},
+            ),
+            401: inline_serializer(
+                "ValidateFailure",
+                fields={"valid": drf_serializers.BooleanField()},
+            ),
+        },
+    )
+    def get(self, request):
+        raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
+        if not raw_refresh:
+            return Response(
+                {"valid": False},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            # The RefreshToken constructor validates signature and expiry.
+            # Any exception (bad signature, expired, malformed) means the
+            # token is invalid.
+            RefreshToken(raw_refresh)
+            return Response({"valid": True})
+        except TokenError:
+            return Response(
+                {"valid": False},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+
+@extend_schema(
+    tags=["auth"],
     summary="Bootstrap CSRF cookie",
     description="Sets the `csrftoken` cookie so the SPA can include it on unsafe requests.",
 )
