@@ -568,6 +568,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
+# --- Account lockout ---------------------------------------------------------
+# Credential-stuffing protection via Redis-backed account lockout.  After
+# ACCOUNT_LOCKOUT_MAX_ATTEMPTS failed logins within ACCOUNT_LOCKOUT_WINDOW
+# the account is locked for ACCOUNT_LOCKOUT_DURATION.
+ACCOUNT_LOCKOUT_MAX_ATTEMPTS = int(os.getenv("ACCOUNT_LOCKOUT_MAX_ATTEMPTS", "10"))
+ACCOUNT_LOCKOUT_WINDOW_MINUTES = int(os.getenv("ACCOUNT_LOCKOUT_WINDOW_MINUTES", "15"))
+ACCOUNT_LOCKOUT_DURATION_MINUTES = int(os.getenv("ACCOUNT_LOCKOUT_DURATION_MINUTES", "15"))
+
 # --- Catalog -----------------------------------------------------------------
 # Products at or below this stock level trigger a low-stock alert email to admins.
 LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "5"))

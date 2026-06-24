@@ -23,6 +23,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .authentication import enforce_csrf
 from .email_utils import normalize_email, is_disposable_email
+from .lockout import (
+    clear_attempts,
+    is_locked_out,
+    lockout_remaining_seconds,
+    record_failed_attempt,
+)
 from .models import Address
 from .tasks import (
     send_password_reset_email_task,
@@ -319,9 +325,28 @@ class GoogleLoginView(APIView):
 
         if not email or not email_verified:
             logger.warning("Google email missing or unverified (verified=%s)", email_verified)
+            # Don't record a failed attempt — the Google token itself is invalid.
             return Response(
                 {"detail": "Google account email is missing or unverified."},
                 status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Lockout check using the Google email as the ident.
+        if is_locked_out(email.lower()):
+            remaining = lockout_remaining_seconds(email.lower())
+            logger.warning(
+                "Blocked Google login for locked-out account: %s (%ds remaining)",
+                email, remaining,
+            )
+            return Response(
+                {
+                    "detail": (
+                        f"Account temporarily locked. Try again in "
+                        f"{remaining // 60 + 1} minute(s)."
+                    ),
+                    "retry_after_seconds": remaining,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         try:
@@ -414,14 +439,53 @@ class LoginView(APIView):
     )
     def post(self, request):
         enforce_csrf(request)
+
+        # Identify the user attempting to log in (normalised for lockout key).
+        raw_ident = request.data.get("username", "").strip().lower()
+        if is_locked_out(raw_ident):
+            remaining = lockout_remaining_seconds(raw_ident)
+            logger.warning(
+                "Blocked login for locked-out account: %s (%ds remaining)",
+                raw_ident, remaining,
+            )
+            return Response(
+                {
+                    "detail": (
+                        f"Account temporarily locked. Try again in "
+                        f"{remaining // 60 + 1} minute(s)."
+                    ),
+                    "retry_after_seconds": remaining,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         serializer = TokenObtainPairSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
         except Exception:
+            record_failed_attempt(raw_ident)
+            # If this attempt just triggered a lockout, return 429 so the
+            # client knows the account is temporarily locked rather than
+            # getting a generic 401.
+            if is_locked_out(raw_ident):
+                remaining = lockout_remaining_seconds(raw_ident)
+                return Response(
+                    {
+                        "detail": (
+                            f"Account temporarily locked. Try again in "
+                            f"{remaining // 60 + 1} minute(s)."
+                        ),
+                        "retry_after_seconds": remaining,
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
             return Response(
                 {"detail": "Invalid username or password."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+
+        # Successful login — reset the counter.
+        clear_attempts(raw_ident)
         data = serializer.validated_data
         response = Response({"detail": "Login successful."})
         set_auth_cookies(response, access=data["access"], refresh=data["refresh"])

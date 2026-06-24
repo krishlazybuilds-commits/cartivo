@@ -86,6 +86,158 @@ class AuthTokenTests(APITestCase):
         self.assertEqual(res.data["username"], "member")
 
 
+@override_settings(
+    ACCOUNT_LOCKOUT_MAX_ATTEMPTS=2,
+    ACCOUNT_LOCKOUT_WINDOW_MINUTES=1,
+    ACCOUNT_LOCKOUT_DURATION_MINUTES=1,
+)
+class AccountLockoutTests(APITestCase):
+    """Account-level lockout protects against credential stuffing."""
+
+    URL = "/api/v1/auth/token/"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="lockme", password="strongpass123", email="lockme@example.com"
+        )
+        # Clear any lockout state from previous tests so each method starts
+        # with a clean slate (Django does not flush the cache between tests).
+        from .lockout import clear_attempts
+        clear_attempts("lockme")
+
+    def test_locks_out_after_max_attempts(self):
+        # With MAX_ATTEMPTS=2:
+        #   Attempt 1 (i=0) → counter=1 (<2) → 401
+        #   Attempt 2 (i=1) → counter=2 (>=2) → sets lockout key, returns 429
+        for i in range(2):
+            res = self.client.post(
+                self.URL,
+                {"username": "lockme", "password": "wrong"},
+                format="json",
+            )
+            if i == 0:
+                self.assertEqual(
+                    res.status_code, status.HTTP_401_UNAUTHORIZED,
+                    msg="Attempt 1: expected 401",
+                )
+            else:
+                self.assertEqual(
+                    res.status_code, status.HTTP_429_TOO_MANY_REQUESTS,
+                    msg="Attempt 2: expected 429 lockout",
+                )
+                self.assertIn("retry_after_seconds", res.data)
+
+    def test_lockout_clears_on_successful_login(self):
+        # Trigger lockout with 2 failures.
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        # 2nd attempt sets lockout key; view returns 429 (lockout check at top).
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+
+        # Verify locked out.
+        res = self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Clear attempts directly (simulates successful auth elsewhere).
+        from .lockout import clear_attempts
+        clear_attempts("lockme")
+
+        # Now login should succeed.
+        res = self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "strongpass123"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", res.cookies)
+
+    def test_resets_counter_on_successful_login(self):
+        """One failed attempt then success should keep counter below threshold."""
+        # One failure.
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+
+        # Successful login resets.
+        res = self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "strongpass123"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        # One more failure should still be 401 (counter was reset).
+        res = self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_lockout_is_per_username(self):
+        """Locking out one username should not affect another."""
+        User.objects.create_user(
+            username="other", password="strongpass456", email="other@example.com"
+        )
+
+        # Lock out 'lockme' (2 attempts).
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+
+        # 'other' should still be able to log in.
+        res = self.client.post(
+            self.URL,
+            {"username": "other", "password": "strongpass456"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", res.cookies)
+
+    def test_lockout_message_includes_minutes(self):
+        # Lock out 'lockme'.
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+
+        # Check lockout response message.
+        res = self.client.post(
+            self.URL,
+            {"username": "lockme", "password": "wrong"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn("temporarily locked", res.data["detail"].lower())
+        self.assertIn("minute", res.data["detail"].lower())
+
+
 class AdminUserManagementTests(APITestCase):
     URL = "/api/v1/auth/admin/users/"
 
