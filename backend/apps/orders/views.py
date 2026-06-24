@@ -23,6 +23,7 @@ from apps.accounts.authentication import enforce_csrf
 from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle, OrderLookupThrottle
 
 from .models import Coupon, Order, OrderItem, StripeEvent
+from .stripe_ip import validate_stripe_ip
 from .services import CheckoutError, resolve_coupon, create_order_and_items, build_stripe_line_items
 from .serializers import (
     CheckoutSerializer,
@@ -1041,6 +1042,11 @@ class GuestCheckoutView(APIView):
 def stripe_webhook(request):
     if request.method != "POST":
         return HttpResponse(status=405)
+
+    # Defense-in-depth: verify the request originates from a Stripe IP.
+    # The primary security is the Stripe-Signature check below.
+    if not validate_stripe_ip(request):
+        return HttpResponse(status=403)
 
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")

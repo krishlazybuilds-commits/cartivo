@@ -353,6 +353,10 @@ if "test" in sys.argv:
     }
     # Run Celery tasks inline during tests so they execute without a broker.
     CELERY_TASK_ALWAYS_EAGER = True
+    # Disable Stripe webhook IP allow-list in tests so the test suite doesn't
+    # require mock IP headers or patching (the stripe.signature verification is
+    # already mocked in webhook tests).
+    STRIPE_IP_CHECK_ENABLED = False
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
