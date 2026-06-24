@@ -135,13 +135,13 @@ class AbandonedCartRecoveryTests(APITestCase):
         # Artificially age the cart so it is considered abandoned (e.g. 3 hours old)
         Cart.objects.filter(id=self.cart.id).update(updated_at=timezone.now() - timedelta(hours=3))
 
-        with patch("apps.cart.tasks.send_mail") as mock_send_mail:
+        with patch("apps.cart.tasks.send_html_email") as mock_send_email:
             sent_count = send_abandoned_cart_emails_task()
             self.assertEqual(sent_count, 1)
-            mock_send_mail.assert_called_once()
+            mock_send_email.assert_called_once()
             
             # Verify subject and recipient
-            args, kwargs = mock_send_mail.call_args
+            args, kwargs = mock_send_email.call_args
             self.assertEqual(kwargs["recipient_list"], ["shopper2@test.com"])
             self.assertIn("We noticed you left something in your cart!", kwargs["subject"])
 
