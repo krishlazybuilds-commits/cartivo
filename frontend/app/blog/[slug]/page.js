@@ -24,7 +24,30 @@ export default async function BlogPostPage({ params }) {
   if (!post) notFound();
 
   const rawHtml = marked(post.content, { async: false });
-  const html = sanitizeHtml(rawHtml);
+  const html = sanitizeHtml(rawHtml, {
+    // Only allow tags that markdown-rendered content produces.
+    // Intentionally excludes div, span, nav, iframe, form, script, style,
+    // and other non-markdown elements as defense-in-depth against XSS.
+    allowedTags: [
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "p", "a", "ul", "ol", "li",
+      "em", "strong", "code", "pre",
+      "blockquote", "hr", "br",
+      "img",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "del", "s", "ins",
+    ],
+    allowedAttributes: {
+      a: ["href", "target", "rel"],
+      img: ["src", "alt", "title", "width", "height"],
+      th: ["align"],
+      td: ["align"],
+      code: ["class"],
+      "*": ["class"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowProtocolRelative: false,
+  });
 
   return (
     <main>
