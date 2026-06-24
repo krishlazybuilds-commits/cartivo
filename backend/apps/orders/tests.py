@@ -26,6 +26,8 @@ SHIPPING = {
 class CheckoutTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="buyer", password="pass12345", email="buyer@test.com")
+        self.user.email_verified = True
+        self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -106,6 +108,8 @@ class CheckoutTests(APITestCase):
 class CancelOrderTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="canceller", password="pass12345", email="canceller@test.com")
+        self.user.email_verified = True
+        self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Gizmos")
         self.product = Product.objects.create(
             category=self.category,
@@ -157,6 +161,8 @@ class CancelOrderTests(APITestCase):
 class ExpirePendingOrdersCommandTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="staleuser", password="pass12345", email="staleuser@test.com")
+        self.user.email_verified = True
+        self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Widgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -1007,8 +1013,9 @@ class StripeCheckoutFailureTests(APITestCase):
         user = User.objects.create_user(
             username="paybuyer", password="pass12345", email="paybuyer@test.com",
         )
+        user.email_verified = True
         user.stripe_customer_id = "cus_existing"
-        user.save(update_fields=["stripe_customer_id"])
+        user.save(update_fields=["email_verified", "stripe_customer_id"])
         self.client.force_authenticate(user)
 
         cart, _ = Cart.objects.get_or_create(user=user)
@@ -1037,6 +1044,8 @@ class StripeCheckoutFailureTests(APITestCase):
         user = User.objects.create_user(
             username="newpayer", password="pass12345", email="newpayer@test.com",
         )
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
         self.client.force_authenticate(user)
 
         cart, _ = Cart.objects.get_or_create(user=user)
@@ -1197,6 +1206,8 @@ class RateLimitTests(APITestCase):
              patch.object(OrderWriteThrottle, 'THROTTLE_RATES', rates), \
              patch.object(OrderVelocityThrottle, 'THROTTLE_RATES', rates):
             user = User.objects.create_user(username="throttleuser", password="pass12345", email="throttle@test.com")
+            user.email_verified = True
+            user.save(update_fields=["email_verified"])
             self.client.force_authenticate(user)
             cart, _ = Cart.objects.get_or_create(user=user)
             CartItem.objects.create(cart=cart, product=self.product, quantity=1)
