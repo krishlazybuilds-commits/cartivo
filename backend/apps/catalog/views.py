@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from .filters import PostgresSearchFilter
 from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
+from .validators import validate_import_file
 from .serializers import (
     CategorySerializer,
     ProductImageSerializer,
@@ -164,6 +165,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         ser = ProductImportSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         file = ser.validated_data["file"]
+
+        # Validate the file is genuinely CSV or XLSX (magic bytes, content-type,
+        # encoding).  This is defense-in-depth — processing a non-CSV/XLSX file
+        # would produce empty results, not code execution, but early rejection
+        # is cleaner and logs suspicious activity.
+        validate_import_file(file)
 
         ext = file.name.rsplit(".", 1)[-1].lower() if "." in file.name else ""
         if ext == "xlsx":
