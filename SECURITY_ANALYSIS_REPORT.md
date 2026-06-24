@@ -428,14 +428,23 @@ In production, `TRUSTED_PROXIES` defaults to an empty list, meaning `X-Forwarded
 
 ---
 
-## 🔴 Remaining LOW-Level Issues
+## 🔴 Previously Identified Issues — All Resolved
 
-| # | Issue | Location | Risk | Notes |
-|---|-------|----------|------|-------|
-| 1 | **Auth hint bypassable via fake cookie** | `frontend/middleware.js` | 🟢 Low | Checks `request.cookies.has("refresh_token")` without validating the token. An attacker can set a fake `refresh_token` cookie to bypass redirects from `/login` to `/products`. **API still rejects invalid tokens** — this is a UI-only bypass. |
-| 2 | **Stripe webhook accepts any IP** | `backend/apps/orders/views.py` | 🟢 Low | The webhook is `@csrf_exempt` (required for Stripe) and accepts POSTs from any IP. Stripe's signature verification (`stripe.Webhook.construct_event`) is cryptographically sound. Adding [Stripe's published IP ranges](https://stripe.com/docs/ips) would be defense-in-depth. |
-| 3 | **Bulk import file validation** | `backend/apps/catalog/views.py` | 🟢 Low | CSV/XLSX import validates only by file extension, not by content-type or magic bytes. Risk is low — malformed files produce empty results, not code execution. Keep `openpyxl` updated. |
-| 4 | **Blog `dangerouslySetInnerHTML`** | `frontend/app/blog/[slug]/page.js` | 🟢 Low | Currently safe because content is first-party and sanitized via `sanitize-html`. **Becomes HIGH risk if user-submitted content is ever allowed.** |
+All **4 LOW-level security issues** identified in the original analysis have been resolved:
+
+| # | Issue | Location | Resolution |
+|---|-------|----------|------------|
+| 1 | **Auth hint bypassable via fake cookie** | `frontend/middleware.js`, `backend/apps/accounts/views.py` | ✅ **Fixed** — Added `GET /api/v1/auth/validate/` endpoint (`ValidateView`) that cryptographically validates the `refresh_token` cookie. Middleware now calls this endpoint instead of relying on cookie existence checks. Falls back permissively on network errors. |
+| 2 | **Stripe webhook accepts any IP** | `backend/apps/orders/views.py` | ✅ **Fixed** — Added `validate_stripe_ip()` in `apps/orders/stripe_ip.py` that checks source IP against Stripe's published webhook IP list (fetched from `stripe.com/files/ips/ips_webhooks.json`, cached for 24h, with hardcoded fallback). Returns 403 for non-Stripe IPs. Uses `get_client_ip()` for proxy-aware resolution. Disabled in tests. |
+| 3 | **Bulk import file validation** | `backend/apps/catalog/views.py` | ✅ **Fixed** — Added `validate_import_file()` in `apps/catalog/validators.py` that checks file size (20 MB cap), Content-Type header, XLSX magic bytes (`PK\x03\x04` ZIP header), and CSV UTF-8 text validity (decodes 8 KB sample, rejects null bytes). Logs rejections for security monitoring. |
+| 4 | **Blog `dangerouslySetInnerHTML`** | `frontend/app/blog/[slug]/page.js` | ✅ **Fixed** — Replaced default `sanitize-html` config with an explicit allow-list restricting tags to markdown-only output. Blocks `javascript:` URLs, protocol-relative URLs, and dangerous elements (`script`, `iframe`, `style`, `form`, `input`, `object`, `embed`). Added 7 unit tests verifying each XSS attack vector. |
+
+## 📋 Remaining Informational Items
+
+These are not vulnerabilities but design characteristics worth noting:
+
+| # | Item | Location | Notes |
+|---|------|----------|-------|
 | 5 | **`NEXT_PUBLIC_API_URL` exposed to browser** | `frontend/app/lib/api.ts` | ℹ️ Info | The API URL is exposed to the browser via Next.js `NEXT_PUBLIC_` convention. Not a vulnerability, but worth being aware of. |
 | 6 | **Password reset token in URL** | `backend/apps/accounts/views.py` | 🟢 Low | Reset tokens are transmitted as URL query parameters (`?uid=...&token=...`). These can be leaked via `Referer` headers or browser history. **Acceptable** because tokens are single-use, time-limited, and rate-limited at 5/hour/IP. |
 | 7 | **Email verification token in URL** | `backend/apps/accounts/views.py` | 🟢 Low | Same pattern as password reset — tokens in URL. Same mitigations apply. |
@@ -574,13 +583,18 @@ Layer 8: Payment Intent Correlation
 
 ---
 
+## ✅ Completed Actions
+
+| Priority | Action | Effort | Area | Commit |
+|---|---|---|---|---|
+| **P3** | Add Stripe webhook IP allow-listing | Low | `backend/apps/orders/views.py` | `f105168` |
+| **P3** | Add content-type validation for bulk CSV/XLSX import | Low | `backend/apps/catalog/views.py` | `8524334` |
+| **P4** | Add `/auth/validate` endpoint for middleware token validation | Medium | `frontend/middleware.js`, `backend/apps/accounts/views.py` | `92b366a` |
+
 ## 📋 Recommended Next Steps
 
 | Priority | Action | Effort | Area |
 |---|---|---|---|
-| **P3** | Add Stripe webhook IP allow-listing | Low | `backend/apps/orders/views.py` |
-| **P3** | Add content-type validation for bulk CSV/XLSX import | Low | `backend/apps/catalog/views.py` |
-| **P4** | Consider adding a lightweight `/auth/validate` endpoint for middleware token validation | Medium | `frontend/middleware.js`, `backend/apps/accounts/views.py` |
 | **P4** | Run a dynamic penetration test (OWASP ZAP, Burp Suite) against staging | Medium | Pre-deployment |
 
 ---
