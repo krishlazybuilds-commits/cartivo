@@ -43,3 +43,6 @@ desktop.ini
 
 # opencode plans and working files
 .opencode/
+
+# Documentation (PDFs)
+*.pdf
