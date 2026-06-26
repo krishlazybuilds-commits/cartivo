@@ -1023,6 +1023,7 @@ flake8
 | 1 | Create `backend/config/constants.py` with shared `RETRY_KWARGS` + `RETRY_KWARGS_LIGHT`; update all 4 `tasks.py` files | `a3d5d11` |
 | 2 | Create per-app `constants.py` files for scattered constants; update all imports | `a70d5c5` |
 | 3 | Add `pyproject.toml` with `black` + `flake8` config | `5326761` |
+| 4 | Add `black` and `flake8` to `requirements.txt` | `ba45835` |
 
 ---
 
@@ -1030,7 +1031,7 @@ flake8
 
 | # | Priority | Action | Effort | Files Affected |
 |---|----------|--------|--------|----------------|
-| 4 | **Medium** | Add `black` and `flake8` to `requirements.txt` | Low | `requirements.txt` |
+| 5 | **Medium** | Run `black .` to auto-format entire codebase | Low | All `.py` files |
 | 5 | **Medium** | Run `black .` to auto-format entire codebase | Low | All `.py` files |
 | 6 | **Medium** | Run `flake8` and fix any reported issues | Medium | Varies |
 | 7 | **Low** | Audit all views/serializers for missing docstrings | Medium | Multiple files |
