@@ -1027,6 +1027,7 @@ flake8
 | 5 | Run `black .` to auto-format entire codebase | `f0a4d9e` |
 | 6 | Run `flake8` and fix any reported issues | `f0a4d9e` |
 | 7 | Audit all views/serializers for missing docstrings | `f0a4d9e` |
+| 8 | Fix 27 frontend test failures — add localStorage polyfill for jsdom | `7d4cc77` |
 
 ---
 
