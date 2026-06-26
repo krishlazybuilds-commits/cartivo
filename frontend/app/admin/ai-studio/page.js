@@ -161,186 +161,212 @@ export default function AdminAiStudioPage() {
 
   return (
     <>
-      <main>
-        <section className="features">
-          <div className="container">
-            <Reveal>
-              <div className="section-head">
-                <span className="eyebrow">Admin</span>
-                <h2>AI Studio</h2>
-                <p>Generate images and videos with Google Gemini AI.</p>
-              </div>
-            </Reveal>
+      {/* ── Hero Banner ── */}
+      <div className="ai-studio-hero">
+        <div className="container">
+          <Reveal>
+            <div className="ai-studio-hero-content">
+              <span className="ai-studio-hero-badge">
+                <Sparkles size={14} /> Powered by Google Gemini
+              </span>
+              <h1 className="ai-studio-hero-title">AI Studio</h1>
+              <p className="ai-studio-hero-sub">
+                Generate stunning images and cinematic videos with Google Gemini AI — directly from your admin panel.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </div>
 
+      <main>
+        <section className="ai-studio-section">
+          <div className="container">
             <AdminTabs />
 
-            <Reveal>
-              <div className="admin-panel">
+            <div className="ai-studio-layout">
 
-          {/* ─── Generation Form ─── */}
-          <form className="ai-studio-form" onSubmit={handleGenerate}>
-            <div className="ai-studio-type-toggle">
-              <button
-                type="button"
-                className={`ai-studio-type-btn${mediaType === "image" ? " active" : ""}`}
-                onClick={() => setMediaType("image")}
-              >
-                <ImageIcon size={16} /> Image
-              </button>
-              <button
-                type="button"
-                className={`ai-studio-type-btn${mediaType === "video" ? " active" : ""}`}
-                onClick={() => setMediaType("video")}
-              >
-                <Film size={16} /> Video
-              </button>
-            </div>
-
-            <textarea
-              className="ai-studio-prompt"
-              placeholder={
-                mediaType === "image"
-                  ? "Describe the image you want to generate... e.g. 'A sleek laptop on a minimalist white desk, studio lighting, product photography'"
-                  : "Describe the video you want to generate... e.g. 'Slow cinematic pan across a premium headphone on a dark surface, soft bokeh lights'"
-              }
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={3}
-              required
-            />
-
-            <div className="ai-studio-options">
-              <div className="ai-studio-option">
-                <label>Aspect Ratio</label>
-                <select
-                  value={aspectRatio}
-                  onChange={(e) => setAspectRatio(e.target.value)}
-                >
-                  {ASPECT_RATIOS.filter((a) => {
-                    if (mediaType === "video" && a.value === "4:3") return false;
-                    if (mediaType === "video" && a.value === "3:4") return false;
-                    return true;
-                  }).map((a) => (
-                    <option key={a.value} value={a.value}>
-                      {a.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="ai-studio-option">
-                <label>Model</label>
-                <select
-                  value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                >
-                  {(mediaType === "image" ? IMAGE_MODELS : VIDEO_MODELS).map(
-                    (m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
-            </div>
-
-            {genError && <div className="ai-studio-error">{genError}</div>}
-
-            <button
-              type="submit"
-              className="btn btn-primary ai-studio-submit"
-              disabled={!prompt.trim() || generating}
-            >
-              {generating ? (
-                <><Loader2 size={16} className="ai-studio-spin" /> Generating…</>
-              ) : mediaType === "image" ? (
-                <><Sparkles size={16} /> Generate Image</>
-              ) : (
-                <><Film size={16} /> Generate Video</>
-              )}
-            </button>
-          </form>
-
-          {/* ─── Media Library ─── */}
-          <div className="ai-studio-library">
-            <div className="ai-studio-lib-head">
-              <h2>Media Library</h2>
-              <div className="ai-studio-filters">
-                {["all", "image", "video"].map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className={`ai-studio-filter${filter === f ? " active" : ""}`}
-                    onClick={() => setFilter(f)}
-                  >
-                    {f === "all" ? (
-                      <><LayoutGrid size={14} /> All</>
-                    ) : f === "image" ? (
-                      <><ImageIcon size={14} /> Images</>
-                    ) : (
-                      <><Film size={14} /> Videos</>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {filteredMedia.length === 0 ? (
-              <div className="ai-studio-empty">
-                <p>No media generated yet. Use the form above to get started.</p>
-              </div>
-            ) : (
-              <div className="ai-studio-grid">
-                {filteredMedia.map((item) => (
-                  <div
-                    key={item.id}
-                    className="ai-studio-card"
-                    onClick={() => setDetailItem(item)}
-                  >
-                    <div className="ai-studio-card-preview">
-                      {item.media_type === "image" && item.file_url ? (
-                        <img src={item.file_url} alt={item.prompt} loading="lazy" />
-                      ) : item.media_type === "video" && item.file_url ? (
-                        <video src={item.file_url} preload="metadata" />
-                      ) : (
-                        <div className="ai-studio-card-placeholder">
-                          {item.media_type === "image" ? <ImageIcon size={32} /> : <Film size={32} />}
-                        </div>
-                      )}
-
-                      {/* Status overlay */}
-                      {(item.status === "processing" ||
-                        item.status === "pending") && (
-                        <div className="ai-studio-status-overlay">
-                          <div className="ai-studio-spinner" />
-                          <span>Generating…</span>
-                        </div>
-                      )}
-                      {item.status === "failed" && (
-                        <div className="ai-studio-status-overlay ai-studio-failed">
-                          <XCircle size={20} />
-                          <span>Failed</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="ai-studio-card-info">
-                      <span className="ai-studio-card-type">
-                        {item.media_type}
-                      </span>
-                      <span className="ai-studio-card-ratio">
-                        {item.aspect_ratio}
-                      </span>
-                    </div>
+              {/* ── Left: Generation Form ── */}
+              <Reveal>
+                <div className="ai-studio-form-card">
+                  <div className="ai-studio-form-header">
+                    <h2 className="ai-studio-form-title">Generate Media</h2>
+                    <p className="ai-studio-form-desc">Choose a type, write a prompt, and let AI do the rest.</p>
                   </div>
-                ))}
+
+                  <form onSubmit={handleGenerate}>
+                    {/* Type toggle */}
+                    <div className="ai-studio-type-toggle">
+                      <button
+                        type="button"
+                        className={`ai-studio-type-btn${mediaType === "image" ? " active" : ""}`}
+                        onClick={() => setMediaType("image")}
+                      >
+                        <ImageIcon size={18} />
+                        <span>Image</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`ai-studio-type-btn${mediaType === "video" ? " active" : ""}`}
+                        onClick={() => setMediaType("video")}
+                      >
+                        <Film size={18} />
+                        <span>Video</span>
+                      </button>
+                    </div>
+
+                    {/* Prompt */}
+                    <div className="ai-studio-field">
+                      <label className="ai-studio-label">Prompt</label>
+                      <textarea
+                        className="ai-studio-prompt"
+                        placeholder={
+                          mediaType === "image"
+                            ? "e.g. 'A sleek laptop on a minimalist white desk, studio lighting, product photography'"
+                            : "e.g. 'Slow cinematic pan across a premium headphone on a dark surface, soft bokeh lights'"
+                        }
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        rows={4}
+                        required
+                      />
+                    </div>
+
+                    {/* Options row */}
+                    <div className="ai-studio-options">
+                      <div className="ai-studio-option">
+                        <label className="ai-studio-label">Aspect Ratio</label>
+                        <select
+                          value={aspectRatio}
+                          onChange={(e) => setAspectRatio(e.target.value)}
+                        >
+                          {ASPECT_RATIOS.filter((a) => {
+                            if (mediaType === "video" && a.value === "4:3") return false;
+                            if (mediaType === "video" && a.value === "3:4") return false;
+                            return true;
+                          }).map((a) => (
+                            <option key={a.value} value={a.value}>
+                              {a.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="ai-studio-option">
+                        <label className="ai-studio-label">Model</label>
+                        <select
+                          value={modelName}
+                          onChange={(e) => setModelName(e.target.value)}
+                        >
+                          {(mediaType === "image" ? IMAGE_MODELS : VIDEO_MODELS).map(
+                            (m) => (
+                              <option key={m.value} value={m.value}>
+                                {m.label}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    {genError && <div className="ai-studio-error">{genError}</div>}
+
+                    <button
+                      type="submit"
+                      className="ai-studio-generate-btn"
+                      disabled={!prompt.trim() || generating}
+                    >
+                      {generating ? (
+                        <><Loader2 size={18} className="ai-studio-spin" /> Generating…</>
+                      ) : mediaType === "image" ? (
+                        <><Sparkles size={18} /> Generate Image</>
+                      ) : (
+                        <><Film size={18} /> Generate Video</>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </Reveal>
+
+              {/* ── Right: Media Library ── */}
+              <div className="ai-studio-library-panel">
+                <div className="ai-studio-lib-head">
+                  <h2>Media Library</h2>
+                  <div className="ai-studio-filters">
+                    {["all", "image", "video"].map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`ai-studio-filter${filter === f ? " active" : ""}`}
+                        onClick={() => setFilter(f)}
+                      >
+                        {f === "all" ? (
+                          <><LayoutGrid size={13} /> All</>
+                        ) : f === "image" ? (
+                          <><ImageIcon size={13} /> Images</>
+                        ) : (
+                          <><Film size={13} /> Videos</>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {filteredMedia.length === 0 ? (
+                  <div className="ai-studio-empty">
+                    <Sparkles size={36} />
+                    <p>No media yet. Generate something above!</p>
+                  </div>
+                ) : (
+                  <div className="ai-studio-grid">
+                    {filteredMedia.map((item) => (
+                      <div
+                        key={item.id}
+                        className="ai-studio-card"
+                        onClick={() => setDetailItem(item)}
+                      >
+                        <div className="ai-studio-card-preview">
+                          {item.media_type === "image" && item.file_url ? (
+                            <img src={item.file_url} alt={item.prompt} loading="lazy" />
+                          ) : item.media_type === "video" && item.file_url ? (
+                            <video src={item.file_url} preload="metadata" />
+                          ) : (
+                            <div className="ai-studio-card-placeholder">
+                              {item.media_type === "image" ? <ImageIcon size={32} /> : <Film size={32} />}
+                            </div>
+                          )}
+
+                          {/* Status overlay */}
+                          {(item.status === "processing" ||
+                            item.status === "pending") && (
+                            <div className="ai-studio-status-overlay">
+                              <div className="ai-studio-spinner" />
+                              <span>Generating…</span>
+                            </div>
+                          )}
+                          {item.status === "failed" && (
+                            <div className="ai-studio-status-overlay ai-studio-failed">
+                              <XCircle size={20} />
+                              <span>Failed</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="ai-studio-card-info">
+                          <span className="ai-studio-card-type">
+                            {item.media_type}
+                          </span>
+                          <span className="ai-studio-card-ratio">
+                            {item.aspect_ratio}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-            </div>{/* end ai-studio-library */}
-              </div>{/* end admin-panel */}
-            </Reveal>
-          </div>{/* end container */}
+
+            </div>
+          </div>
         </section>
       </main>
 
