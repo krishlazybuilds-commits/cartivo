@@ -102,7 +102,10 @@ export async function middleware(request) {
     "base-uri 'self'",
     "object-src 'none'",
     "worker-src 'self'",
-    "upgrade-insecure-requests",
+    // Only upgrade HTTP→HTTPS in production where TLS is expected.
+    // In dev (HTTP on localhost / LAN IP) this directive causes the browser
+    // to attempt loading CSS/JS/fonts over HTTPS, which silently fails.
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
     // Violation reports are POSTed to /api/csp-report for monitoring.
     "report-uri /api/csp-report",
     "report-to csp-endpoint",
