@@ -599,6 +599,248 @@ Layer 8: Payment Intent Correlation
 
 ---
 
+## 🗄️ Database Performance Analysis
+
+### Database Configuration
+
+| Setting | Value |
+|---|---|
+| Engine | PostgreSQL (production) / SQLite3 (development) |
+| Connection pooling | `CONN_MAX_AGE=60`, `CONN_HEALTH_CHECKS=True` |
+| Cache backend | Redis (production) / LocMem (development) |
+| Default auto field | `BigAutoField` (all PKs are `bigint`) |
+
+---
+
+### Current Index Coverage
+
+| Table | Explicit Indexes | Status |
+|---|---|---|
+| `Product` | 7 indexes: `slug`, `is_active`, `is_featured`, `is_new`, `on_sale`, `(category, -created_at)`, `(is_active, -created_at)` | ✅ Well indexed |
+| `Order` | 2 indexes: `(user, -created_at)`, `stripe_payment_intent` (db_index) | ⚠️ Gaps |
+| `Coupon` | 1 index: `code` (unique + db_index) | ✅ OK |
+| `OrderItem` | 0 explicit (unique_together on `(order, product, variant)`) | ⚠️ Missing |
+| `Review` | 0 explicit (unique_together on `(product, user)`) | ⚠️ Missing |
+| `Address` | 0 explicit | ⚠️ Missing |
+| `Cart` | 0 explicit | ⚠️ Missing |
+| `CartItem` | 0 explicit (unique_together on `(cart, product, variant)`) | ⚠️ Missing |
+| `WarehouseStock` | 0 explicit (UniqueConstraints with conditions) | ⚠️ Missing |
+| `ProductVariant` | 0 explicit | ⚠️ Missing |
+| `NewsletterSubscriber` | 0 explicit (unique on `email`) | ✅ OK |
+
+---
+
+### Missing Indexes — Query-Backed Evidence
+
+#### 1. `Order.status` — **CRITICAL**
+
+Filtered in dashboard stats, webhook handlers, select_for_update locks, and status transitions. No index exists.
+
+```python
+# backend/apps/orders/views.py — Dashboard (lines 88-100)
+paid_statuses = [Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED]
+Order.objects.filter(status__in=paid_statuses).aggregate(...)  # ← Full table scan
+for s in [st.value for st in Order.Status]:
+    Order.objects.filter(status=s).count()  # ← 6 full table scans (one per status)
+```
+
+```python
+# backend/apps/orders/views.py — Webhook handlers (line 812)
+Order.objects.filter(pk=order_id, status=Order.Status.PENDING).update(status=Order.Status.PAID)
+```
+
+```python
+# backend/apps/orders/views.py — select_for_update locks (lines 571-573)
+Order.objects.select_for_update().filter(pk=order.pk, status__in=(...))
+```
+
+**Recommended index:** `Index(fields=["status"])` or `Index(fields=["status", "-created_at"])` for dashboard queries.
+
+---
+
+#### 2. `Order.guest_email` — **HIGH**
+
+Guest order lookup filters by `guest_email__iexact` with no index.
+
+```python
+# backend/apps/orders/views.py — Guest lookup (lines 917-918)
+Order.objects.filter(guest_email__iexact=email, user=None)
+```
+
+**Recommended index:** `Index(fields=["guest_email"])` or `Index(fields=["guest_email", "user"])`.
+
+---
+
+#### 3. `Order.stripe_session_id` — **HIGH**
+
+Webhook matching and order updates use this field with no index.
+
+```python
+# backend/apps/orders/views.py — Checkout (line 439)
+Order.objects.filter(pk=order.pk).update(stripe_session_id=session.id)
+```
+
+**Recommended index:** `Index(fields=["stripe_session_id"])` for webhook lookups.
+
+---
+
+#### 4. `Order` composite for user-scoped filtered queries — **MEDIUM**
+
+User orders filtered by status — the existing `(user, -created_at)` index doesn't cover status filtering.
+
+```python
+# backend/apps/orders/views.py — Staff order list (line 278)
+qs = qs.filter(status=status_param)
+```
+
+**Recommended index:** `Index(fields=["user", "status", "-created_at"])`.
+
+---
+
+#### 5. `Review.status` and `Review.user` — **MEDIUM**
+
+Public review listing filters by status; user's own reviews filter by user.
+
+```python
+# backend/apps/catalog/views.py — Public reviews (line 350)
+qs = qs.filter(status=Review.Status.APPROVED)
+
+# backend/apps/catalog/views.py — User's reviews (line 344)
+qs = qs.filter(user=user)
+```
+
+**Recommended index:** `Index(fields=["status", "-created_at"])` for public listing, `Index(fields=["user"])` for user's reviews.
+
+---
+
+#### 6. `Address.user` — **MEDIUM**
+
+Every address query filters by user.
+
+```python
+# backend/apps/accounts/views.py — Address list (line 761)
+Address.objects.filter(user=self.request.user)
+```
+
+**Recommended index:** `Index(fields=["user"])` (FK index, but explicit composite helps).
+
+---
+
+#### 7. `CartItem.cart` — **LOW**
+
+Cart item listing filters by cart FK.
+
+```python
+# backend/apps/cart/views.py — Cart items (line 68)
+CartItem.objects.filter(cart__user=self.request.user).select_related("product")
+```
+
+**Note:** Implicit FK index exists, but explicit composite `Index(fields=["cart", "added_at"])` would help ordering.
+
+---
+
+#### 8. `WarehouseStock.product` + `variant` — **LOW**
+
+Stock lookup in order services filters by product/variant without warehouse.
+
+```python
+# backend/apps/orders/services.py — Stock existence check (lines 83-84)
+WarehouseStock.objects.filter(product_id=pid, variant_id=vid).exists()
+```
+
+**Recommended index:** `Index(fields=["product", "variant"])`.
+
+---
+
+### Query Performance Issues
+
+#### 1. N+1 in Warehouse Stock Resolution — **HIGH**
+
+The order creation service loops through warehouses × items, executing a query per combination.
+
+```python
+# backend/apps/orders/services.py — Lines 72-76 (inside nested loop)
+for wh in active_warehouses:
+    for item in items:
+        wh_stock = WarehouseStock.objects.filter(
+            warehouse=wh, product_id=pid, variant_id=vid
+        ).first()  # ← O(warehouses × items) queries
+```
+
+**Impact:** With 3 warehouses and 10 items = 30 queries per checkout.
+
+**Fix:** Bulk-fetch all WarehouseStock rows for the relevant products in one query, then resolve in Python.
+
+---
+
+#### 2. Double WarehouseStock Lock Per Item — **MEDIUM**
+
+Each item acquires a `select_for_update` lock on WarehouseStock twice — once during validation, once during decrement.
+
+```python
+# backend/apps/orders/services.py — Lines 127-132 (validation)
+wh_stock = WarehouseStock.objects.select_for_update().get_or_create(...)
+
+# backend/apps/orders/services.py — Lines 181-186 (decrement — same row, re-locked)
+wh_stock = WarehouseStock.objects.select_for_update().get_or_create(...)
+```
+
+**Fix:** Consolidate into a single locked read + update within the same transaction.
+
+---
+
+#### 3. Cart Clear Fetches Before Delete — **LOW**
+
+Clearing the cart prefetches all items before issuing DELETE, adding unnecessary overhead.
+
+```python
+# backend/apps/cart/views.py — Line 40
+self._get_cart(request).items.all().delete()
+```
+
+**Fix:** Use `CartItem.objects.filter(cart=cart).delete()` for a direct SQL DELETE without fetching rows.
+
+---
+
+### Index Recommendations Summary
+
+| # | Table | Index | Priority | Reason |
+|---|---|---|---|---|
+| 1 | `Order` | `Index(fields=["status"])` | **CRITICAL** | Dashboard stats, webhook handlers, status transitions |
+| 2 | `Order` | `Index(fields=["status", "-created_at"])` | **CRITICAL** | Dashboard monthly stats query |
+| 3 | `Order` | `Index(fields=["guest_email"])` | **HIGH** | Guest order lookup by email |
+| 4 | `Order` | `Index(fields=["stripe_session_id"])` | **HIGH** | Webhook session matching |
+| 5 | `Order` | `Index(fields=["user", "status", "-created_at"])` | **MEDIUM** | User orders filtered by status |
+| 6 | `Review` | `Index(fields=["status", "-created_at"])` | **MEDIUM** | Public review listing |
+| 7 | `Review` | `Index(fields=["user"])` | **MEDIUM** | User's own reviews |
+| 8 | `Address` | `Index(fields=["user"])` | **MEDIUM** | User address listing |
+| 9 | `WarehouseStock` | `Index(fields=["product", "variant"])` | **LOW** | Stock existence check |
+
+---
+
+### Query Optimization Recommendations
+
+| # | Issue | Location | Effort | Impact |
+|---|---|---|---|---|
+| 1 | Bulk-fetch WarehouseStock instead of per-item loop | `orders/services.py:72-76` | Medium | High — eliminates O(W×I) queries |
+| 2 | Consolidate double WarehouseStock lock per item | `orders/services.py:127-202` | Medium | Medium — halves lock acquisitions |
+| 3 | Direct DELETE for cart clear | `cart/views.py:40` | Low | Low — avoids unnecessary fetch |
+
+---
+
+### What's Done Well
+
+- **No raw SQL** — All queries use Django ORM with parameterized queries
+- **Good select_related/prefetch_related usage** — N+1 properly mitigated in views and tasks
+- **Row-level locking** — `select_for_update()` on critical paths (stock, coupons, orders)
+- **Atomic updates** — `F()` expressions for stock decrement and coupon usage
+- **Bulk operations** — `bulk_create()` for order items, `update_or_create()` for product import
+- **Connection pooling** — `CONN_MAX_AGE=60` with health checks
+- **CHECK constraints** — Negative stock/prices prevented at DB level
+- **UniqueConstraints** — Partial unique constraints on WarehouseStock for data integrity
+
+---
+
 ## Appendix: Key Files Reviewed
 
 | File | Purpose |
@@ -627,8 +869,17 @@ Layer 8: Payment Intent Correlation
 | `frontend/app/components/AddToCart.js` | Cart add item with stock awareness |
 | `frontend/app/components/ProductReviews.js` | Review submission (authenticated only) |
 | `frontend/package.json` | Dependencies, security overrides |
+| `backend/apps/orders/stripe_ip.py` | Stripe webhook IP allow-listing |
+| `backend/apps/catalog/validators.py` | Bulk import file validation |
+| `backend/apps/accounts/lockout.py` | Account lockout logic |
+| `backend/apps/cart/models.py` | Cart and CartItem models |
+| `backend/apps/contact/models.py` | NewsletterSubscriber model |
+| `backend/apps/orders/services.py` | Order creation, stock management, coupon application |
+| `backend/apps/orders/tasks.py` | Order confirmation email tasks |
+| `backend/apps/cart/tasks.py` | Abandoned cart detection tasks |
+| `backend/apps/catalog/filters.py` | Postgres full-text search filter |
 | `SECURITY_AUDIT_REPORT.md` | Prior audit report (all findings resolved) |
 
 ---
 
-*Report generated by Buffy (Codebuff AI Agent) on June 23, 2026. This assessment is based on static code analysis of the current codebase. A dynamic penetration test with tools like OWASP ZAP or Burp Suite is recommended before major production launch.*
+*Report generated by Buffy (Codebuff AI Agent) on June 23, 2026. Last updated June 25, 2026. This assessment is based on static code analysis of the current codebase. A dynamic penetration test with tools like OWASP ZAP or Burp Suite is recommended before major production launch.*
