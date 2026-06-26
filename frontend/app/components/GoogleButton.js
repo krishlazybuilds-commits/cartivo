@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useToast } from "../lib/toast";
@@ -57,6 +57,7 @@ export default function GoogleButton({ action = "Sign in", next = "/products" })
   const { loginWithGoogle } = useAuth();
   const router = useRouter();
   const containerRef = useRef(null);
+  const [failed, setFailed] = useState(false);
 
   const handleCredential = useCallback(
     async (response) => {
@@ -105,8 +106,11 @@ export default function GoogleButton({ action = "Sign in", next = "/products" })
           width: 320,
         });
       })
-      .catch(() => {
-        if (!cancelled) toast("Couldn't load Google sign-in", "error");
+      .catch((err) => {
+        if (!cancelled) {
+          setFailed(true);
+          toast(err?.message || "Couldn't load Google sign-in", "error");
+        }
       });
 
     return () => {
@@ -114,13 +118,19 @@ export default function GoogleButton({ action = "Sign in", next = "/products" })
     };
   }, [action, handleCredential, toast]);
 
-  // Feature not configured: render a non-functional branded placeholder.
-  if (!CLIENT_ID) {
+  // Feature not configured or script failed to load: render a non-functional branded placeholder.
+  if (!CLIENT_ID || failed) {
     return (
       <button
         type="button"
         className="google-btn"
-        onClick={() => toast("Google sign-in is not configured", "info")}
+        onClick={() => {
+          if (failed) {
+            toast("Google sign-in failed to load. Please check your browser privacy/cookie settings or connection.", "error");
+          } else {
+            toast("Google sign-in is not configured", "info");
+          }
+        }}
       >
         <svg className="google-btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
