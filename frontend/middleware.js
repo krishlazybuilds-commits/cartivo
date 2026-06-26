@@ -76,7 +76,7 @@ export async function middleware(request) {
   // Exposed via x-nonce so layout.js can apply it to the inline script.
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
-  const devHosts = isDev ? ["localhost:8000", "127.0.0.1:8000"] : [];
+  const devHosts = isDev ? ["localhost:8000", "127.0.0.1:8000", "192.168.0.224:8000"] : [];
   const imgSrc = ["'self'", "blob:", "data:", ...devHosts];
   if (process.env.NEXT_PUBLIC_MEDIA_HOST) imgSrc.push(process.env.NEXT_PUBLIC_MEDIA_HOST);
   const connectSrc = ["'self'", ...devHosts, "api.stripe.com", "accounts.google.com"];
