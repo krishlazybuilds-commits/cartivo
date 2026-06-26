@@ -16,11 +16,9 @@ import time
 from django.conf import settings
 from django.core.cache import cache
 
-logger = logging.getLogger(__name__)
+from .constants import COUNTER_PREFIX, LOCKED_PREFIX
 
-# Cache key prefixes.
-_COUNTER_PREFIX = "account_lockout:"
-_LOCKED_PREFIX = "account_lockout_locked:"
+logger = logging.getLogger(__name__)
 
 
 def _cfg(key: str, default: int) -> int:
@@ -41,11 +39,11 @@ def _lockout_seconds() -> int:
 
 
 def _counter_key(ident: str) -> str:
-    return f"{_COUNTER_PREFIX}{ident}"
+    return f"{COUNTER_PREFIX}{ident}"
 
 
 def _locked_key(ident: str) -> str:
-    return f"{_LOCKED_PREFIX}{ident}"
+    return f"{LOCKED_PREFIX}{ident}"
 
 
 def record_failed_attempt(ident: str) -> int:

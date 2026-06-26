@@ -34,12 +34,9 @@ from django.conf import settings
 from django.core.cache import cache
 
 from config.utils import get_client_ip
+from .constants import STRIPE_WEBHOOK_IPS_URL, STRIPE_IP_CACHE_KEY, STRIPE_IP_CACHE_TTL
 
 logger = logging.getLogger(__name__)
-
-STRIPE_WEBHOOK_IPS_URL = "https://stripe.com/files/ips/ips_webhooks.json"
-STRIPE_IP_CACHE_KEY = "stripe_webhook_ips"
-STRIPE_IP_CACHE_TTL = 86400  # 24 hours
 
 # Fallback IPs used when Stripe's published list cannot be fetched.
 # Last updated: June 2026 — from https://stripe.com/files/ips/ips_webhooks.json

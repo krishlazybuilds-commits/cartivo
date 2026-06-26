@@ -2,31 +2,15 @@ import logging
 
 from django.core.exceptions import ValidationError
 
+from .constants import (
+    MAX_IMAGE_SIZE,
+    MAX_IMPORT_FILE_SIZE,
+    _XLSX_MAGIC,
+    _ALLOWED_CSV_MIMETYPES,
+    _ALLOWED_XLSX_MIMETYPES,
+)
+
 logger = logging.getLogger(__name__)
-
-# Maximum allowed product image size (bytes).
-MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
-
-# Maximum file size for bulk import uploads (20 MB).
-MAX_IMPORT_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
-
-# Magic bytes for the ZIP format used by .xlsx files.
-_XLSX_MAGIC = b"PK\x03\x04"
-
-# Allowed MIME types for CSV imports (in addition to magic-byte checks).
-_ALLOWED_CSV_MIMETYPES = {
-    "text/csv",
-    "text/plain",
-    "text/comma-separated-values",
-    "application/csv",
-    "application/octet-stream",  # Common fallback from many browsers/CLI tools
-}
-
-# Allowed MIME types for XLSX imports.
-_ALLOWED_XLSX_MIMETYPES = {
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/octet-stream",  # Common fallback
-}
 
 
 def validate_image_size(file):

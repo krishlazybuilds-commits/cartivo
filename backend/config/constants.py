@@ -17,3 +17,5 @@ RETRY_KWARGS_LIGHT = {
     "retry_jitter": True,
     "max_retries": 3,
 }
+
+ADMIN_LOGIN_RATE_PREFIX = "admin_login_rate:"

@@ -15,13 +15,10 @@ from rest_framework import status
 from apps.accounts.email_utils import normalize_email, is_disposable_email
 from apps.accounts.authentication import enforce_csrf
 from apps.orders.email_utils import send_html_email
+from .constants import MAX_NAME, MAX_EMAIL, MAX_MESSAGE
 from .models import NewsletterSubscriber
 
 logger = logging.getLogger(__name__)
-
-MAX_NAME = 120
-MAX_EMAIL = 254
-MAX_MESSAGE = 5000
 
 # Characters allowed in the contact-form name when used in the email subject.
 # Strips anything that could be used for header injection (newlines, null bytes,

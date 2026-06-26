@@ -7,10 +7,11 @@ from django.http import HttpResponseForbidden
 
 from .utils import get_client_ip
 
+from .constants import ADMIN_LOGIN_RATE_PREFIX
+
 _ADMIN_LOGIN_RE = re.compile(r"^/admin/login/")
 _RATE = 10       # max attempts
 _PERIOD = 300    # seconds (5 minutes)
-_PREFIX = "admin_login_rate:"
 
 # Permissions-Policy matching the frontend's policy in next.config.mjs.
 _PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
@@ -25,7 +26,7 @@ class AdminLoginRateMiddleware:
     def __call__(self, request):
         if request.method == "POST" and _ADMIN_LOGIN_RE.match(request.path_info):
             ip = self._get_ip(request)
-            key = f"{_PREFIX}{ip}"
+            key = f"{ADMIN_LOGIN_RATE_PREFIX}{ip}"
             window = cache.get(key, [])
             now = time.time()
             window = [t for t in window if now - t < _PERIOD]
