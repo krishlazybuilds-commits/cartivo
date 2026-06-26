@@ -45,7 +45,7 @@ describe("AdminAiStudioPage — dropdowns render", () => {
   it("renders both dropdown trigger buttons", async () => {
     render(<AdminAiStudioPage />);
     await screen.findByText("Aspect Ratio");
-    const triggers = screen.getAllByRole("button", { name: /1:1|nano banana|veo/i });
+    const triggers = screen.getAllByRole("button", { name: /1:1|gemini|veo/i });
     expect(triggers.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -72,7 +72,7 @@ describe("AdminAiStudioPage — dropdowns render", () => {
   it("opens Model options on click", async () => {
     render(<AdminAiStudioPage />);
     await screen.findByText("Model");
-    fireEvent.click(screen.getByText(/nano banana/i));
+    fireEvent.click(screen.getByText(/gemini.*image/i));
     expect(screen.getByRole("listbox")).toBeInTheDocument();
   });
 

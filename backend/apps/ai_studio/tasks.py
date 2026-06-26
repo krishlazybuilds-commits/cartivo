@@ -27,7 +27,7 @@ def generate_image_task(self, media_id: str):
 
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-        model = media.model_name or "gemini-2.5-flash-preview-image"
+        model = media.model_name or "gemini-2.5-flash-image"
 
         response = client.models.generate_content(
             model=model,

@@ -111,7 +111,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 
 const IMAGE_MODELS = [
-  { value: "gemini-2.5-flash-preview-image", label: "Nano Banana 2 (Fast)" },
+  { value: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image" },
 ];
 const VIDEO_MODELS = [
   { value: "veo-3.1-generate-preview", label: "Veo 3.1" },
