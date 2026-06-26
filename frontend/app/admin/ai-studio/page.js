@@ -12,7 +12,56 @@ import {
   Trash2,
   Loader2,
   LayoutGrid,
+  ChevronDown,
+  Check,
 } from "lucide-react";
+
+/** Reusable custom dropdown */
+function CustomSelect({ label, options, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="cs-wrap" ref={ref}>
+      {label && <span className="ai-studio-label">{label}</span>}
+      <button
+        type="button"
+        className={`cs-trigger${open ? " open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selected?.label ?? "Select…"}</span>
+        <ChevronDown size={15} className="cs-chevron" />
+      </button>
+      {open && (
+        <ul className="cs-list" role="listbox">
+          {options.map((opt) => (
+            <li
+              key={opt.value}
+              role="option"
+              aria-selected={opt.value === value}
+              className={`cs-item${opt.value === value ? " selected" : ""}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
+              <span>{opt.label}</span>
+              {opt.value === value && <Check size={14} />}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
@@ -234,37 +283,25 @@ export default function AdminAiStudioPage() {
                     {/* Options row */}
                     <div className="ai-studio-options">
                       <div className="ai-studio-option">
-                        <label className="ai-studio-label">Aspect Ratio</label>
-                        <select
+                        <CustomSelect
+                          label="Aspect Ratio"
                           value={aspectRatio}
-                          onChange={(e) => setAspectRatio(e.target.value)}
-                        >
-                          {ASPECT_RATIOS.filter((a) => {
+                          onChange={setAspectRatio}
+                          options={ASPECT_RATIOS.filter((a) => {
                             if (mediaType === "video" && a.value === "4:3") return false;
                             if (mediaType === "video" && a.value === "3:4") return false;
                             return true;
-                          }).map((a) => (
-                            <option key={a.value} value={a.value}>
-                              {a.label}
-                            </option>
-                          ))}
-                        </select>
+                          })}
+                        />
                       </div>
 
                       <div className="ai-studio-option">
-                        <label className="ai-studio-label">Model</label>
-                        <select
+                        <CustomSelect
+                          label="Model"
                           value={modelName}
-                          onChange={(e) => setModelName(e.target.value)}
-                        >
-                          {(mediaType === "image" ? IMAGE_MODELS : VIDEO_MODELS).map(
-                            (m) => (
-                              <option key={m.value} value={m.value}>
-                                {m.label}
-                              </option>
-                            )
-                          )}
-                        </select>
+                          onChange={setModelName}
+                          options={mediaType === "image" ? IMAGE_MODELS : VIDEO_MODELS}
+                        />
                       </div>
                     </div>
 
