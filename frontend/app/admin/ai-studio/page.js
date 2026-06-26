@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ImageIcon,
@@ -83,7 +84,7 @@ function CustomSelect({ label, options, value, onChange }) {
         <span>{selected?.label ?? "Select\u2026"}</span>
         <ChevronDown size={15} className="cs-chevron" />
       </button>
-      {open && rect && (
+      {open && rect && createPortal(
         <ul ref={listRef} className="cs-list" role="listbox" style={listStyle}>
           {options.map((opt) => (
             <li
@@ -97,7 +98,8 @@ function CustomSelect({ label, options, value, onChange }) {
               {opt.value === value && <Check size={14} />}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       )}
     </div>
   );
