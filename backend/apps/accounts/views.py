@@ -126,12 +126,15 @@ def _revoke_all_refresh_tokens(user):
     summary="Register a new account",
 )
 class RegisterView(generics.CreateAPIView):
+    """Register a new user account and send a verification email."""
+
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [RegisterRateThrottle]
 
     def create(self, request, *args, **kwargs):
+        """Create a new user account and send a verification email."""
         enforce_csrf(request)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -158,10 +161,13 @@ class RegisterView(generics.CreateAPIView):
 
 @extend_schema(tags=["auth"])
 class MeView(generics.RetrieveUpdateAPIView):
+    """Retrieve or update the authenticated user's profile."""
+
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
+        """Return the currently authenticated user."""
         return self.request.user
 
     @extend_schema(
@@ -170,6 +176,7 @@ class MeView(generics.RetrieveUpdateAPIView):
         responses={204: None},
     )
     def delete(self, request, *args, **kwargs):
+        """Delete the authenticated user's account (deactivate and clear cookies)."""
         user = request.user
         # Blacklist the current refresh token so existing sessions are invalidated.
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
@@ -218,6 +225,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only a superuser can modify a superuser account.")
 
     def perform_update(self, serializer):
+        """Update a user account with guard rails against self-lockout."""
         target = serializer.instance
         self._assert_target_modifiable(target)
         # Block self-lockout: an admin can't deactivate or demote themselves
@@ -232,6 +240,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
+        """Delete a user account with guard rails against self-deletion."""
         self._assert_target_modifiable(instance)
         if instance.pk == self.request.user.pk:
             raise ValidationError("You cannot delete your own account.")
@@ -240,6 +249,8 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 
 @extend_schema(tags=["auth"], summary="Change password")
 class ChangePasswordView(APIView):
+    """Change the authenticated user's password."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
@@ -247,6 +258,7 @@ class ChangePasswordView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        """Validate current password, set new password, and reissue tokens."""
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = request.user
@@ -449,6 +461,7 @@ class GoogleLoginView(APIView):
     ),
 )
 class LoginView(APIView):
+    """Authenticate a user with username/password and set JWT cookies."""
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -467,6 +480,7 @@ class LoginView(APIView):
         },
     )
     def post(self, request):
+        """Authenticate and set JWT cookies, with rate-limiting and lockout."""
         enforce_csrf(request)
 
         # Identify the user attempting to log in (normalised for lockout key).
@@ -538,6 +552,7 @@ class RefreshView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        """Validate the refresh cookie and return a new access token pair."""
         enforce_csrf(request)
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if not raw_refresh:
@@ -586,6 +601,7 @@ class LogoutView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        """Blacklist the refresh token and clear auth cookies."""
         enforce_csrf(request)
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if raw_refresh:
@@ -640,6 +656,7 @@ class ValidateView(APIView):
         },
     )
     def get(self, request):
+        """Check whether the refresh token cookie holds a valid token."""
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if not raw_refresh:
             return Response(
@@ -677,6 +694,7 @@ class CSRFView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def get(self, request):
+        """Set the CSRF cookie for the SPA."""
         return Response({"detail": "CSRF cookie set."})
 
 
@@ -706,6 +724,7 @@ class PasswordResetRequestView(APIView):
         },
     )
     def post(self, request):
+        """Send a password reset link to the given email."""
         enforce_csrf(request)
         email = request.data.get("email", "").strip()
         # Always return the same 200 to avoid leaking whether an email exists.
@@ -764,6 +783,7 @@ class PasswordResetConfirmView(APIView):
         },
     )
     def post(self, request):
+        """Validate uid/token and set the new password."""
         enforce_csrf(request)
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
@@ -810,9 +830,11 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """Return addresses belonging to the authenticated user."""
         return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        """Create an address, setting it as default if it's the user's first."""
         # If this is the user's first address, make it default.
         is_first = not Address.objects.filter(user=self.request.user).exists()
         serializer.save(
@@ -821,6 +843,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        """Update an address, unsetting other defaults if marked as default."""
         instance = serializer.save()
         # If marked as default, unset other defaults.
         if instance.is_default:
@@ -835,6 +858,8 @@ class AddressViewSet(viewsets.ModelViewSet):
     description="Validates the uid/token pair and marks the user's email as verified.",
 )
 class EmailVerifyView(APIView):
+    """Verify a user's email address via uid/token pair."""
+
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
@@ -853,6 +878,7 @@ class EmailVerifyView(APIView):
         },
     )
     def post(self, request):
+        """Validate the verification token and mark email as verified."""
         enforce_csrf(request)
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
@@ -901,6 +927,7 @@ class EmailChangeRequestView(APIView):
         },
     )
     def post(self, request):
+        """Send a confirmation link to the new email address."""
         current_password = request.data.get("current_password")
         if not current_password:
             return Response(
@@ -973,6 +1000,7 @@ class EmailChangeConfirmView(APIView):
         },
     )
     def post(self, request):
+        """Validate the token and apply the pending email change."""
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
         if not all([uid, token]):
@@ -1020,12 +1048,15 @@ class EmailChangeConfirmView(APIView):
     "(right of access / data portability under Art. 15 & 20 GDPR).",
 )
 class GDPRExportView(APIView):
+    """Export all personal data for the authenticated user (GDPR Art. 15/20)."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
         responses={200: {"type": "object"}},
     )
     def get(self, request):
+        """Return all personal data as JSON."""
         user = request.user
         from .models import Address
         from orders.models import Order
@@ -1106,6 +1137,8 @@ class GDPRExportView(APIView):
     "and anonymised so it can never be used again.",
 )
 class GDPRDeleteView(APIView):
+    """Delete or anonymise all personal data (GDPR Art. 17)."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
@@ -1113,6 +1146,7 @@ class GDPRDeleteView(APIView):
         responses={200: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request):
+        """Anonymise orders, delete personal data, and deactivate the account."""
         user = request.user
         from .models import Address
         from orders.models import Order

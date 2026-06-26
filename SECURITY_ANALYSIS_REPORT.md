@@ -1026,6 +1026,7 @@ flake8
 | 4 | Add `black` and `flake8` to `requirements.txt` | `ba45835` |
 | 5 | Run `black .` to auto-format entire codebase | `f0a4d9e` |
 | 6 | Run `flake8` and fix any reported issues | `f0a4d9e` |
+| 7 | Audit all views/serializers for missing docstrings | `f0a4d9e` |
 
 ---
 
@@ -1033,7 +1034,7 @@ flake8
 
 | # | Priority | Action | Effort | Files Affected |
 |---|----------|--------|--------|----------------|
-| 7 | **Low** | Audit all views/serializers for missing docstrings | Medium | Multiple files |
+| 8 | **P4** | Run a dynamic penetration test (OWASP ZAP, Burp Suite) against staging | Medium | Pre-deployment |
 
 ---
 

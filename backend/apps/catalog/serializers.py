@@ -13,6 +13,8 @@ from .models import (
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """Serialize product categories with optional parent nesting."""
+
     class Meta:
         model = Category
         fields = ("id", "name", "slug", "description", "parent", "created_at")
@@ -20,6 +22,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    """Serialize additional product images."""
+
     class Meta:
         model = ProductImage
         fields = ("id", "image", "alt", "order")
@@ -27,6 +31,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
+    """Serialize product variants with computed effective price and stock status."""
+
     effective_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     in_stock = serializers.BooleanField(read_only=True)
 
@@ -36,6 +42,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "effective_price", "in_stock")
 
     def get_fields(self):
+        """Hide stock from non-staff users."""
         fields = super().get_fields()
         request = self.context.get("request")
         if request and not (request.user and request.user.is_staff):
@@ -44,6 +51,8 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    """Full product serializer with nested variants, images, and computed fields."""
+
     category_name = serializers.CharField(source="category.name", read_only=True)
     in_stock = serializers.BooleanField(read_only=True)
     avg_rating = serializers.FloatField(read_only=True, default=None)
@@ -85,6 +94,7 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "slug", "created_at", "updated_at")
 
     def get_fields(self):
+        """Hide stock from non-staff users."""
         fields = super().get_fields()
         request = self.context.get("request")
         if request and not (request.user and request.user.is_staff):
@@ -93,6 +103,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """Serialize product reviews with user and product names."""
+
     username = serializers.CharField(source="user.username", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
 
@@ -112,6 +124,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "product_name", "username", "created_at")
 
     def get_fields(self):
+        """Make status editable only for staff."""
         fields = super().get_fields()
         request = self.context.get("request")
         if request and request.user and request.user.is_staff:
@@ -121,6 +134,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return fields
 
     def validate(self, data):
+        """Prevent duplicate reviews per product per user."""
         request = self.context.get("request")
         if request and request.user:
             # Only enforce uniqueness on create (not update).
@@ -134,6 +148,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):
+    """Serialize wishlist items with product details."""
+
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_slug = serializers.CharField(source="product.slug", read_only=True)
     product_price = serializers.DecimalField(
@@ -162,6 +178,8 @@ class WishlistItemSerializer(serializers.ModelSerializer):
 
 
 class ProductImportSerializer(serializers.Serializer):
+    """Serializer for product bulk import file upload."""
+
     file = serializers.FileField()
 
     class Meta:
@@ -169,6 +187,8 @@ class ProductImportSerializer(serializers.Serializer):
 
 
 class WarehouseSerializer(serializers.ModelSerializer):
+    """CRUD serializer for warehouse management."""
+
     class Meta:
         model = Warehouse
         fields = ("id", "name", "code", "address", "is_active", "created_at", "updated_at")
@@ -176,6 +196,8 @@ class WarehouseSerializer(serializers.ModelSerializer):
 
 
 class WarehouseStockSerializer(serializers.ModelSerializer):
+    """Serializer for warehouse stock levels with product and variant details."""
+
     product_name = serializers.CharField(source="product.name", read_only=True)
     variant_name = serializers.SerializerMethodField(read_only=True)
 

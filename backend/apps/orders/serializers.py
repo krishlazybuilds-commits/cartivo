@@ -6,6 +6,8 @@ from .models import Coupon, Order, OrderItem
 
 
 class CouponSerializer(serializers.ModelSerializer):
+    """CRUD serializer for admin coupon management."""
+
     class Meta:
         model = Coupon
         fields = (
@@ -25,6 +27,8 @@ class CouponSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    """Read-only serializer for order line items with product details."""
+
     product_name = serializers.CharField(source="product.name", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True, default=None)
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
@@ -45,6 +49,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    """Full order serializer with nested items, totals, and shipping details."""
+
     items = OrderItemSerializer(many=True, read_only=True)
     order_number = serializers.UUIDField(read_only=True)
     coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)

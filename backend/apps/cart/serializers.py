@@ -4,6 +4,8 @@ from .models import Cart, CartItem
 
 
 class CartItemSerializer(serializers.ModelSerializer):
+    """Validate and serialize a single cart line item."""
+
     product_name = serializers.CharField(source="product.name", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True, default=None)
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -25,6 +27,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "added_at")
 
     def get_fields(self):
+        """Make product/variant read-only when updating an existing item."""
         fields = super().get_fields()
         if self.instance is not None:
             fields["product"].read_only = True
@@ -32,11 +35,13 @@ class CartItemSerializer(serializers.ModelSerializer):
         return fields
 
     def validate_quantity(self, value):
+        """Ensure quantity is at least 1."""
         if value < 1:
             raise serializers.ValidationError("Quantity must be at least 1.")
         return value
 
     def validate(self, attrs):
+        """Check variant belongs to product and stock is sufficient."""
         product = attrs.get("product") or getattr(self.instance, "product", None)
         variant = attrs.get("variant") or getattr(self.instance, "variant", None)
         quantity = attrs.get("quantity") or getattr(self.instance, "quantity", 1)
@@ -67,6 +72,8 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 
 class CartSerializer(serializers.ModelSerializer):
+    """Read-only serializer for the authenticated user's cart with items and totals."""
+
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     item_count = serializers.IntegerField(read_only=True)

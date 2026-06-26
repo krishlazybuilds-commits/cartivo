@@ -38,6 +38,8 @@ from .serializers import (
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
+    """CRUD for product categories. Public read; staff-only write."""
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = "slug"
@@ -45,12 +47,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ("name", "created_at")
 
     def get_permissions(self):
+        """Allow public read; require admin for mutations."""
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
 
 
 class ProductViewSet(viewsets.ModelViewSet):
+    """CRUD for products. Public read; staff-only write."""
+
     serializer_class = ProductSerializer
     lookup_field = "slug"
     filter_backends = (DjangoFilterBackend, PostgresSearchFilter, OrderingFilter)
@@ -59,6 +64,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("price", "created_at", "name")
 
     def get_queryset(self):
+        """Return products with annotations; filter inactive for non-staff."""
         qs = (
             Product.objects.select_related("category")
             .prefetch_related("variants", "images")
@@ -89,6 +95,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return qs.order_by("-created_at", "id")
 
     def get_permissions(self):
+        """Allow public read; require admin for mutations."""
         if self.action in ("list", "retrieve", "related"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
@@ -136,6 +143,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def export(self, request):
+        """Export products as CSV or XLSX."""
         fmt = request.query_params.get("format", "csv")
 
         if fmt == "xlsx":
@@ -186,6 +194,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], parser_classes=[MultiPartParser, FormParser])
     def import_products(self, request):
+        """Import products from a CSV or XLSX file."""
         ser = ProductImportSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         file = ser.validated_data["file"]
@@ -358,6 +367,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     ordering_fields = ("created_at", "rating")
 
     def get_permissions(self):
+        """Allow public read; require auth for create; admin for approve/reject."""
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         if self.action in ("approve", "reject"):
@@ -367,6 +377,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        """Return reviews; restrict edits to author, public sees only approved."""
         qs = Review.objects.select_related("user", "product")
         user = self.request.user
 
@@ -383,10 +394,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
+        """Assign the review to the authenticated user."""
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
+        """Approve a review (staff only)."""
         review = self.get_object()
         review.status = Review.Status.APPROVED
         review.save(update_fields=["status"])
@@ -394,6 +407,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
+        """Reject a review (staff only)."""
         review = self.get_object()
         review.status = Review.Status.REJECTED
         review.save(update_fields=["status"])
@@ -408,9 +422,11 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "delete", "head", "options"]
 
     def get_queryset(self):
+        """Return wishlist items for the authenticated user."""
         return WishlistItem.objects.filter(user=self.request.user).select_related("product")
 
     def perform_create(self, serializer):
+        """Assign the wishlist item to the authenticated user."""
         serializer.save(user=self.request.user)
 
 
@@ -421,9 +437,11 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
     filterset_fields = ("product", "is_active")
 
     def get_queryset(self):
+        """Return all product variants with related product."""
         return ProductVariant.objects.select_related("product").all()
 
     def get_permissions(self):
+        """Allow public read; require admin for mutations."""
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
@@ -436,14 +454,17 @@ class ProductImageViewSet(viewsets.ModelViewSet):
     filterset_fields = ("product",)
 
     def get_queryset(self):
+        """Return all product images with related product."""
         return ProductImage.objects.select_related("product").all()
 
     def get_permissions(self):
+        """Allow public read; require admin for mutations."""
         if self.action in ("list", "retrieve"):
             return [IsAuthenticatedOrReadOnly()]
         return [IsAdminUser()]
 
     def get_parsers(self):
+        """Accept multipart form and JSON for image uploads."""
         from rest_framework.parsers import MultiPartParser, JSONParser
 
         return [MultiPartParser(), JSONParser()]

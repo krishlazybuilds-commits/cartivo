@@ -268,6 +268,8 @@ class OrderViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
+    """List/retrieve authenticated user's orders; staff can manage all orders."""
+
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
@@ -389,6 +391,7 @@ class OrderViewSet(
     )
     @action(detail=True, methods=["post"], url_path="pay")
     def pay(self, request, pk=None):
+        """Create a Stripe Checkout Session and return the redirect URL."""
         order = self.get_object()
         if order.status != Order.Status.PENDING:
             return Response(
@@ -474,6 +477,7 @@ class OrderViewSet(
     )
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):
+        """Cancel a pending order and restock its items."""
         # Ownership is enforced by get_queryset (filtered to request.user).
         order = self.get_object()
 
@@ -517,6 +521,7 @@ class OrderViewSet(
     )
     @action(detail=True, methods=["post"], url_path="refund-request")
     def refund_request(self, request, pk=None):
+        """Submit a refund request with a reason for a paid or delivered order."""
         order = self.get_object()
         if order.status not in (Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED):
             return Response(
@@ -599,6 +604,7 @@ class OrderViewSet(
         permission_classes=[permissions.IsAdminUser],
     )
     def process_refund(self, request, pk=None):
+        """Process a refund via Stripe and mark the order as refunded."""
         from decimal import Decimal, InvalidOperation
 
         order = self.get_object()
@@ -684,6 +690,7 @@ class OrderViewSet(
         permission_classes=[permissions.IsAdminUser],
     )
     def update_status(self, request, pk=None):
+        """Update order status with allowed transition validation."""
         order = self.get_object()
         new_status = request.data.get("status", "").lower()
 
@@ -741,6 +748,7 @@ class OrderViewSet(
         permission_classes=[permissions.IsAdminUser],
     )
     def update_tracking(self, request, pk=None):
+        """Set or update tracking number and carrier for a shipped order."""
         order = self.get_object()
         tracking_number = request.data.get("tracking_number", "").strip()
         if not tracking_number:
@@ -773,6 +781,7 @@ class OrderViewSet(
     )
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
     def invoice(self, request, pk=None):
+        """Generate and download a PDF invoice for a paid order."""
         order = self.get_object()
         if order.status == "pending":
             return Response(
@@ -891,6 +900,7 @@ class OrderViewSet(
     )
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAdminUser])
     def export(self, request):
+        """Export all orders as CSV or XLSX."""
         fmt = request.query_params.get("format", "csv")
         if fmt == "xlsx":
             return self._export_xlsx()

@@ -9,6 +9,8 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Read-only representation of the authenticated user's profile."""
+
     class Meta:
         model = User
         fields = (
@@ -58,6 +60,8 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """Validate and create a new user account."""
+
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
@@ -66,6 +70,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {"email": {"required": True}}
 
     def validate(self, attrs):
+        """Normalize email, reject disposable addresses, and run password validators."""
         email = attrs.get("email", "")
         if email:
             normalized = normalize_email(email)
@@ -90,19 +95,24 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        """Create a new user with the validated data."""
         return User.objects.create_user(**validated_data)
 
 
 class PasswordChangeSerializer(serializers.Serializer):
+    """Validate current and new passwords for password change."""
+
     current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=8)
 
     def validate_current_password(self, value):
+        """Verify the user's current password is correct."""
         if not self.context["request"].user.check_password(value):
             raise serializers.ValidationError("Current password is incorrect.")
         return value
 
     def validate_new_password(self, value):
+        """Enforce Django password validators on the new password."""
         # Enforce the same password validators used at registration/reset.
         try:
             validate_password(value, user=self.context["request"].user)
@@ -112,6 +122,8 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 
 class AddressSerializer(serializers.ModelSerializer):
+    """CRUD serializer for the authenticated user's shipping addresses."""
+
     class Meta:
         from .models import Address
 

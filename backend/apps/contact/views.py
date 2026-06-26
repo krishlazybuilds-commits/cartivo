@@ -35,6 +35,8 @@ def _sanitize_name(raw: str) -> str:
 
 
 class ContactRateThrottle(AnonRateThrottle):
+    """Throttle contact form and newsletter requests per client IP."""
+
     scope = "contact"
 
 
@@ -64,6 +66,7 @@ class ContactRateThrottle(AnonRateThrottle):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def contact(request):
+    """Send a contact message to the site administrators."""
     enforce_csrf(request)
     name = _sanitize_name(request.data.get("name", ""))
     email = normalize_email(request.data.get("email", "").strip())
@@ -122,6 +125,7 @@ def contact(request):
 @permission_classes([AllowAny])
 @throttle_classes([ContactRateThrottle])
 def subscribe(request):
+    """Subscribe an email address to the newsletter."""
     enforce_csrf(request)
     email = normalize_email(request.data.get("email", "").strip().lower())
     if not email:
