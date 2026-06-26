@@ -3612,7 +3612,7 @@ html[data-auth-intro="done"] .auth-intro {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 10000;
 }
 html[data-intro="play"] .landing-intro {
   display: block;
