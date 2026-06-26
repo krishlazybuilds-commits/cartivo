@@ -1,5 +1,4 @@
 from celery import shared_task
-from django.conf import settings
 from django.contrib.auth import get_user_model
 import logging
 

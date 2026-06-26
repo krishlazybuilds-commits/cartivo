@@ -5,7 +5,6 @@ from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -444,7 +443,10 @@ class GoogleLoginView(APIView):
 @extend_schema(
     tags=["auth"],
     summary="Obtain JWT cookies",
-    description="Validates credentials and sets httpOnly `access_token` and `refresh_token` cookies.",
+    description=(
+        "Validates credentials and sets httpOnly `access_token` and "
+        "`refresh_token` cookies."
+    ),
 )
 class LoginView(APIView):
 
@@ -681,7 +683,10 @@ class CSRFView(APIView):
 @extend_schema(
     tags=["auth"],
     summary="Request password reset email",
-    description="Sends a reset link to the given email if an account exists. Always returns 200 to avoid email enumeration.",
+    description=(
+        "Sends a reset link to the given email if an account exists. "
+        "Always returns 200 to avoid email enumeration."
+    ),
 )
 class PasswordResetRequestView(APIView):
     """Send a password reset link to the user's email."""

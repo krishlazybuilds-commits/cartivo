@@ -679,7 +679,8 @@ class StripeWebhookEdgeCaseTests(APITestCase):
             return self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
 
     def test_concurrent_duplicate_events_both_delivered(self):
-        """Two identical events arriving in separate requests: first succeeds, second is duplicate."""
+        """Two identical events arriving in separate requests: first succeeds, second is duplicate.
+        """
         order = self._pending_order()
         from apps.orders.models import OrderItem
 
@@ -1180,7 +1181,7 @@ class GuestCheckoutCouponTests(APITestCase):
         self.assertEqual(Order.objects.count(), 0)
 
     def test_guest_checkout_below_min_order(self):
-        coupon_high = Coupon.objects.create(
+        Coupon.objects.create(
             code="HIGHMIN",
             discount_type=Coupon.DiscountType.FLAT,
             value=Decimal("5"),
@@ -1206,7 +1207,7 @@ class GuestCheckoutCouponTests(APITestCase):
         self.assertEqual(Order.objects.count(), 0)
 
     def test_guest_checkout_flat_coupon_exceeds_subtotal(self):
-        flat_coupon = Coupon.objects.create(
+        Coupon.objects.create(
             code="BIGFLAT",
             discount_type=Coupon.DiscountType.FLAT,
             value=Decimal("999"),
@@ -1219,7 +1220,7 @@ class GuestCheckoutCouponTests(APITestCase):
 
     def test_guest_checkout_percent_coupon_rounding(self):
         """Percent discount requiring rounding (e.g. 7% of $50 = $3.50)."""
-        pct_coupon = Coupon.objects.create(
+        Coupon.objects.create(
             code="PCT7",
             discount_type=Coupon.DiscountType.PERCENT,
             value=Decimal("7"),

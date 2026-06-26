@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from apps.catalog.models import Product, ProductVariant
-
 from .models import Cart, CartItem
 
 
@@ -54,7 +52,10 @@ class CartItemSerializer(serializers.ModelSerializer):
             if quantity > variant.stock:
                 raise serializers.ValidationError(
                     {
-                        "detail": f"Only {variant.stock} unit(s) of '{product.name} — {variant.name}' in stock."
+                        "detail": (
+                            f"Only {variant.stock} unit(s) of "
+                            f"'{product.name} — {variant.name}' in stock."
+                        )
                     }
                 )
         elif product:

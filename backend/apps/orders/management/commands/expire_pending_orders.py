@@ -14,10 +14,8 @@ Run it on a schedule (cron / Task Scheduler / Celery beat), e.g. every 5 min:
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
-from apps.catalog.models import Product
 from apps.orders.models import Order
 
 DEFAULT_TIMEOUT_MINUTES = 30
@@ -31,7 +29,10 @@ class Command(BaseCommand):
             "--minutes",
             type=int,
             default=DEFAULT_TIMEOUT_MINUTES,
-            help=f"Age in minutes after which a pending order expires (default {DEFAULT_TIMEOUT_MINUTES}).",
+            help=(
+                f"Age in minutes after which a pending order expires "
+                f"(default {DEFAULT_TIMEOUT_MINUTES})."
+            ),
         )
         parser.add_argument(
             "--dry-run",

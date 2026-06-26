@@ -128,7 +128,9 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 )
                 if qty > wh_stock.stock:
                     raise CheckoutError(
-                        f"Insufficient stock for '{product.name} — {variant.name}' in {selected_warehouse.name}. "
+                        f"Insufficient stock for "
+                        f"'{product.name} — {variant.name}' "
+                        f"in {selected_warehouse.name}. "
                         f"Available: {wh_stock.stock}.",
                     )
             else:

@@ -41,7 +41,10 @@ class ContactRateThrottle(AnonRateThrottle):
 @extend_schema(
     tags=["contact"],
     summary="Send a contact message",
-    description="Sends a contact message to the site administrators. Rate-limited to 5/hour per IP.",
+    description=(
+        "Sends a contact message to the site administrators. "
+        "Rate-limited to 5/hour per IP."
+    ),
     request=inline_serializer(
         name="ContactRequest",
         fields={

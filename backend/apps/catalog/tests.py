@@ -370,7 +370,7 @@ class ReviewModerationTests(APITestCase):
             status=Review.Status.PENDING,
         )
         self.client.force_authenticate(self.admin)
-        res = self.client.get(f"/api/v1/reviews/?status=pending")
+        res = self.client.get("/api/v1/reviews/?status=pending")
         results = res.data["results"] if "results" in res.data else res.data
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["title"], "Pending")
@@ -509,7 +509,6 @@ class WarehouseTests(APITestCase):
         w1 = Warehouse.objects.create(name="W1", code="W1")
         w2 = Warehouse.objects.create(name="W2", code="W2")
         WarehouseStock.objects.create(warehouse=w1, product=self.product, stock=5)
-        central = Warehouse.objects.get(code="CENTRAL")
         WarehouseStock.objects.create(warehouse=w2, product=self.product, stock=10)
         self.client.force_authenticate(self.staff)
         res = self.client.get(f"/api/v1/warehouse-stocks/?warehouse={w1.id}")

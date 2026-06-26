@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task(**RETRY_KWARGS_LIGHT)
 def send_low_stock_alert_task(product_id, variant_id=None):
-    """Email all staff users when a product's or variant's stock drops to or below LOW_STOCK_THRESHOLD."""
+    """Email all staff when a product's or variant's stock drops to or below LOW_STOCK_THRESHOLD."""
     from .models import Product, ProductVariant
 
     threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 5)

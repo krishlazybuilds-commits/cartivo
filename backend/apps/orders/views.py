@@ -5,7 +5,6 @@ import logging
 import stripe
 from django.conf import settings
 from django.db import IntegrityError, models as django_models, transaction
-from django.db.models import F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
@@ -18,7 +17,6 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
 from apps.cart.models import Cart
-from apps.catalog.models import Product
 from apps.accounts.authentication import enforce_csrf
 from config.throttling import (
     OrderWriteThrottle,
@@ -325,7 +323,11 @@ class OrderViewSet(
         if not request.user.email_verified:
             return Response(
                 {
-                    "detail": "Please verify your email address before placing an order. Check your inbox for the verification link."
+                    "detail": (
+                        "Please verify your email address before "
+                        "placing an order. Check your inbox for "
+                        "the verification link."
+                    )
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -499,7 +501,10 @@ class OrderViewSet(
 
     @extend_schema(
         summary="Request a refund",
-        description="Customer submits a refund reason for a PAID or DELIVERED order. Notifies staff by email.",
+        description=(
+            "Customer submits a refund reason for a PAID or "
+            "DELIVERED order. Notifies staff by email."
+        ),
         request={
             "application/json": {
                 "type": "object",
@@ -565,14 +570,21 @@ class OrderViewSet(
 
     @extend_schema(
         summary="Process a refund (staff only)",
-        description="Allows staff to approve and process a refund directly through the Stripe API. Marks order REFUNDED and restocks items.",
+        description=(
+            "Allows staff to approve and process a refund directly "
+            "through the Stripe API. Marks order REFUNDED and "
+            "restocks items."
+        ),
         request={
             "application/json": {
                 "type": "object",
                 "properties": {
                     "amount": {
                         "type": "number",
-                        "description": "Optional partial refund amount. If omitted, a full refund is issued.",
+                        "description": (
+                            "Optional partial refund amount. "
+                            "If omitted, a full refund is issued."
+                        ),
                     }
                 },
             }
@@ -604,7 +616,11 @@ class OrderViewSet(
             except (ValueError, InvalidOperation):
                 return Response(
                     {
-                        "detail": f"Invalid refund amount. Must be a positive number up to the order total (${order.total})."
+                        "detail": (
+                            "Invalid refund amount. Must be a "
+                            "positive number up to the order "
+                            f"total (${order.total})."
+                        )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -646,7 +662,11 @@ class OrderViewSet(
 
     @extend_schema(
         summary="Update order status (staff only)",
-        description="Allows staff to advance an order through PAID → SHIPPED → DELIVERED, or cancel any non-refunded order.",
+        description=(
+            "Allows staff to advance an order through "
+            "PAID → SHIPPED → DELIVERED, or cancel any "
+            "non-refunded order."
+        ),
         request={
             "application/json": {
                 "type": "object",
@@ -732,7 +752,10 @@ class OrderViewSet(
         if carrier and carrier not in dict(Order.CARRIER_CHOICES):
             return Response(
                 {
-                    "detail": f"Invalid carrier. Choose from: {', '.join(dict(Order.CARRIER_CHOICES).keys())}."
+                    "detail": (
+                        "Invalid carrier. Choose from: "
+                        f"{', '.join(dict(Order.CARRIER_CHOICES).keys())}."
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

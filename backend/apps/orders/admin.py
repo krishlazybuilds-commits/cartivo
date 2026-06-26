@@ -34,7 +34,8 @@ class OrderAdmin(admin.ModelAdmin):
             ):
                 self.message_user(
                     request,
-                    f"Order {order.order_number_short} cannot be refunded because its status is {order.status}.",
+                    f"Order {order.order_number_short} cannot be refunded "
+                    f"because its status is {order.status}.",
                     level=messages.ERROR,
                 )
                 continue
@@ -45,7 +46,9 @@ class OrderAdmin(admin.ModelAdmin):
                 except stripe.error.StripeError as exc:
                     self.message_user(
                         request,
-                        f"Stripe refund failed for Order {order.order_number_short}: {exc.user_message or str(exc)}",
+                        f"Stripe refund failed for Order "
+                        f"{order.order_number_short}: "
+                        f"{exc.user_message or str(exc)}",
                         level=messages.ERROR,
                     )
                     continue

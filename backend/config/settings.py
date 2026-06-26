@@ -431,7 +431,8 @@ if not DEBUG:
         # Validate CORS_ALLOWED_ORIGINS in production to prevent unauthorized cross-origin requests
         if not CORS_ALLOWED_ORIGINS:
             raise ImproperlyConfigured(
-                "CORS_ALLOWED_ORIGINS must be set when DEBUG is False to allow cross-origin requests securely."
+                "CORS_ALLOWED_ORIGINS must be set when DEBUG is False "
+                "to allow cross-origin requests securely."
             )
         for origin in CORS_ALLOWED_ORIGINS:
             if "*" in origin:
