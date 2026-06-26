@@ -19,7 +19,7 @@ export default function PasswordInput({ value, onChange, autoComplete, required,
   return (
     <div className="auth-password-wrap">
       <input type={show ? "text" : "password"} value={value} onChange={onChange} autoComplete={autoComplete} required={required} minLength={minLength} />
-      <button type="button" className="auth-password-toggle" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"}>
+      <button type="button" className="auth-password-toggle" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide entered text" : "Show entered text"}>
         <EyeIcon open={show} />
       </button>
     </div>

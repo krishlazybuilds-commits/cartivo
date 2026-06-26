@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  trailingSlash: true,
   allowedDevOrigins: ["http://192.168.0.224:3000"],
   images: {
     remotePatterns: [
@@ -17,6 +18,10 @@ const nextConfig = {
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
     return [
+      {
+        source: "/api/v1/:path+/",
+        destination: `${apiUrl}/:path+/`,
+      },
       {
         source: "/api/v1/:path*",
         destination: `${apiUrl}/:path*`,

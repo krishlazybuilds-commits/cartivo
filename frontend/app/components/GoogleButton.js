@@ -20,27 +20,36 @@ import { useAuth, ensureCsrfToken } from "../lib/auth";
 const GIS_SRC = "https://accounts.google.com/gsi/client";
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
+let gisLoadingPromise = null;
+
 /** Load the GIS client script once and resolve when google.accounts.id exists. */
 function loadGis() {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") return reject(new Error("no window"));
-    if (window.google?.accounts?.id) return resolve();
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  if (window.google?.accounts?.id) return Promise.resolve();
+  if (gisLoadingPromise) return gisLoadingPromise;
 
+  gisLoadingPromise = new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[src="${GIS_SRC}"]`);
     if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("GIS load failed")));
-      return;
+      existing.remove(); // Force recreation of failed script to trigger load events cleanly
     }
 
     const script = document.createElement("script");
     script.src = GIS_SRC;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("GIS load failed"));
+    script.onload = () => {
+      resolve();
+    };
+    script.onerror = () => {
+      gisLoadingPromise = null; // allow retry on next call
+      script.remove();
+      reject(new Error("GIS load failed"));
+    };
     document.head.appendChild(script);
   });
+
+  return gisLoadingPromise;
 }
 
 export default function GoogleButton({ action = "Sign in", next = "/products" }) {
@@ -77,6 +86,12 @@ export default function GoogleButton({ action = "Sign in", next = "/products" })
         window.google.accounts.id.initialize({
           client_id: CLIENT_ID,
           callback: handleCredential,
+          error_callback: (error) => {
+            if (!cancelled) {
+              const reason = typeof error === "string" ? error : error?.type || "unknown";
+              toast(`Google sign-in error: ${reason}. Check authorized origins in Google Cloud Console.`, "error");
+            }
+          },
         });
         // Clear any prior render (e.g. on hot reload) before rendering again.
         containerRef.current.innerHTML = "";
