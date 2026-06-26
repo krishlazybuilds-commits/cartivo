@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/warehouses", label: "Warehouses" },
+  { href: "/admin/ai-studio", label: "AI Studio" },
 ];
 
 export default function AdminTabs() {

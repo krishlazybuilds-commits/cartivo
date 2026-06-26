@@ -33,6 +33,7 @@ urlpatterns += [
     path("api/v1/", include("apps.cart.urls")),
     path("api/v1/", include("apps.orders.urls")),
     path("api/v1/", include("apps.contact.urls")),
+    path("api/v1/", include("apps.ai_studio.urls")),
 ]
 
 if settings.DEBUG:

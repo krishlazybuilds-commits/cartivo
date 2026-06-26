@@ -117,6 +117,7 @@ LOCAL_APPS = [
     "apps.cart",
     "apps.orders",
     "apps.contact",
+    "apps.ai_studio",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -578,6 +579,9 @@ AUTH_VIDEO_PATH = os.getenv(
     "AUTH_VIDEO_PATH",
     "static/videos/space-loop.mp4",
 )
+
+# --- AI Studio (Google Gemini) -----------------------------------------------
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # --- Email -------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv(
