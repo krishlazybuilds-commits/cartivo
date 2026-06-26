@@ -14,19 +14,25 @@ const TABS = [
 ];
 
 export default function AdminTabs() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
+  const normalizedPath = pathname.replace(/\/$/, "");
+
   return (
     <nav className="admin-tabs" aria-label="Admin sections">
-      {TABS.map((t) => (
-        <Link
-          key={t.href}
-          href={t.href}
-          className={`admin-tab${pathname === t.href ? " active" : ""}`}
-          aria-current={pathname === t.href ? "page" : undefined}
-        >
-          {t.label}
-        </Link>
-      ))}
+      {TABS.map((t) => {
+        const tabPath = t.href.replace(/\/$/, "");
+        const isActive = normalizedPath === tabPath;
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`admin-tab${isActive ? " active" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {t.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

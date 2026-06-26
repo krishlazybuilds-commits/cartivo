@@ -3209,24 +3209,33 @@ body::after {
 /* --- Admin: tabs ----------------------------------------------------------- */
 .admin-tabs {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--line, #e2e8f0);
-  margin-bottom: 1.75rem;
+  gap: 0.4rem;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  align-items: center;
 }
 .admin-tab {
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1.1rem;
   text-decoration: none;
-  color: var(--slate, #475569);
+  color: var(--slate);
   font-weight: 600;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  transition: all 0.18s ease;
+  white-space: nowrap;
 }
 .admin-tab:hover {
-  color: var(--accent, #4f46e5);
+  background: rgba(20, 33, 61, 0.04);
+  color: var(--ink);
 }
 .admin-tab.active {
-  color: var(--accent, #4f46e5);
-  border-bottom-color: var(--accent, #4f46e5);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(20, 33, 61, 0.12);
 }
 
 /* --- Admin: panels --------------------------------------------------------- */
@@ -3348,19 +3357,97 @@ body::after {
 }
 .admin-table-wrap {
   overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(20, 33, 61, 0.02);
+  margin-bottom: 1.5rem;
 }
 .admin-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
-.admin-table th,
+.admin-table th {
+  background: var(--soft);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
 .admin-table td {
-  padding: 0.6rem;
-  text-align: left;
+  padding: 0.95rem 1.1rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
 }
 .admin-table tbody tr {
-  border-top: 1px solid var(--line, #e2e8f0);
+  transition: background-color 0.15s ease;
 }
+.admin-table tbody tr:hover {
+  background-color: rgba(252, 163, 17, 0.025);
+}
+
+/* --- Admin Stats & Cards Redesign --- */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+.admin-stat-card {
+  background: #fff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 18px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(20, 33, 61, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+.admin-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.admin-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(20, 33, 61, 0.08);
+  border-color: rgba(252, 163, 17, 0.25);
+}
+.admin-stat-card:hover::before {
+  opacity: 1;
+}
+.admin-stat-val {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.admin-stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
 .admin-sku {
   font-size: 0.8em;
   opacity: 0.65;
@@ -3445,8 +3532,34 @@ body::after {
 .wishlist-card-actions .btn,
 .admin-inline-form .btn,
 .pagination .btn {
-  padding: 0.45rem 0.9rem;
-  font-size: 0.8rem;
+}
+
+/* --- Admin: filter pills for sub-page categorization ---------------------- */
+.admin-filter-pills {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.admin-filter-pill {
+  padding: 0.45rem 1rem;
+  border-radius: 99px;
+  background: var(--soft);
+  color: var(--slate);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.admin-filter-pill:hover {
+  background: rgba(20, 33, 61, 0.05);
+  color: var(--ink);
+}
+.admin-filter-pill.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
 }
 
 /* --- AI Studio ----------------------------------------------------------- */

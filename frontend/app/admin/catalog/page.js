@@ -448,15 +448,16 @@ export default function AdminCatalogPage() {
             <div className="admin-panel">
               <div className="admin-panel-head">
                 <h3>Products</h3>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                  <input
-                    type="search"
-                    placeholder="Search by name or SKU"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    aria-label="Search products"
-                    style={{ minWidth: 200 }}
-                  />
+                <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="admin-search" style={{ margin: 0, maxWidth: "240px" }}>
+                    <input
+                      type="search"
+                      placeholder="Search name or SKU"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      aria-label="Search products"
+                    />
+                  </div>
                   <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy}>
                     {exportBusy ? "Exporting…" : "Export CSV"}
                   </button>
@@ -540,7 +541,7 @@ export default function AdminCatalogPage() {
                                   return { ...prev, [p.id]: val };
                                 });
                               }}
-                              style={{ width: 70, padding: "0.2rem 0.4rem", fontSize: "0.88rem" }}
+                              style={{ width: "70px", padding: "0.3rem 0.5rem", borderRadius: "8px", border: "1px solid var(--line)", textAlign: "center", font: "inherit", background: "var(--bg)" }}
                             />
                           </td>
                           <td>
@@ -579,28 +580,40 @@ export default function AdminCatalogPage() {
 
               {/* Inline variants panel */}
               {variantProduct && (
-                <div className="order-card" style={{ marginTop: "1.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <div className="admin-panel" style={{ marginTop: "1.5rem" }}>
+                  <div className="admin-panel-head">
                     <h4 style={{ margin: 0 }}>Variants — {variantProduct.name}</h4>
                     <button className="btn btn-ghost" type="button" onClick={openNewVariant}>+ Add variant</button>
                   </div>
 
                   {variantForm && (
-                    <form onSubmit={saveVariant} style={{ display: "grid", gap: "0.75rem", marginBottom: "1.5rem", padding: "1rem", background: "var(--surface, #f9f9f9)", borderRadius: 8 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                        <label>Name<input value={vf.name} onChange={e => setVf(p => ({...p, name: e.target.value}))} required placeholder="Large / Red" /></label>
-                        <label>SKU<input value={vf.sku} onChange={e => setVf(p => ({...p, sku: e.target.value}))} required /></label>
+                    <form onSubmit={saveVariant} className="admin-form" style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "var(--soft)", borderRadius: 12, border: "1px solid var(--line)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <label>
+                          Name
+                          <input value={vf.name} onChange={e => setVf(p => ({...p, name: e.target.value}))} required placeholder="Large / Red" />
+                        </label>
+                        <label>
+                          SKU
+                          <input value={vf.sku} onChange={e => setVf(p => ({...p, sku: e.target.value}))} required />
+                        </label>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                        <label>Price override <span style={{opacity:.5, fontSize:".8em"}}>(blank = base price)</span><input type="number" min="0" step="0.01" value={vf.price} onChange={e => setVf(p => ({...p, price: e.target.value}))} /></label>
-                        <label>Stock<input type="number" min="0" value={vf.stock} onChange={e => setVf(p => ({...p, stock: e.target.value}))} required /></label>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <label>
+                          Price override <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: "normal" }}>(blank = base price)</span>
+                          <input type="number" min="0" step="0.01" value={vf.price} onChange={e => setVf(p => ({...p, price: e.target.value}))} />
+                        </label>
+                        <label>
+                          Stock
+                          <input type="number" min="0" value={vf.stock} onChange={e => setVf(p => ({...p, stock: e.target.value}))} required />
+                        </label>
                       </div>
-                      <label style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                      <label className="admin-checkbox">
                         <input type="checkbox" checked={vf.is_active} onChange={e => setVf(p => ({...p, is_active: e.target.checked}))} /> Active
                       </label>
-                      <div style={{ display: "flex", gap: ".75rem" }}>
-                        <button className="btn btn-primary" type="submit" disabled={vsaving}>{vsaving ? "Saving…" : "Save"}</button>
+                      <div className="admin-form-actions">
                         <button className="btn btn-ghost" type="button" onClick={() => setVariantForm(null)}>Cancel</button>
+                        <button className="btn btn-primary" type="submit" disabled={vsaving}>{vsaving ? "Saving…" : "Save"}</button>
                       </div>
                     </form>
                   )}
@@ -608,53 +621,59 @@ export default function AdminCatalogPage() {
                   {variants.length === 0 ? (
                     <p style={{ opacity: .6, fontSize: ".88rem" }}>No variants yet.</p>
                   ) : (
-                    <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: "left", padding: ".4rem .6rem" }}>Name</th>
-                          <th style={{ textAlign: "left", padding: ".4rem .6rem" }}>SKU</th>
-                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Price</th>
-                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Stock</th>
-                          <th style={{ textAlign: "right", padding: ".4rem .6rem" }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {variants.map((v) => (
-                          <tr key={v.id} style={{ borderTop: "1px solid var(--border, #e5e7eb)", opacity: v.is_active ? 1 : .5 }}>
-                            <td style={{ padding: ".4rem .6rem" }}>{v.name}</td>
-                            <td style={{ padding: ".4rem .6rem", fontFamily: "monospace" }}>{v.sku}</td>
-                            <td style={{ padding: ".4rem .6rem", textAlign: "right" }}>{v.price ? `$${Number(v.price).toFixed(2)}` : "—"}</td>
-                            <td style={{ padding: ".4rem .6rem", textAlign: "right" }}>{v.stock}</td>
-                            <td style={{ padding: ".4rem .6rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                              <button className="btn btn-ghost" type="button" onClick={() => openEditVariant(v)}>Edit</button>{" "}
-                              <button className="btn btn-danger" type="button" onClick={() => setVToDelete(v)}>Delete</button>
-                            </td>
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>SKU</th>
+                            <th style={{ textAlign: "right" }}>Price</th>
+                            <th style={{ textAlign: "right" }}>Stock</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {variants.map((v) => (
+                            <tr key={v.id} style={{ opacity: v.is_active ? 1 : .5 }}>
+                              <td>{v.name}</td>
+                              <td><code style={{ fontSize: "0.85em" }}>{v.sku}</code></td>
+                              <td style={{ textAlign: "right" }}>{v.price ? `$${Number(v.price).toFixed(2)}` : "—"}</td>
+                              <td style={{ textAlign: "right" }}>{v.stock}</td>
+                              <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                                <button className="btn btn-ghost" type="button" onClick={() => openEditVariant(v)}>Edit</button>{" "}
+                                <button className="btn btn-danger" type="button" onClick={() => setVToDelete(v)}>Delete</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               )}
 
               {/* Inline images panel */}
               {imageProduct && (
-                <div className="order-card" style={{ marginTop: "1.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <div className="admin-panel" style={{ marginTop: "1.5rem" }}>
+                  <div className="admin-panel-head">
                     <h4 style={{ margin: 0 }}>Gallery images — {imageProduct.name}</h4>
                   </div>
-                  <form onSubmit={uploadImage} style={{ display: "flex", gap: ".75rem", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "1.25rem" }}>
-                    <label style={{ flex: 1, minWidth: 160 }}>
-                      Image file
-                      <input type="file" accept="image/jpeg,image/png,image/webp" required onChange={e => setImgFile(e.target.files?.[0] ?? null)} style={{ marginTop: ".3rem" }} />
-                    </label>
-                    <label style={{ flex: 1, minWidth: 140 }}>
-                      Alt text <span style={{ opacity: .5, fontSize: ".8em" }}>(optional)</span>
-                      <input value={imgAlt} onChange={e => setImgAlt(e.target.value)} placeholder="Descriptive text" style={{ marginTop: ".3rem" }} />
-                    </label>
-                    <button className="btn btn-primary" type="submit" disabled={imgSaving || !imgFile}>
-                      {imgSaving ? "Uploading…" : "Upload"}
-                    </button>
+                  <form onSubmit={uploadImage} className="admin-form" style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "var(--soft)", borderRadius: 12, border: "1px solid var(--line)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", alignItems: "flex-end" }}>
+                      <label>
+                        Image file
+                        <input type="file" accept="image/jpeg,image/png,image/webp" required onChange={e => setImgFile(e.target.files?.[0] ?? null)} />
+                      </label>
+                      <label>
+                        Alt text <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: "normal" }}>(optional)</span>
+                        <input value={imgAlt} onChange={e => setImgAlt(e.target.value)} placeholder="Descriptive text" />
+                      </label>
+                    </div>
+                    <div className="admin-form-actions">
+                      <button className="btn btn-primary" type="submit" disabled={imgSaving || !imgFile}>
+                        {imgSaving ? "Uploading…" : "Upload"}
+                      </button>
+                    </div>
                   </form>
                   {galleryImages.length === 0 ? (
                     <p style={{ opacity: .6, fontSize: ".88rem" }}>No gallery images yet.</p>

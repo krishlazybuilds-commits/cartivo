@@ -145,16 +145,16 @@ export default function AdminCouponsPage() {
 
           {/* Form panel */}
           {editing && (
-            <div className="order-card" style={{ marginBottom: "2rem", maxWidth: 560 }}>
-              <h3 style={{ marginBottom: "1rem" }}>{editing === "new" ? "New coupon" : `Edit ${editing.code}`}</h3>
-              <form onSubmit={handleSave} style={{ display: "grid", gap: "0.9rem" }}>
+            <div className="admin-panel" style={{ marginBottom: "2rem", maxWidth: 560 }}>
+              <h3 style={{ marginBottom: "1.25rem" }}>{editing === "new" ? "New coupon" : `Edit ${editing.code}`}</h3>
+              <form onSubmit={handleSave} className="admin-form">
                 <label>
                   Code
                   <input value={form.code} onChange={up("code")} required placeholder="SUMMER20" style={{ textTransform: "uppercase" }} />
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="admin-form-row">
                   <label>
-                    Type
+                    Discount Type
                     <select value={form.discount_type} onChange={up("discount_type")}>
                       <option value="percent">Percentage</option>
                       <option value="flat">Flat amount ($)</option>
@@ -165,34 +165,34 @@ export default function AdminCouponsPage() {
                     <input type="number" min="0.01" step="0.01" value={form.value} onChange={up("value")} required />
                   </label>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="admin-form-row">
                   <label>
                     Min order ($)
                     <input type="number" min="0" step="0.01" value={form.min_order_amount} onChange={up("min_order_amount")} />
                   </label>
                   <label>
-                    Max uses <span style={{ opacity: 0.5, fontSize: "0.8em" }}>(0 = unlimited)</span>
+                    Max uses <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: "normal" }}>(0 = unlimited)</span>
                     <input type="number" min="0" value={form.max_uses} onChange={up("max_uses")} />
                   </label>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="admin-form-row">
                   <label>
                     Valid from
                     <input type="datetime-local" value={form.valid_from} onChange={up("valid_from")} />
                   </label>
                   <label>
-                    Valid until <span style={{ opacity: 0.5, fontSize: "0.8em" }}>(optional)</span>
+                    Valid until <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: "normal" }}>(optional)</span>
                     <input type="datetime-local" value={form.valid_until} onChange={up("valid_until")} />
                   </label>
                 </div>
-                <label style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem", display: "flex" }}>
+                <label className="admin-checkbox">
                   <input type="checkbox" checked={form.is_active} onChange={up("is_active")} />
                   Active
                 </label>
                 {formErr && <p className="auth-error">{formErr}</p>}
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+                <div className="admin-form-actions">
                   <button className="btn btn-ghost" type="button" onClick={() => setEditing(null)}>Cancel</button>
+                  <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
                 </div>
               </form>
             </div>

@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
             <AdminTabs />
 
             {stats ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+              <div className="admin-stats-grid">
                 {[
                   { label: "All-time revenue", value: `$${Number(stats?.all_time?.revenue ?? 0).toFixed(2)}` },
                   { label: "All-time orders", value: stats?.all_time?.orders ?? 0 },
@@ -153,9 +153,9 @@ export default function AdminUsersPage() {
                   { label: "Shipped", value: stats?.by_status?.shipped ?? 0 },
                   { label: "Delivered", value: stats?.by_status?.delivered ?? 0 },
                 ].map(({ label, value }) => (
-                  <div key={label} className="order-card" style={{ textAlign: "center", padding: "1rem" }}>
-                    <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{value}</div>
-                    <div style={{ fontSize: "0.78rem", opacity: 0.6, marginTop: "0.25rem" }}>{label}</div>
+                  <div key={label} className="admin-stat-card">
+                    <div className="admin-stat-val">{value}</div>
+                    <div className="admin-stat-label">{label}</div>
                   </div>
                 ))}
               </div>
@@ -163,29 +163,33 @@ export default function AdminUsersPage() {
               <AdminStatsSkeleton count={8} />
             )}
             {stats?.top_products?.length > 0 && (
-              <div className="order-card" style={{ marginBottom: "2rem" }}>
-                <h3 style={{ marginBottom: "0.75rem", fontSize: "0.95rem" }}>Top products by units sold</h3>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", padding: "0.4rem 0.6rem" }}>Product</th>
-                      <th style={{ textAlign: "right", padding: "0.4rem 0.6rem" }}>Units</th>
-                      <th style={{ textAlign: "right", padding: "0.4rem 0.6rem" }}>Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.top_products.map((p) => (
-                      <tr key={p.variant__name ? `${p.product__name}-${p.variant__name}` : p.product__name} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
-                        <td style={{ padding: "0.4rem 0.6rem" }}>
-                          {p.product__name}
-                          {p.variant__name ? ` (${p.variant__name})` : ""}
-                        </td>
-                        <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>{p.units}</td>
-                        <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>${Number(p.revenue).toFixed(2)}</td>
+              <div className="admin-panel">
+                <div className="admin-panel-head">
+                  <h3>Top products by units sold</h3>
+                </div>
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th style={{ textAlign: "right" }}>Units</th>
+                        <th style={{ textAlign: "right" }}>Revenue</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {stats.top_products.map((p) => (
+                        <tr key={p.variant__name ? `${p.product__name}-${p.variant__name}` : p.product__name}>
+                          <td>
+                            {p.product__name}
+                            {p.variant__name ? ` (${p.variant__name})` : ""}
+                          </td>
+                          <td style={{ textAlign: "right" }}>{p.units}</td>
+                          <td style={{ textAlign: "right" }}>${Number(p.revenue).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -212,15 +216,15 @@ export default function AdminUsersPage() {
                 <p>No users found.</p>
               </div>
             ) : (
-              <div className="admin-table-wrap" style={{ overflowX: "auto" }}>
-                <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>User</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Email</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Joined</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Status</th>
-                      <th style={{ textAlign: "right", padding: "0.6rem" }}>Controls</th>
+                      <th>User</th>
+                      <th>Email</th>
+                      <th>Joined</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Controls</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -231,15 +235,15 @@ export default function AdminUsersPage() {
                       const disabled = busy || isSelf || lockedSuper;
                       const fullName = [u.first_name, u.last_name].filter(Boolean).join(" ");
                       return (
-                        <tr key={u.id} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
-                          <td style={{ padding: "0.6rem" }}>
+                        <tr key={u.id}>
+                          <td>
                             <strong>{u.username}</strong>
                             {fullName && <div style={{ fontSize: "0.85em", opacity: 0.7 }}>{fullName}</div>}
                             {isSelf && <span style={{ fontSize: "0.8em", opacity: 0.6 }}> (you)</span>}
                           </td>
-                          <td style={{ padding: "0.6rem" }}>{u.email || "—"}</td>
-                          <td style={{ padding: "0.6rem" }}>{formatDate(u.date_joined)}</td>
-                          <td style={{ padding: "0.6rem" }}>
+                          <td>{u.email || "—"}</td>
+                          <td>{formatDate(u.date_joined)}</td>
+                          <td>
                             <span className={u.is_active ? "product-stock" : "product-stock out"}>
                               {u.is_active ? "Active" : "Inactive"}
                             </span>
@@ -249,7 +253,7 @@ export default function AdminUsersPage() {
                               <span style={{ marginLeft: 6 }}>· Admin</span>
                             ) : null}
                           </td>
-                          <td style={{ padding: "0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                             <button
                               type="button"
                               className="btn btn-ghost"

@@ -150,16 +150,21 @@ export default function AdminAiStudioPage() {
 
   return (
     <>
-      <AdminTabs />
+      <main>
+        <section className="features">
+          <div className="container">
+            <Reveal>
+              <div className="section-head">
+                <span className="eyebrow">Admin</span>
+                <h2>AI Studio</h2>
+                <p>Generate images and videos with Google Gemini AI.</p>
+              </div>
+            </Reveal>
 
-      <Reveal>
-        <div className="admin-panel">
-          <div className="admin-panel-head">
-            <h1>AI Studio</h1>
-            <p className="admin-sub">
-              Generate images and videos with Google Gemini AI
-            </p>
-          </div>
+            <AdminTabs />
+
+            <Reveal>
+              <div className="admin-panel">
 
           {/* ─── Generation Form ─── */}
           <form className="ai-studio-form" onSubmit={handleGenerate}>
@@ -312,9 +317,11 @@ export default function AdminAiStudioPage() {
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          </Reveal>
         </div>
-      </Reveal>
+      </section>
+    </main>
 
       {/* ─── Detail Modal ─── */}
       {detailItem && (

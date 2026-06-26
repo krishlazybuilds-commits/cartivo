@@ -166,40 +166,49 @@ export default function AdminOrdersPage() {
 
           <AdminTabs />
 
-          <div className="admin-search" style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-            <input
-              type="search"
-              placeholder="Search by order number or customer"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search orders"
-              style={{ flex: 1, minWidth: 200 }}
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              aria-label="Filter by status"
-            >
-              <option value="">All statuses</option>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem", cursor: "pointer", userSelect: "none", height: "38px" }}>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1.5rem", width: "100%" }}>
+            <div className="admin-search" style={{ margin: 0, flex: "1 1 280px", maxWidth: "400px" }}>
               <input
-                type="checkbox"
-                checked={refundFilter}
-                onChange={(e) => { setRefundFilter(e.target.checked); setPage(1); }}
-                style={{ width: "auto", margin: 0 }}
+                type="search"
+                placeholder="Search order number or customer"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search orders"
               />
-              Refund requests only
-            </label>
-            <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy} style={{ marginLeft: "auto" }}>
-              {exportBusy ? "Exporting…" : "Export CSV"}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => handleExport("xlsx")} disabled={exportBusy}>
-              {exportBusy ? "Exporting…" : "Export Excel"}
-            </button>
+            </div>
+            
+            <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                aria-label="Filter by status"
+                style={{ padding: "0.6rem 1rem", border: "1px solid var(--line)", borderRadius: "10px", background: "var(--bg)", font: "inherit", fontSize: "0.9rem" }}
+              >
+                <option value="">All statuses</option>
+                {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem", cursor: "pointer", userSelect: "none", height: "38px" }}>
+                <input
+                  type="checkbox"
+                  checked={refundFilter}
+                  onChange={(e) => { setRefundFilter(e.target.checked); setPage(1); }}
+                  style={{ width: "auto", margin: 0 }}
+                />
+                Refund requests only
+              </label>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
+              <button type="button" className="btn btn-ghost" onClick={() => handleExport("csv")} disabled={exportBusy}>
+                {exportBusy ? "Exporting…" : "Export CSV"}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => handleExport("xlsx")} disabled={exportBusy}>
+                {exportBusy ? "Exporting…" : "Export Excel"}
+              </button>
+            </div>
           </div>
 
           {error && <p className="auth-error" role="alert">{error}</p>}
@@ -281,19 +290,19 @@ export default function AdminOrdersPage() {
                               </button>
                             ))}
                             {["paid", "shipped"].includes(o.status) && (
-                              <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.3rem", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                              <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                                 <input
                                   type="text"
                                   placeholder="Tracking #"
                                   value={trackingInputs[o.id]?.tracking_number ?? o.tracking_number ?? ""}
                                   onChange={(e) => setTrackingInputs((prev) => ({ ...prev, [o.id]: { ...prev[o.id], tracking_number: e.target.value } }))}
-                                  style={{ width: 130, fontSize: "0.8rem", padding: "0.25rem 0.4rem" }}
+                                  style={{ width: 120, fontSize: "0.8rem", padding: "0.3rem 0.5rem", borderRadius: "8px", border: "1px solid var(--line)", background: "var(--bg)", font: "inherit" }}
                                   disabled={busy}
                                 />
                                 <select
                                   value={trackingInputs[o.id]?.carrier ?? o.carrier ?? ""}
                                   onChange={(e) => setTrackingInputs((prev) => ({ ...prev, [o.id]: { ...prev[o.id], carrier: e.target.value } }))}
-                                  style={{ fontSize: "0.8rem", padding: "0.25rem 0.4rem", width: 90 }}
+                                  style={{ fontSize: "0.8rem", padding: "0.3rem 0.5rem", width: 95, borderRadius: "8px", border: "1px solid var(--line)", background: "var(--bg)", font: "inherit" }}
                                   disabled={busy}
                                 >
                                   {CARRIER_OPTIONS.map((c) => (
@@ -303,7 +312,7 @@ export default function AdminOrdersPage() {
                                 <button
                                   type="button"
                                   className="btn btn-ghost"
-                                  style={{ fontSize: "0.78rem", padding: "0.25rem 0.5rem" }}
+                                  style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
                                   disabled={busy || !(trackingInputs[o.id]?.tracking_number ?? o.tracking_number ?? "")}
                                   onClick={() => updateTracking(o.id)}
                                 >

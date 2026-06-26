@@ -161,12 +161,11 @@ export default function AdminWarehousesPage() {
 
           {/* ─── Warehouse CRUD ─── */}
           <div className="admin-content">
-            <h3 style={{ marginBottom: "1rem" }}>
-              {editId ? "Edit warehouse" : "Warehouses"}
+            <h3 style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Warehouses</span>
               {!showForm && (
                 <button
                   className="btn btn-primary" type="button"
-                  style={{ float: "right", fontSize: "0.85em", padding: "0.3rem 0.7rem" }}
                   onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_WAREHOUSE); }}
                 >
                   + New warehouse
@@ -175,30 +174,35 @@ export default function AdminWarehousesPage() {
             </h3>
 
             {showForm && (
-              <form onSubmit={handleSave} style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-                <div>
-                  <label htmlFor="wh-name" style={{ display: "block", fontSize: "0.78em", marginBottom: "0.2rem" }}>Name</label>
-                  <input id="wh-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" style={{ padding: "0.35rem 0.6rem" }} />
+              <div className="admin-modal-backdrop" role="dialog" aria-modal="true" aria-label={editId ? "Edit warehouse" : "New warehouse"}>
+                <div className="admin-modal">
+                  <h3 style={{ marginBottom: "1.25rem" }}>{editId ? "Edit warehouse" : "New warehouse"}</h3>
+                  <form onSubmit={handleSave} className="admin-form">
+                    <label>
+                      Name
+                      <input id="wh-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                    </label>
+                    <label>
+                      Code
+                      <input id="wh-code" type="text" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+                    </label>
+                    <label>
+                      Address
+                      <input id="wh-address" type="text" value={form.address || ""} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                    </label>
+                    <label className="admin-checkbox">
+                      <input id="wh-active" type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+                      Active
+                    </label>
+                    <div className="admin-form-actions">
+                      <button className="btn btn-ghost" type="button" onClick={handleCancel}>Cancel</button>
+                      <button className="btn btn-primary" type="submit">
+                        {editId ? "Save" : "Create"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <div>
-                  <label htmlFor="wh-code" style={{ display: "block", fontSize: "0.78em", marginBottom: "0.2rem" }}>Code</label>
-                  <input id="wh-code" type="text" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="input" style={{ padding: "0.35rem 0.6rem" }} />
-                </div>
-                <div>
-                  <label htmlFor="wh-address" style={{ display: "block", fontSize: "0.78em", marginBottom: "0.2rem" }}>Address</label>
-                  <input id="wh-address" type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="input" style={{ padding: "0.35rem 0.6rem" }} />
-                </div>
-                <div>
-                  <label htmlFor="wh-active" style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.85em", cursor: "pointer" }}>
-                    <input id="wh-active" type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
-                    Active
-                  </label>
-                </div>
-                <button className="btn btn-primary" type="submit" style={{ fontSize: "0.85em", padding: "0.35rem 0.8rem" }}>
-                  {editId ? "Save" : "Create"}
-                </button>
-                <button className="btn" type="button" style={{ fontSize: "0.85em", padding: "0.35rem 0.8rem" }} onClick={handleCancel}>Cancel</button>
-              </form>
+              </div>
             )}
 
             {loading ? (
@@ -249,12 +253,12 @@ export default function AdminWarehousesPage() {
           <div className="admin-content">
             <h3 style={{ marginBottom: "1rem" }}>Stock levels</h3>
 
-            <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <label style={{ fontSize: "0.85em" }}>Warehouse:</label>
+            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <label style={{ fontSize: "0.88rem", fontWeight: 600 }}>Filter by Warehouse:</label>
               <select
-                className="input" value={stockFilter}
+                value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                style={{ padding: "0.3rem 0.6rem", fontSize: "0.85em" }}
+                style={{ padding: "0.6rem 1rem", border: "1px solid var(--line)", borderRadius: "10px", background: "var(--bg)", font: "inherit", fontSize: "0.9rem", minWidth: "200px" }}
               >
                 <option value="">All warehouses</option>
                 {warehouses.map((w) => (
@@ -268,47 +272,46 @@ export default function AdminWarehousesPage() {
             ) : stocks.length === 0 ? (
               <p>No stock entries found.</p>
             ) : (
-              <div className="admin-table-wrap" style={{ overflowX: "auto" }}>
-                <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Warehouse</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Product</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Variant</th>
-                      <th style={{ textAlign: "center", padding: "0.6rem" }}>Stock</th>
-                      <th style={{ textAlign: "right", padding: "0.6rem" }}>Actions</th>
+                      <th>Warehouse</th>
+                      <th>Product</th>
+                      <th>Variant</th>
+                      <th style={{ textAlign: "center" }}>Stock</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stocks.map((s) => {
                       const warehouseName = warehouses.find((w) => w.id === s.warehouse)?.name || `#${s.warehouse}`;
                       return (
-                        <tr key={s.id} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
-                          <td style={{ padding: "0.6rem" }}>{warehouseName}</td>
-                          <td style={{ padding: "0.6rem", fontWeight: 500 }}>{s.product_name}</td>
-                          <td style={{ padding: "0.6rem", fontSize: "0.85em", opacity: 0.7 }}>{s.variant_name || "—"}</td>
-                          <td style={{ padding: "0.6rem", textAlign: "center" }}>
+                        <tr key={s.id}>
+                          <td>{warehouseName}</td>
+                          <td style={{ fontWeight: 500 }}>{s.product_name}</td>
+                          <td style={{ fontSize: "0.85em", opacity: 0.7 }}>{s.variant_name || "—"}</td>
+                          <td style={{ textAlign: "center" }}>
                             {editStockId === s.id ? (
                               <input
                                 type="number" min="0"
                                 value={editStockValue}
                                 onChange={(e) => setEditStockValue(e.target.value)}
-                                className="input"
-                                style={{ width: 70, padding: "0.2rem 0.4rem", textAlign: "center" }}
+                                style={{ width: "70px", padding: "0.3rem 0.5rem", borderRadius: "8px", border: "1px solid var(--line)", textAlign: "center", font: "inherit", background: "var(--bg)" }}
                                 autoFocus
                               />
                             ) : (
                               <span style={{ fontWeight: 600 }}>{s.stock}</span>
                             )}
                           </td>
-                          <td style={{ padding: "0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                             {editStockId === s.id ? (
                               <>
-                                <button className="btn btn-primary" type="button" style={{ fontSize: "0.85em", padding: "0.25rem 0.6rem" }} onClick={() => handleStockUpdate(s)}>Save</button>{" "}
-                                <button className="btn" type="button" style={{ fontSize: "0.85em", padding: "0.25rem 0.6rem" }} onClick={() => { setEditStockId(null); setEditStockValue(""); }}>Cancel</button>
+                                <button className="btn btn-primary" type="button" onClick={() => handleStockUpdate(s)}>Save</button>{" "}
+                                <button className="btn" type="button" onClick={() => { setEditStockId(null); setEditStockValue(""); }}>Cancel</button>
                               </>
                             ) : (
-                              <button className="btn" type="button" style={{ fontSize: "0.85em", padding: "0.25rem 0.6rem" }} onClick={() => { setEditStockId(s.id); setEditStockValue(String(s.stock)); }}>Edit</button>
+                              <button className="btn" type="button" onClick={() => { setEditStockId(s.id); setEditStockValue(String(s.stock)); }}>Edit</button>
                             )}
                           </td>
                         </tr>

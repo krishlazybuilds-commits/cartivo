@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
+import StarRating from "../../components/StarRating";
 import { useAuth, authFetch, extractError } from "../../lib/auth";
 
 function formatDate(value) {
@@ -97,13 +98,13 @@ export default function AdminReviewsPage() {
 
           {error && <p className="auth-error" role="alert">{error}</p>}
 
-          {/* Status filter tabs */}
-          <div className="admin-tabs" style={{ marginBottom: "1.5rem" }}>
+          {/* Status filter pills */}
+          <div className="admin-filter-pills">
             {STATUS_FILTERS.map((f) => (
               <button
                 key={f.value}
                 type="button"
-                className={`admin-tab${statusFilter === f.value ? " active" : ""}`}
+                className={`admin-filter-pill${statusFilter === f.value ? " active" : ""}`}
                 onClick={() => setStatusFilter(f.value)}
                 aria-current={statusFilter === f.value ? "page" : undefined}
               >
@@ -119,33 +120,35 @@ export default function AdminReviewsPage() {
             ) : reviews.length === 0 ? (
               <p>No reviews found.</p>
             ) : (
-              <div className="admin-table-wrap" style={{ overflowX: "auto" }}>
-                <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Product</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Author</th>
-                      <th style={{ textAlign: "center", padding: "0.6rem" }}>Rating</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Review</th>
-                      <th style={{ textAlign: "left", padding: "0.6rem" }}>Date</th>
-                      <th style={{ textAlign: "center", padding: "0.6rem" }}>Status</th>
-                      <th style={{ textAlign: "right", padding: "0.6rem" }}>Actions</th>
+                      <th>Product</th>
+                      <th>Author</th>
+                      <th style={{ textAlign: "center" }}>Rating</th>
+                      <th>Review</th>
+                      <th>Date</th>
+                      <th style={{ textAlign: "center" }}>Status</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reviews.map((r) => {
                       const sc = STATUS_COLORS[r.status] || { bg: "#f3f4f6", color: "#374151" };
                       return (
-                        <tr key={r.id} style={{ borderTop: "1px solid var(--border, #e5e7eb)" }}>
-                          <td style={{ padding: "0.6rem", fontWeight: 500 }}>{r.product_name || `#${r.product}`}</td>
-                          <td style={{ padding: "0.6rem" }}>{r.username}</td>
-                          <td style={{ padding: "0.6rem", textAlign: "center" }}>{r.rating}★</td>
-                          <td style={{ padding: "0.6rem", maxWidth: 300 }}>
+                        <tr key={r.id}>
+                          <td style={{ fontWeight: 500 }}>{r.product_name || `#${r.product}`}</td>
+                          <td>{r.username}</td>
+                          <td style={{ textAlign: "center" }}>
+                            <StarRating value={r.rating} showCount={false} size="0.85rem" />
+                          </td>
+                          <td style={{ maxWidth: 300 }}>
                             {r.title && <div style={{ fontWeight: 600 }}>{r.title}</div>}
                             {r.body && <div style={{ fontSize: "0.85em", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.body}</div>}
                           </td>
-                          <td style={{ padding: "0.6rem", fontSize: "0.85em", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
-                          <td style={{ padding: "0.6rem", textAlign: "center" }}>
+                          <td style={{ fontSize: "0.85em", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
+                          <td style={{ textAlign: "center" }}>
                             <span style={{
                               display: "inline-block", padding: "0.15rem 0.6rem", borderRadius: "999px",
                               fontSize: "0.78em", fontWeight: 600, ...sc,
@@ -153,11 +156,11 @@ export default function AdminReviewsPage() {
                               {r.status}
                             </span>
                           </td>
-                          <td style={{ padding: "0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                             {r.status === "pending" && (
                               <>
-                                <button className="btn btn-primary" type="button" style={{ fontSize: "0.85em", padding: "0.3rem 0.7rem" }} onClick={() => handleApprove(r.id)}>Approve</button>{" "}
-                                <button className="btn btn-danger" type="button" style={{ fontSize: "0.85em", padding: "0.3rem 0.7rem" }} onClick={() => handleReject(r.id)}>Reject</button>
+                                <button className="btn btn-primary" type="button" onClick={() => handleApprove(r.id)}>Approve</button>{" "}
+                                <button className="btn btn-danger" type="button" onClick={() => handleReject(r.id)}>Reject</button>
                               </>
                             )}
                             {r.status !== "pending" && (
