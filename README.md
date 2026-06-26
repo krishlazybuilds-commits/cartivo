@@ -8,7 +8,7 @@ An e-commerce storefront built with Django REST Framework and Next.js.
 |---|---|
 | Backend | Python 3.12, Django 5.1, DRF 3.15, SimpleJWT (cookie-based), Celery |
 | Database | PostgreSQL 16+ (SQLite for quick local testing), Redis |
-| Frontend | Next.js 14, React 18 |
+| Frontend | Next.js 15, React 18 |
 | Object Storage | S3-compatible (MinIO bundled for local, swap for R2/B2/S3) |
 | CI/CD | GitHub Actions (tests, lint, audit, Docker build), Dependabot |
 
@@ -39,7 +39,11 @@ An e-commerce storefront built with Django REST Framework and Next.js.
 ### 1. Clone
 
 ```bash
+# GitHub
 git clone https://github.com/krishlazybuilds-commits/cartivo.git
+
+# GitLab
+git clone https://git.moontechnolabs.com/web87/cartivo.git
 cd cartivo
 ```
 
@@ -265,7 +269,7 @@ python manage.py seed_catalog --flush
 python manage.py test
 
 # Run frontend tests + lint
-cd frontend && npm test && npm run lint
+cd frontend && npm test && npx next lint
 
 # Generate OpenAPI schema
 python manage.py spectacular --file schema.yml
@@ -277,7 +281,33 @@ python manage.py expire_pending_orders --minutes 60 --dry-run
 
 ---
 
-## CI / CD
+## Testing
+
+**Frontend** — Vitest + React Testing Library:
+
+```bash
+cd frontend
+npm test            # run all tests
+npm run test:watch  # watch mode
+```
+
+**Backend** — Django's test framework against PostgreSQL:
+
+```bash
+cd backend
+python manage.py test
+```
+
+**Linting & Formatting:**
+
+```bash
+# Backend (Python)
+black .             # auto-format
+flake8 .            # lint
+
+# Frontend (JS/JSX)
+npx next lint
+```
 
 GitHub Actions runs on every push to `main` and on pull requests:
 
