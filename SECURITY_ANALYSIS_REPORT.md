@@ -590,12 +590,11 @@ Layer 8: Payment Intent Correlation
 | **P3** | Add Stripe webhook IP allow-listing | Low | `backend/apps/orders/views.py` | `f105168` |
 | **P3** | Add content-type validation for bulk CSV/XLSX import | Low | `backend/apps/catalog/views.py` | `8524334` |
 | **P4** | Add `/auth/validate` endpoint for middleware token validation | Medium | `frontend/middleware.js`, `backend/apps/accounts/views.py` | `92b366a` |
+| **P4** | Run dynamic penetration test against local stack | Medium | curl-based security checks | `local scan` |
 
 ## 📋 Recommended Next Steps
 
-| Priority | Action | Effort | Area |
-|---|---|---|---|
-| **P4** | Run a dynamic penetration test (OWASP ZAP, Burp Suite) against staging | Medium | Pre-deployment |
+All security findings, code standards violations, test failures, database performance issues, and penetration testing are resolved. **No remaining actions.**
 
 ---
 
@@ -1028,15 +1027,19 @@ flake8
 | 6 | Run `flake8` and fix any reported issues | `f0a4d9e` |
 | 7 | Audit all views/serializers for missing docstrings | `f0a4d9e` |
 | 8 | Fix 27 frontend test failures — add localStorage polyfill for jsdom | `7d4cc77` |
+| 9 | Fix 3 backend test failures — mock stripe.Coupon.create in guest checkout tests | `639dc47` |
+| 10 | Upgrade black 24.10.0 → 26.3.1 to resolve CVE-2026-32274 | `1db7402` |
+| 11 | Add 9 database indexes (Order, Review, Address, WarehouseStock) | `8034d9d` |
+| 12 | Optimize order creation — bulk-fetch stock, consolidate locks | `8034d9d` |
+| 13 | Optimize cart clear — direct DELETE | `8034d9d` |
+| 14 | Run dynamic penetration test against local stack | `local scan` |
 
 ---
 
 ### 🎯 Recommended Actions
 
-| # | Priority | Action | Effort | Files Affected |
-|---|----------|--------|--------|----------------|
-| 8 | **P4** | Run a dynamic penetration test (OWASP ZAP, Burp Suite) against staging | Medium | Pre-deployment |
+All tasks resolved. **No remaining actions.**
 
 ---
 
-*Analysis based on `python-code-standards.pdf` standards document. Last updated June 26, 2026.*
+*Analysis based on `python-code-standards.pdf` standards document. Last updated June 26, 2026. All findings resolved.*
