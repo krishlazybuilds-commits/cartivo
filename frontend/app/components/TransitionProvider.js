@@ -143,16 +143,25 @@ export default function TransitionProvider({ children }) {
       if (!a) return;
       const href = a.getAttribute("href");
       if (!href) return;
+      if (a.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.hasAttribute("download")) return;
+
+      // Smooth-scroll for same-page anchor links (e.g. /#why, /#categories)
+      if (href.startsWith("/#") || (href.startsWith("#") && !href.startsWith("#top"))) {
+        e.preventDefault();
+        const id = href.startsWith("/#") ? href.slice(2) : href.slice(1);
+        const target = document.getElementById(id);
+        if (!target) return;
+        const navHeight = document.querySelector(".nav")?.offsetHeight || 64;
+        window.scrollTo({ top: target.offsetTop - navHeight - 8, behavior: "smooth" });
+        return;
+      }
+
       if (
         !href.startsWith("/") ||
-        href.startsWith("/#") ||
-        a.target === "_blank" ||
-        e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ||
-        a.hasAttribute("download") ||
         a.getAttribute("data-no-transition") !== null
       ) return;
-      const target = href.split("?")[0].split("#")[0];
-      if (target === window.location.pathname) return;
+      const target2 = href.split("?")[0].split("#")[0];
+      if (target2 === window.location.pathname) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       e.preventDefault();
       navigate(href);
