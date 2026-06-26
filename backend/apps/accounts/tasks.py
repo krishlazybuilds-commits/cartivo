@@ -4,20 +4,13 @@ from django.contrib.auth import get_user_model
 import logging
 
 from apps.orders.email_utils import send_html_email
+from config.constants import RETRY_KWARGS
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-_RETRY_KWARGS = dict(
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_backoff_max=600,
-    retry_jitter=True,
-    max_retries=5,
-)
 
-
-@shared_task(**_RETRY_KWARGS)
+@shared_task(**RETRY_KWARGS)
 def send_password_reset_email_task(user_id, reset_url):
     try:
         user = User.objects.get(pk=user_id)
@@ -44,7 +37,7 @@ def send_password_reset_email_task(user_id, reset_url):
         raise
 
 
-@shared_task(**_RETRY_KWARGS)
+@shared_task(**RETRY_KWARGS)
 def send_verification_email_task(user_id, verify_url):
     try:
         user = User.objects.get(pk=user_id)
@@ -71,7 +64,7 @@ def send_verification_email_task(user_id, verify_url):
         raise
 
 
-@shared_task(**_RETRY_KWARGS)
+@shared_task(**RETRY_KWARGS)
 def send_email_change_task(user_id, confirm_url):
     try:
         user = User.objects.get(pk=user_id)

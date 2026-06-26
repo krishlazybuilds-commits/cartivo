@@ -6,17 +6,12 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.orders.email_utils import send_html_email
+from config.constants import RETRY_KWARGS_LIGHT
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
-    max_retries=3,
-)
+@shared_task(**RETRY_KWARGS_LIGHT)
 def send_abandoned_cart_emails_task():
     """Find carts inactive for 2+ hours and send a recovery email with a discount code."""
     from apps.cart.models import Cart

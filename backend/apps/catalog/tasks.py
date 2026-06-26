@@ -5,17 +5,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from apps.orders.email_utils import send_html_email
+from config.constants import RETRY_KWARGS_LIGHT
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
-    max_retries=3,
-)
+@shared_task(**RETRY_KWARGS_LIGHT)
 def send_low_stock_alert_task(product_id, variant_id=None):
     """Email all staff users when a product's or variant's stock drops to or below LOW_STOCK_THRESHOLD."""
     from .models import Product, ProductVariant
