@@ -18,5 +18,5 @@ drf-spectacular==0.28.0
 google-auth==2.37.0
 openpyxl==3.1.5
 weasyprint==69.0
-black==24.10.0
+black==26.3.1
 flake8==7.1.1
