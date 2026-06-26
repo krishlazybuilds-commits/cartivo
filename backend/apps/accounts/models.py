@@ -43,6 +43,9 @@ class Address(models.Model):
     class Meta:
         verbose_name_plural = "addresses"
         ordering = ["-is_default", "-created_at"]
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.label or 'Address'} — {self.full_name}, {self.city}"

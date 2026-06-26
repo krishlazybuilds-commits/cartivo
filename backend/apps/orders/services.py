@@ -49,17 +49,39 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
             }
 
-        # Select a warehouse that has sufficient stock for all items in the order.
-        active_warehouses = Warehouse.objects.filter(is_active=True)
-        if not active_warehouses.exists():
-            # Self-healing: create default warehouse if none exist (e.g. in tests)
+        # Bulk-fetch all WarehouseStock rows for the relevant products across
+        # all active warehouses. This replaces the O(warehouses × items) query
+        # loop that previously ran one query per combination.
+        active_warehouses = list(Warehouse.objects.filter(is_active=True))
+        if not active_warehouses:
             selected_warehouse = Warehouse.objects.create(
                 code="CENTRAL",
                 name="Central Warehouse",
                 address="100 Main St, Metropolis",
                 is_active=True,
             )
+            # Prefetch stock rows for the newly created warehouse
+            all_stock_rows = list(
+                WarehouseStock.objects.filter(
+                    warehouse=selected_warehouse,
+                    product_id__in=product_ids,
+                )
+            )
         else:
+            all_stock_rows = list(
+                WarehouseStock.objects.filter(
+                    warehouse__in=active_warehouses,
+                    product_id__in=product_ids,
+                )
+            )
+            # Build lookup: {(warehouse_id, product_id, variant_id): WarehouseStock}
+            stock_lookup = {
+                (ws.warehouse_id, ws.product_id, ws.variant_id): ws
+                for ws in all_stock_rows
+            }
+            # Also build a set of (product_id, variant_id) that have ANY stock row
+            any_stock_exists = {(ws.product_id, ws.variant_id) for ws in all_stock_rows}
+
             selected_warehouse = None
             for warehouse in active_warehouses:
                 has_sufficient_stock = True
@@ -68,28 +90,19 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     qty = item["quantity"]
                     vid = item.get("variant_id")
 
-                    stock_query = WarehouseStock.objects.filter(
-                        warehouse=warehouse, product_id=pid, variant_id=vid
-                    ).first()
-
-                    # Fallback to product/variant stock if WarehouseStock doesn't exist yet
-                    if stock_query:
-                        warehouse_qty = stock_query.stock
-                    else:
-                        # Check if any WarehouseStock exists for this product/variant
-                        has_any_wh_stock = WarehouseStock.objects.filter(
-                            product_id=pid, variant_id=vid
-                        ).exists()
-
-                        if not has_any_wh_stock:
-                            if vid:
-                                variant = locked_variants.get(vid)
-                                warehouse_qty = variant.stock if variant else 0
-                            else:
-                                product = locked_products.get(pid)
-                                warehouse_qty = product.stock if product else 0
+                    ws = stock_lookup.get((warehouse.id, pid, vid))
+                    if ws:
+                        warehouse_qty = ws.stock
+                    elif (pid, vid) not in any_stock_exists:
+                        # Fallback to product/variant stock if no WarehouseStock exists
+                        if vid:
+                            variant = locked_variants.get(vid)
+                            warehouse_qty = variant.stock if variant else 0
                         else:
-                            warehouse_qty = 0
+                            product = locked_products.get(pid)
+                            warehouse_qty = product.stock if product else 0
+                    else:
+                        warehouse_qty = 0
 
                     if qty > warehouse_qty:
                         has_sufficient_stock = False
@@ -100,7 +113,15 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     break
 
             if not selected_warehouse:
-                selected_warehouse = active_warehouses.first()
+                selected_warehouse = active_warehouses[0]
+
+        # Build a lookup for stock rows in the selected warehouse so we can
+        # validate and decrement without re-querying.
+        selected_stock_lookup = {
+            (ws.product_id, ws.variant_id): ws
+            for ws in all_stock_rows
+            if ws.warehouse_id == selected_warehouse.id
+        }
 
         for item in items:
             pid = item["product_id"]
@@ -117,15 +138,15 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 if not variant:
                     raise CheckoutError("Variant not found.")
 
-                # Lock the stock row during validation so the check and the
-                # later decrement observe a consistent value even if the
-                # Product-level lock above is ever relaxed.
-                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
-                    warehouse=selected_warehouse,
-                    product_id=pid,
-                    variant_id=variant_id,
-                    defaults={"stock": variant.stock},
-                )
+                wh_stock = selected_stock_lookup.get((pid, variant_id))
+                if not wh_stock:
+                    wh_stock, _ = WarehouseStock.objects.select_for_update().get_or_create(
+                        warehouse=selected_warehouse,
+                        product_id=pid,
+                        variant_id=variant_id,
+                        defaults={"stock": variant.stock},
+                    )
+                    selected_stock_lookup[(pid, variant_id)] = wh_stock
                 if qty > wh_stock.stock:
                     raise CheckoutError(
                         f"Insufficient stock for "
@@ -134,15 +155,15 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         f"Available: {wh_stock.stock}.",
                     )
             else:
-                # Lock the stock row during validation so the check and the
-                # later decrement observe a consistent value even if the
-                # Product-level lock above is ever relaxed.
-                wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
-                    warehouse=selected_warehouse,
-                    product_id=pid,
-                    variant_id=None,
-                    defaults={"stock": product.stock},
-                )
+                wh_stock = selected_stock_lookup.get((pid, None))
+                if not wh_stock:
+                    wh_stock, _ = WarehouseStock.objects.select_for_update().get_or_create(
+                        warehouse=selected_warehouse,
+                        product_id=pid,
+                        variant_id=None,
+                        defaults={"stock": product.stock},
+                    )
+                    selected_stock_lookup[(pid, None)] = wh_stock
                 if qty > wh_stock.stock:
                     raise CheckoutError(
                         f"Insufficient stock for '{product.name}' in {selected_warehouse.name}. "
@@ -175,16 +196,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
 
                     if variant_id:
                         variant = locked_variants[variant_id]
-                        # Lock and update WarehouseStock
-                        (
-                            wh_stock,
-                            created,
-                        ) = WarehouseStock.objects.select_for_update().get_or_create(
-                            warehouse=selected_warehouse,
-                            product_id=pid,
-                            variant_id=variant_id,
-                            defaults={"stock": variant.stock},
-                        )
+                        wh_stock = selected_stock_lookup[(pid, variant_id)]
                         wh_stock.stock = F("stock") - qty
                         wh_stock.save(update_fields=["stock"])
 
@@ -192,16 +204,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         remaining = variant.stock
                         unit_price = variant.effective_price
                     else:
-                        # Lock and update WarehouseStock
-                        (
-                            wh_stock,
-                            created,
-                        ) = WarehouseStock.objects.select_for_update().get_or_create(
-                            warehouse=selected_warehouse,
-                            product_id=pid,
-                            variant_id=None,
-                            defaults={"stock": product.stock},
-                        )
+                        wh_stock = selected_stock_lookup[(pid, None)]
                         wh_stock.stock = F("stock") - qty
                         wh_stock.save(update_fields=["stock"])
 

@@ -164,6 +164,10 @@ class Order(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["guest_email"]),
+            models.Index(fields=["stripe_session_id"]),
+            models.Index(fields=["user", "status", "-created_at"]),
         ]
         constraints = [
             models.CheckConstraint(

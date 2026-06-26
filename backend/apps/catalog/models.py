@@ -219,6 +219,10 @@ class Review(models.Model):
     class Meta:
         unique_together = ("product", "user")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["user"]),
+        ]
         constraints = [
             models.CheckConstraint(
                 check=models.Q(rating__gte=1, rating__lte=5),
@@ -329,6 +333,9 @@ class WarehouseStock(models.Model):
 
     class Meta:
         ordering = ["warehouse", "product", "variant"]
+        indexes = [
+            models.Index(fields=["product", "variant"]),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["warehouse", "product"],

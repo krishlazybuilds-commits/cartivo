@@ -37,7 +37,8 @@ class CartViewSet(viewsets.ViewSet):
     @extend_schema(summary="Clear cart", tags=["cart"], responses={204: None})
     @action(detail=False, methods=["post"])
     def clear(self, request):
-        self._get_cart(request).items.all().delete()
+        cart = self._get_cart(request)
+        CartItem.objects.filter(cart=cart).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
