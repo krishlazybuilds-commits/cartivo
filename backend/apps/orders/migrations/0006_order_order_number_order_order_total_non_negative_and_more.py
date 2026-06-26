@@ -8,15 +8,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0004_product_product_price_non_negative_and_more'),
-        ('orders', '0005_order_guest_email_alter_order_user'),
+        ("catalog", "0004_product_product_price_non_negative_and_more"),
+        ("orders", "0005_order_guest_email_alter_order_user"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='order_number',
+            model_name="order",
+            name="order_number",
             # Added nullable + non-unique first; migration 0007 backfills unique
             # values for existing rows, then re-adds the unique constraint. This
             # avoids a unique violation when existing rows would otherwise all
@@ -24,11 +24,15 @@ class Migration(migrations.Migration):
             field=models.UUIDField(default=None, editable=False, null=True),
         ),
         migrations.AddConstraint(
-            model_name='order',
-            constraint=models.CheckConstraint(condition=models.Q(('total__gte', 0)), name='order_total_non_negative'),
+            model_name="order",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("total__gte", 0)), name="order_total_non_negative"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='orderitem',
-            constraint=models.CheckConstraint(condition=models.Q(('quantity__gte', 1)), name='orderitem_quantity_positive'),
+            model_name="orderitem",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("quantity__gte", 1)), name="orderitem_quantity_positive"
+            ),
         ),
     ]

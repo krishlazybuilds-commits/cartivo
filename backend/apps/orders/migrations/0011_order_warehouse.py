@@ -7,14 +7,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0009_warehouse_warehousestock'),
-        ('orders', '0010_add_refund_request_reason'),
+        ("catalog", "0009_warehouse_warehousestock"),
+        ("orders", "0010_add_refund_request_reason"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='warehouse',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='orders', to='catalog.warehouse'),
+            model_name="order",
+            name="warehouse",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="orders",
+                to="catalog.warehouse",
+            ),
         ),
     ]

@@ -45,13 +45,17 @@ class CartItemSerializer(serializers.ModelSerializer):
 
         # Ensure variant belongs to the product.
         if variant and product and variant.product_id != product.pk:
-            raise serializers.ValidationError({"variant": "Variant does not belong to this product."})
+            raise serializers.ValidationError(
+                {"variant": "Variant does not belong to this product."}
+            )
 
         # Stock check against variant or base product.
         if variant:
             if quantity > variant.stock:
                 raise serializers.ValidationError(
-                    {"detail": f"Only {variant.stock} unit(s) of '{product.name} — {variant.name}' in stock."}
+                    {
+                        "detail": f"Only {variant.stock} unit(s) of '{product.name} — {variant.name}' in stock."
+                    }
                 )
         elif product:
             if quantity > product.stock:

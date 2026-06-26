@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0014_add_order_currency_field'),
+        ("orders", "0014_add_order_currency_field"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='notes',
-            field=models.TextField(blank=True, default=''),
+            model_name="order",
+            name="notes",
+            field=models.TextField(blank=True, default=""),
         ),
     ]

@@ -136,9 +136,7 @@ class Order(models.Model):
     # Stripe correlation IDs, captured during checkout so webhook events
     # (expired/refunded) can be matched back to the order.
     stripe_session_id = models.CharField(max_length=255, blank=True, default="")
-    stripe_payment_intent = models.CharField(
-        max_length=255, blank=True, default="", db_index=True
-    )
+    stripe_payment_intent = models.CharField(max_length=255, blank=True, default="", db_index=True)
     # Customer-submitted refund request reason. Non-empty signals a pending request.
     refund_request_reason = models.TextField(blank=True, default="")
 
@@ -180,7 +178,9 @@ class Order(models.Model):
 
     def recalculate_total(self):
         subtotal = self.items_total
-        self.total = max(subtotal - self.discount + self.shipping_cost + self.tax_amount, Decimal("0"))
+        self.total = max(
+            subtotal - self.discount + self.shipping_cost + self.tax_amount, Decimal("0")
+        )
         return self.total
 
     def restock(self):
@@ -194,7 +194,7 @@ class Order(models.Model):
                     warehouse_id=self.warehouse_id,
                     product_id=item.product_id,
                     variant_id=item.variant_id,
-                    defaults={"stock": 0}
+                    defaults={"stock": 0},
                 )
                 wh_stock.stock = F("stock") + item.quantity
                 wh_stock.save(update_fields=["stock"])
@@ -202,6 +202,7 @@ class Order(models.Model):
             for item in self.items.select_related("product"):
                 if item.variant_id:
                     from apps.catalog.models import ProductVariant
+
                     ProductVariant.objects.filter(pk=item.variant_id).update(
                         stock=F("stock") + item.quantity
                     )

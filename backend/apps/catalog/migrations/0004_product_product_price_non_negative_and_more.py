@@ -6,16 +6,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0003_product_catalog_pro_categor_17efd9_idx_and_more'),
+        ("catalog", "0003_product_catalog_pro_categor_17efd9_idx_and_more"),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='product',
-            constraint=models.CheckConstraint(condition=models.Q(('price__gte', 0)), name='product_price_non_negative'),
+            model_name="product",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("price__gte", 0)), name="product_price_non_negative"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='product',
-            constraint=models.CheckConstraint(condition=models.Q(('stock__gte', 0)), name='product_stock_non_negative'),
+            model_name="product",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("stock__gte", 0)), name="product_stock_non_negative"
+            ),
         ),
     ]

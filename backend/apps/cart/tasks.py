@@ -75,7 +75,12 @@ def send_abandoned_cart_emails_task():
                 html_template="emails/abandoned_cart.html",
                 text_body=text_body,
                 recipient_list=[user.email],
-                context={"name": name, "items": items, "coupon_code": coupon.code, "cart_url": cart_url},
+                context={
+                    "name": name,
+                    "items": items,
+                    "coupon_code": coupon.code,
+                    "cart_url": cart_url,
+                },
             )
             cart.abandoned_email_sent = True
             cart.save(update_fields=["abandoned_email_sent"])

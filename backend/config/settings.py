@@ -198,14 +198,10 @@ if REDIS_URL:
             # request threads; a periodic health check recycles dead
             # connections so workers recover automatically once Redis is back.
             "OPTIONS": {
-                "socket_connect_timeout": int(
-                    os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", "5")
-                ),
+                "socket_connect_timeout": int(os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", "5")),
                 "socket_timeout": int(os.getenv("REDIS_SOCKET_TIMEOUT", "5")),
                 "retry_on_timeout": True,
-                "health_check_interval": int(
-                    os.getenv("REDIS_HEALTH_CHECK_INTERVAL", "30")
-                ),
+                "health_check_interval": int(os.getenv("REDIS_HEALTH_CHECK_INTERVAL", "30")),
             },
         }
     }
@@ -226,9 +222,7 @@ else:
 # eagerly (synchronously, inline) so the app still works without a worker.
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "") or None
-CELERY_TASK_ALWAYS_EAGER = env_bool(
-    "CELERY_TASK_ALWAYS_EAGER", not bool(CELERY_BROKER_URL)
-)
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", not bool(CELERY_BROKER_URL))
 # In eager mode don't propagate task exceptions to the caller, so a failing
 # email never breaks the request flow that enqueued it.
 CELERY_TASK_EAGER_PROPAGATES = False
@@ -253,7 +247,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "send-abandoned-cart-emails": {
         "task": "apps.cart.tasks.send_abandoned_cart_emails_task",
-        "schedule": 3600.0, # Every hour
+        "schedule": 3600.0,  # Every hour
     },
 }
 
@@ -271,12 +265,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- DRF ---------------------------------------------------------------------
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "apps.accounts.authentication.CookieJWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.accounts.authentication.CookieJWTAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticatedOrReadOnly",),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
@@ -359,12 +349,8 @@ if "test" in sys.argv:
     STRIPE_IP_CHECK_ENABLED = False
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=int(os.getenv("JWT_ACCESS_MINUTES", "60"))
-    ),
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=int(os.getenv("JWT_REFRESH_DAYS", "7"))
-    ),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "60"))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("JWT_REFRESH_DAYS", "7"))),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -461,9 +447,7 @@ if not DEBUG:
 
         # Validate CSRF_TRUSTED_ORIGINS in production to prevent CSRF bypasses
         if not CSRF_TRUSTED_ORIGINS:
-            raise ImproperlyConfigured(
-                "CSRF_TRUSTED_ORIGINS must be set when DEBUG is False."
-            )
+            raise ImproperlyConfigured("CSRF_TRUSTED_ORIGINS must be set when DEBUG is False.")
         for origin in CSRF_TRUSTED_ORIGINS:
             if "*" in origin:
                 raise ImproperlyConfigured(
@@ -597,7 +581,11 @@ AUTH_VIDEO_PATH = os.getenv(
 # --- Email -------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
+    (
+        "django.core.mail.backends.console.EmailBackend"
+        if DEBUG
+        else "django.core.mail.backends.smtp.EmailBackend"
+    ),
 )
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
@@ -707,7 +695,9 @@ if SENTRY_DSN:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             integrations=[DjangoIntegration()],
-            environment=os.getenv("SENTRY_ENVIRONMENT", "production" if not DEBUG else "development"),
+            environment=os.getenv(
+                "SENTRY_ENVIRONMENT", "production" if not DEBUG else "development"
+            ),
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
             send_default_pii=False,
         )

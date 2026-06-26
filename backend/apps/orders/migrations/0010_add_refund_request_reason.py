@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0009_order_shipping_cost_order_tax_amount'),
+        ("orders", "0009_order_shipping_cost_order_tax_amount"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='refund_request_reason',
-            field=models.TextField(blank=True, default=''),
+            model_name="order",
+            name="refund_request_reason",
+            field=models.TextField(blank=True, default=""),
         ),
     ]

@@ -9,21 +9,49 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0007_add_product_variant'),
+        ("catalog", "0007_add_product_variant"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ProductImage',
+            name="ProductImage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='products/', validators=[django.core.validators.FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp']), apps.catalog.validators.validate_image_size])),
-                ('alt', models.CharField(blank=True, max_length=200)),
-                ('order', models.PositiveSmallIntegerField(default=0, help_text='Display order (lower = first)')),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='catalog.product')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "image",
+                    models.ImageField(
+                        upload_to="products/",
+                        validators=[
+                            django.core.validators.FileExtensionValidator(
+                                ["jpg", "jpeg", "png", "webp"]
+                            ),
+                            apps.catalog.validators.validate_image_size,
+                        ],
+                    ),
+                ),
+                ("alt", models.CharField(blank=True, max_length=200)),
+                (
+                    "order",
+                    models.PositiveSmallIntegerField(
+                        default=0, help_text="Display order (lower = first)"
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="images",
+                        to="catalog.product",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['order', 'id'],
+                "ordering": ["order", "id"],
             },
         ),
     ]

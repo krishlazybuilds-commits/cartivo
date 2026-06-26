@@ -40,8 +40,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
 
     with transaction.atomic():
         locked_products = {
-            p.id: p
-            for p in Product.objects.select_for_update().filter(id__in=product_ids)
+            p.id: p for p in Product.objects.select_for_update().filter(id__in=product_ids)
         }
         locked_variants = {}
         if variant_ids:
@@ -70,9 +69,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     vid = item.get("variant_id")
 
                     stock_query = WarehouseStock.objects.filter(
-                        warehouse=warehouse,
-                        product_id=pid,
-                        variant_id=vid
+                        warehouse=warehouse, product_id=pid, variant_id=vid
                     ).first()
 
                     # Fallback to product/variant stock if WarehouseStock doesn't exist yet
@@ -81,8 +78,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     else:
                         # Check if any WarehouseStock exists for this product/variant
                         has_any_wh_stock = WarehouseStock.objects.filter(
-                            product_id=pid,
-                            variant_id=vid
+                            product_id=pid, variant_id=vid
                         ).exists()
 
                         if not has_any_wh_stock:
@@ -120,7 +116,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 variant = locked_variants.get(variant_id)
                 if not variant:
                     raise CheckoutError("Variant not found.")
-                
+
                 # Lock the stock row during validation so the check and the
                 # later decrement observe a consistent value even if the
                 # Product-level lock above is ever relaxed.
@@ -128,7 +124,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     warehouse=selected_warehouse,
                     product_id=pid,
                     variant_id=variant_id,
-                    defaults={"stock": variant.stock}
+                    defaults={"stock": variant.stock},
                 )
                 if qty > wh_stock.stock:
                     raise CheckoutError(
@@ -143,7 +139,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     warehouse=selected_warehouse,
                     product_id=pid,
                     variant_id=None,
-                    defaults={"stock": product.stock}
+                    defaults={"stock": product.stock},
                 )
                 if qty > wh_stock.stock:
                     raise CheckoutError(
@@ -178,11 +174,14 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     if variant_id:
                         variant = locked_variants[variant_id]
                         # Lock and update WarehouseStock
-                        wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
+                        (
+                            wh_stock,
+                            created,
+                        ) = WarehouseStock.objects.select_for_update().get_or_create(
                             warehouse=selected_warehouse,
                             product_id=pid,
                             variant_id=variant_id,
-                            defaults={"stock": variant.stock}
+                            defaults={"stock": variant.stock},
                         )
                         wh_stock.stock = F("stock") - qty
                         wh_stock.save(update_fields=["stock"])
@@ -192,11 +191,14 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                         unit_price = variant.effective_price
                     else:
                         # Lock and update WarehouseStock
-                        wh_stock, created = WarehouseStock.objects.select_for_update().get_or_create(
+                        (
+                            wh_stock,
+                            created,
+                        ) = WarehouseStock.objects.select_for_update().get_or_create(
                             warehouse=selected_warehouse,
                             product_id=pid,
                             variant_id=None,
-                            defaults={"stock": product.stock}
+                            defaults={"stock": product.stock},
                         )
                         wh_stock.stock = F("stock") - qty
                         wh_stock.save(update_fields=["stock"])
@@ -208,13 +210,15 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                     if remaining <= threshold:
                         low_stock_alerts.append((pid, variant_id))
 
-                    order_items.append(OrderItem(
-                        order=order,
-                        product=product,
-                        variant=variant,
-                        unit_price=unit_price,
-                        quantity=qty,
-                    ))
+                    order_items.append(
+                        OrderItem(
+                            order=order,
+                            product=product,
+                            variant=variant,
+                            unit_price=unit_price,
+                            quantity=qty,
+                        )
+                    )
 
                 OrderItem.objects.bulk_create(order_items)
         except IntegrityError:
@@ -227,9 +231,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
                 lambda p=pid, v=vid: send_low_stock_alert_task.delay(p, variant_id=v)
             )
 
-        subtotal = sum(
-            (i.unit_price * i.quantity for i in order_items), Decimal("0")
-        )
+        subtotal = sum((i.unit_price * i.quantity for i in order_items), Decimal("0"))
         estimate = calculate_estimate(order.shipping_country, float(subtotal))
         order.shipping_cost = Decimal(str(estimate["shipping"]))
         order.tax_amount = Decimal(str(estimate["tax"]))
@@ -250,7 +252,11 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
         order.recalculate_total()
         order.save(
             update_fields=[
-                "total", "discount", "coupon", "shipping_cost", "tax_amount",
+                "total",
+                "discount",
+                "coupon",
+                "shipping_cost",
+                "tax_amount",
             ]
         )
 
@@ -271,21 +277,25 @@ def build_stripe_line_items(order_items, shipping_cost, tax_amount):
         for item in order_items
     ]
     if shipping_cost > 0:
-        line_items.append({
-            "price_data": {
-                "currency": currency,
-                "unit_amount": int(shipping_cost * 100),
-                "product_data": {"name": "Shipping"},
-            },
-            "quantity": 1,
-        })
+        line_items.append(
+            {
+                "price_data": {
+                    "currency": currency,
+                    "unit_amount": int(shipping_cost * 100),
+                    "product_data": {"name": "Shipping"},
+                },
+                "quantity": 1,
+            }
+        )
     if tax_amount > 0:
-        line_items.append({
-            "price_data": {
-                "currency": currency,
-                "unit_amount": int(tax_amount * 100),
-                "product_data": {"name": "Tax"},
-            },
-            "quantity": 1,
-        })
+        line_items.append(
+            {
+                "price_data": {
+                    "currency": currency,
+                    "unit_amount": int(tax_amount * 100),
+                    "product_data": {"name": "Tax"},
+                },
+                "quantity": 1,
+            }
+        )
     return line_items

@@ -1,6 +1,15 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import CategoryViewSet, ProductImageViewSet, ProductVariantViewSet, ProductViewSet, ReviewViewSet, WarehouseStockViewSet, WarehouseViewSet, WishlistItemViewSet
+from .views import (
+    CategoryViewSet,
+    ProductImageViewSet,
+    ProductVariantViewSet,
+    ProductViewSet,
+    ReviewViewSet,
+    WarehouseStockViewSet,
+    WarehouseViewSet,
+    WishlistItemViewSet,
+)
 
 app_name = "catalog"
 

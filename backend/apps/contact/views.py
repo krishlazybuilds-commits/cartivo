@@ -50,10 +50,12 @@ class ContactRateThrottle(AnonRateThrottle):
             "message": drf_serializers.CharField(),
         },
     ),
-    responses={200: inline_serializer(
-        name="ContactResponse",
-        fields={"detail": drf_serializers.CharField()},
-    )},
+    responses={
+        200: inline_serializer(
+            name="ContactResponse",
+            fields={"detail": drf_serializers.CharField()},
+        )
+    },
 )
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -68,15 +70,23 @@ def contact(request):
         return Response({"detail": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
     if len(name) > MAX_NAME or len(email) > MAX_EMAIL or len(message) > MAX_MESSAGE:
-        return Response({"detail": "One or more fields exceed the allowed length."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "One or more fields exceed the allowed length."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if is_disposable_email(email):
-        return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Disposable email addresses are not allowed."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         validate_email(email)
     except ValidationError:
-        return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     text_body = f"From: {name} <{email}>\n\n{message}"
     try:
@@ -101,7 +111,9 @@ def contact(request):
     tags=["contact"],
     summary="Subscribe to newsletter",
     request=inline_serializer("NewsletterRequest", fields={"email": drf_serializers.EmailField()}),
-    responses={200: inline_serializer("NewsletterResponse", fields={"detail": drf_serializers.CharField()})},
+    responses={
+        200: inline_serializer("NewsletterResponse", fields={"detail": drf_serializers.CharField()})
+    },
 )
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -113,12 +125,17 @@ def subscribe(request):
         return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     if is_disposable_email(email):
-        return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Disposable email addresses are not allowed."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         validate_email(email)
     except ValidationError:
-        return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     # get_or_create is idempotent — re-subscribing the same address is a no-op.
     _, created = NewsletterSubscriber.objects.get_or_create(email=email)

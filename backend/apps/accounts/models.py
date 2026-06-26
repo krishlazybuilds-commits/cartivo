@@ -27,7 +27,9 @@ class Address(models.Model):
         related_name="addresses",
     )
     label = models.CharField(
-        max_length=50, blank=True, default="",
+        max_length=50,
+        blank=True,
+        default="",
         help_text="Optional label, e.g. 'Home', 'Office'.",
     )
     full_name = models.CharField(max_length=200)

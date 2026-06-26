@@ -8,27 +8,47 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
+        ("accounts", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Address',
+            name="Address",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('label', models.CharField(blank=True, default='', help_text="Optional label, e.g. 'Home', 'Office'.", max_length=50)),
-                ('full_name', models.CharField(max_length=200)),
-                ('address', models.CharField(max_length=255)),
-                ('city', models.CharField(max_length=120)),
-                ('postal_code', models.CharField(max_length=20)),
-                ('country', models.CharField(max_length=120)),
-                ('is_default', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='addresses', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "label",
+                    models.CharField(
+                        blank=True,
+                        default="",
+                        help_text="Optional label, e.g. 'Home', 'Office'.",
+                        max_length=50,
+                    ),
+                ),
+                ("full_name", models.CharField(max_length=200)),
+                ("address", models.CharField(max_length=255)),
+                ("city", models.CharField(max_length=120)),
+                ("postal_code", models.CharField(max_length=20)),
+                ("country", models.CharField(max_length=120)),
+                ("is_default", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="addresses",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'addresses',
-                'ordering': ['-is_default', '-created_at'],
+                "verbose_name_plural": "addresses",
+                "ordering": ["-is_default", "-created_at"],
             },
         ),
     ]

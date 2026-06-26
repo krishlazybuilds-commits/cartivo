@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
+from .models import (
+    Category,
+    Product,
+    ProductImage,
+    ProductVariant,
+    Review,
+    Warehouse,
+    WarehouseStock,
+    WishlistItem,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):

@@ -25,7 +25,9 @@ SHIPPING = {
 
 class CheckoutTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="buyer", password="pass12345", email="buyer@test.com")
+        self.user = User.objects.create_user(
+            username="buyer", password="pass12345", email="buyer@test.com"
+        )
         self.user.email_verified = True
         self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Gadgets")
@@ -97,7 +99,9 @@ class CheckoutTests(APITestCase):
         self._add_to_cart(1)
         self.client.post("/api/v1/orders/", SHIPPING, format="json")
 
-        other = User.objects.create_user(username="other", password="pass12345", email="other@test.com")
+        other = User.objects.create_user(
+            username="other", password="pass12345", email="other@test.com"
+        )
         self.client.force_authenticate(other)
         res = self.client.get("/api/v1/orders/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -107,7 +111,9 @@ class CheckoutTests(APITestCase):
 
 class CancelOrderTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="canceller", password="pass12345", email="canceller@test.com")
+        self.user = User.objects.create_user(
+            username="canceller", password="pass12345", email="canceller@test.com"
+        )
         self.user.email_verified = True
         self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Gizmos")
@@ -152,7 +158,9 @@ class CancelOrderTests(APITestCase):
 
     def test_cannot_cancel_another_users_order(self):
         order_id = self._place_order(1)
-        other = User.objects.create_user(username="intruder", password="pass12345", email="intruder@test.com")
+        other = User.objects.create_user(
+            username="intruder", password="pass12345", email="intruder@test.com"
+        )
         self.client.force_authenticate(other)
         res = self.client.post(f"/api/v1/orders/{order_id}/cancel/", format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
@@ -160,7 +168,9 @@ class CancelOrderTests(APITestCase):
 
 class ExpirePendingOrdersCommandTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="staleuser", password="pass12345", email="staleuser@test.com")
+        self.user = User.objects.create_user(
+            username="staleuser", password="pass12345", email="staleuser@test.com"
+        )
         self.user.email_verified = True
         self.user.save(update_fields=["email_verified"])
         self.category = Category.objects.create(name="Widgets")
@@ -181,6 +191,7 @@ class ExpirePendingOrdersCommandTests(APITestCase):
 
     def _backdate(self, order_id, minutes):
         from django.utils import timezone
+
         # created_at uses auto_now_add, so set it directly via queryset.
         Order.objects.filter(pk=order_id).update(
             created_at=timezone.now() - timezone.timedelta(minutes=minutes)
@@ -231,7 +242,9 @@ class StripeWebhookIdempotencyTests(APITestCase):
     WEBHOOK_URL = "/api/v1/orders/webhook/"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="payer", password="pass12345", email="payer@test.com")
+        self.user = User.objects.create_user(
+            username="payer", password="pass12345", email="payer@test.com"
+        )
         self.category = Category.objects.create(name="Things")
         self.product = Product.objects.create(
             category=self.category,
@@ -249,7 +262,9 @@ class StripeWebhookIdempotencyTests(APITestCase):
         )
 
     @staticmethod
-    def _event(order_id, event_id="evt_1", event_type="checkout.session.completed", amount_total=1000):
+    def _event(
+        order_id, event_id="evt_1", event_type="checkout.session.completed", amount_total=1000
+    ):
         return {
             "id": event_id,
             "type": event_type,
@@ -264,12 +279,8 @@ class StripeWebhookIdempotencyTests(APITestCase):
     def _post(self, event):
         from unittest.mock import patch
 
-        with patch(
-            "apps.orders.views.stripe.Webhook.construct_event", return_value=event
-        ):
-            return self.client.post(
-                self.WEBHOOK_URL, data="{}", content_type="application/json"
-            )
+        with patch("apps.orders.views.stripe.Webhook.construct_event", return_value=event):
+            return self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
 
     def test_first_delivery_marks_paid_and_sends_email_once(self):
         from unittest.mock import patch
@@ -313,9 +324,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
             "apps.orders.views.stripe.Webhook.construct_event",
             side_effect=ValueError("bad sig"),
         ):
-            res = self.client.post(
-                self.WEBHOOK_URL, data="{}", content_type="application/json"
-            )
+            res = self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         order.refresh_from_db()
@@ -327,9 +336,7 @@ class StripeWebhookIdempotencyTests(APITestCase):
             self._event(0, event_id="evt_payment", event_type="payment_intent.created")
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            StripeEvent.objects.filter(event_id="evt_payment").count(), 1
-        )
+        self.assertEqual(StripeEvent.objects.filter(event_id="evt_payment").count(), 1)
 
     def test_get_request_is_rejected(self):
         res = self.client.get(self.WEBHOOK_URL)
@@ -342,7 +349,9 @@ class StripeWebhookEventTests(APITestCase):
     WEBHOOK_URL = "/api/v1/orders/webhook/"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="evtuser", password="pass12345", email="evtuser@test.com")
+        self.user = User.objects.create_user(
+            username="evtuser", password="pass12345", email="evtuser@test.com"
+        )
         self.category = Category.objects.create(name="Goods")
         self.product = Product.objects.create(
             category=self.category,
@@ -380,12 +389,8 @@ class StripeWebhookEventTests(APITestCase):
         }
 
     def _post(self, event):
-        with patch(
-            "apps.orders.views.stripe.Webhook.construct_event", return_value=event
-        ):
-            return self.client.post(
-                self.WEBHOOK_URL, data="{}", content_type="application/json"
-            )
+        with patch("apps.orders.views.stripe.Webhook.construct_event", return_value=event):
+            return self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
 
     # ── checkout.session.expired ──────────────────────────────────────────────
 
@@ -396,6 +401,7 @@ class StripeWebhookEventTests(APITestCase):
         Order.objects.filter(pk=order.id).update(stripe_payment_intent="")
         # Add items so _restock_order has work to do.
         from apps.orders.models import OrderItem
+
         OrderItem.objects.create(
             order=order, product=self.product, quantity=2, unit_price=Decimal("20.00")
         )
@@ -427,9 +433,7 @@ class StripeWebhookEventTests(APITestCase):
 
     def test_expired_session_already_paid_is_noop(self):
         order = self._paid_order()
-        event = self._event(
-            "evt_exp_4", "checkout.session.expired", order_id=order.id
-        )
+        event = self._event("evt_exp_4", "checkout.session.expired", order_id=order.id)
         res = self._post(event)
         self.assertEqual(res.status_code, 200)
         order.refresh_from_db()
@@ -439,9 +443,7 @@ class StripeWebhookEventTests(APITestCase):
 
     def test_payment_failed_does_not_change_order_status(self):
         order = self._pending_order()
-        event = self._event(
-            "evt_fail_1", "payment_intent.payment_failed", order_id=order.id
-        )
+        event = self._event("evt_fail_1", "payment_intent.payment_failed", order_id=order.id)
         res = self._post(event)
         self.assertEqual(res.status_code, 200)
         order.refresh_from_db()
@@ -454,9 +456,7 @@ class StripeWebhookEventTests(APITestCase):
 
     def test_payment_failed_is_idempotent(self):
         order = self._pending_order()
-        event = self._event(
-            "evt_fail_1", "payment_intent.payment_failed", order_id=order.id
-        )
+        event = self._event("evt_fail_1", "payment_intent.payment_failed", order_id=order.id)
         with self.captureOnCommitCallbacks(execute=True):
             self._post(event)
         res = self._post(event)  # duplicate event_id
@@ -468,6 +468,7 @@ class StripeWebhookEventTests(APITestCase):
     def test_charge_refunded_marks_refunded_and_restocks(self):
         order = self._paid_order()
         from apps.orders.models import OrderItem
+
         OrderItem.objects.create(
             order=order, product=self.product, quantity=1, unit_price=Decimal("20.00")
         )
@@ -475,7 +476,9 @@ class StripeWebhookEventTests(APITestCase):
         initial_stock = self.product.stock
 
         event = self._event(
-            "evt_ref_1", "charge.refunded", order_id=order.id,
+            "evt_ref_1",
+            "charge.refunded",
+            order_id=order.id,
             overrides={"payment_intent": "pi_refund"},
         )
         res = self._post(event)
@@ -489,13 +492,17 @@ class StripeWebhookEventTests(APITestCase):
     def test_charge_refunded_is_idempotent_via_status_filter(self):
         order = self._paid_order()
         event = self._event(
-            "evt_ref_2", "charge.refunded", order_id=order.id,
+            "evt_ref_2",
+            "charge.refunded",
+            order_id=order.id,
             overrides={"payment_intent": "pi_refund2"},
         )
         self._post(event)
         # Second delivery of a *different* event_id but same order.
         event2 = self._event(
-            "evt_ref_2b", "charge.refunded", order_id=order.id,
+            "evt_ref_2b",
+            "charge.refunded",
+            order_id=order.id,
             overrides={"payment_intent": "pi_refund2"},
         )
         res = self._post(event2)
@@ -529,7 +536,9 @@ class StripeWebhookEventTests(APITestCase):
     def test_charge_refunded_non_paid_order_is_noop(self):
         order = self._pending_order()
         event = self._event(
-            "evt_ref_4", "charge.refunded", order_id=order.id,
+            "evt_ref_4",
+            "charge.refunded",
+            order_id=order.id,
             overrides={"payment_intent": "pi_noop"},
         )
         res = self._post(event)
@@ -549,7 +558,9 @@ class StripeWebhookEventTests(APITestCase):
     def test_checkout_completed_amount_mismatch_does_not_mark_paid(self):
         order = self._pending_order(total=Decimal("30.00"))
         event = self._event(
-            "evt_cc_1", "checkout.session.completed", order_id=order.id,
+            "evt_cc_1",
+            "checkout.session.completed",
+            order_id=order.id,
             overrides={"amount_total": 1000},  # 10.00 != 30.00
         )
         res = self._post(event)
@@ -559,7 +570,9 @@ class StripeWebhookEventTests(APITestCase):
 
     def test_checkout_completed_non_existent_order_is_noop(self):
         event = self._event(
-            "evt_cc_2", "checkout.session.completed", order_id=99999,
+            "evt_cc_2",
+            "checkout.session.completed",
+            order_id=99999,
             overrides={"amount_total": 2000},
         )
         res = self._post(event)
@@ -576,7 +589,9 @@ class StripeWebhookEventTests(APITestCase):
     def test_checkout_completed_already_paid_is_noop(self):
         order = self._paid_order()
         event = self._event(
-            "evt_cc_4", "checkout.session.completed", order_id=order.id,
+            "evt_cc_4",
+            "checkout.session.completed",
+            order_id=order.id,
             overrides={"amount_total": int(order.total * 100)},
         )
         res = self._post(event)
@@ -593,9 +608,7 @@ class StripeWebhookEventTests(APITestCase):
             "apps.orders.views.stripe.Webhook.construct_event",
             side_effect=SignatureVerificationError("bad sig", "dummy"),
         ):
-            res = self.client.post(
-                self.WEBHOOK_URL, data="{}", content_type="application/json"
-            )
+            res = self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
         self.assertEqual(res.status_code, 400)
         self.assertEqual(StripeEvent.objects.count(), 0)
 
@@ -609,15 +622,14 @@ class StripeWebhookEventTests(APITestCase):
         """An expired session cancels + restocks. Make sure _restock_order runs."""
         order = self._pending_order()
         from apps.orders.models import OrderItem
+
         OrderItem.objects.create(
             order=order, product=self.product, quantity=2, unit_price=Decimal("20.00")
         )
         self.product.refresh_from_db()
         before = self.product.stock
 
-        event = self._event(
-            "evt_combo", "checkout.session.expired", order_id=order.id
-        )
+        event = self._event("evt_combo", "checkout.session.expired", order_id=order.id)
         self._post(event)
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.CANCELLED)
@@ -631,11 +643,16 @@ class StripeWebhookEdgeCaseTests(APITestCase):
     WEBHOOK_URL = "/api/v1/orders/webhook/"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="edgeuser", password="pass12345", email="edge@test.com")
+        self.user = User.objects.create_user(
+            username="edgeuser", password="pass12345", email="edge@test.com"
+        )
         self.category = Category.objects.create(name="Edge")
         self.product = Product.objects.create(
-            category=self.category, name="Edge Item",
-            price=Decimal("25.00"), stock=10, sku="EDGE-1",
+            category=self.category,
+            name="Edge Item",
+            price=Decimal("25.00"),
+            stock=10,
+            sku="EDGE-1",
         )
 
     def _pending_order(self, total=Decimal("25.00")):
@@ -643,8 +660,11 @@ class StripeWebhookEdgeCaseTests(APITestCase):
 
     def _paid_order(self, total=Decimal("25.00")):
         return Order.objects.create(
-            user=self.user, total=total, status=Order.Status.PAID,
-            stripe_payment_intent="pi_edge", **SHIPPING,
+            user=self.user,
+            total=total,
+            status=Order.Status.PAID,
+            stripe_payment_intent="pi_edge",
+            **SHIPPING,
         )
 
     @staticmethod
@@ -662,9 +682,14 @@ class StripeWebhookEdgeCaseTests(APITestCase):
         """Two identical events arriving in separate requests: first succeeds, second is duplicate."""
         order = self._pending_order()
         from apps.orders.models import OrderItem
-        OrderItem.objects.create(order=order, product=self.product, quantity=1, unit_price=Decimal("25.00"))
 
-        event = self._event("evt_con_dup", "checkout.session.completed", order.id, {"amount_total": 2500})
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, unit_price=Decimal("25.00")
+        )
+
+        event = self._event(
+            "evt_con_dup", "checkout.session.completed", order.id, {"amount_total": 2500}
+        )
         with patch("apps.orders.views.send_payment_confirmed_task.delay") as mock_email:
             with self.captureOnCommitCallbacks(execute=True):
                 r1 = self._post(event)
@@ -681,7 +706,10 @@ class StripeWebhookEdgeCaseTests(APITestCase):
         """If expired event arrives first, then completed later, completed is noop."""
         order = self._pending_order()
         from apps.orders.models import OrderItem
-        OrderItem.objects.create(order=order, product=self.product, quantity=1, unit_price=Decimal("25.00"))
+
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, unit_price=Decimal("25.00")
+        )
 
         # Decrement stock to simulate that it was already taken
         self.product.stock = 9
@@ -694,7 +722,9 @@ class StripeWebhookEdgeCaseTests(APITestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 10)
 
-        comp_event = self._event("evt_race_comp", "checkout.session.completed", order.id, {"amount_total": 2500})
+        comp_event = self._event(
+            "evt_race_comp", "checkout.session.completed", order.id, {"amount_total": 2500}
+        )
         with patch("apps.orders.views.send_payment_confirmed_task.delay") as mock_email:
             self._post(comp_event)
         order.refresh_from_db()
@@ -705,11 +735,16 @@ class StripeWebhookEdgeCaseTests(APITestCase):
         """Two identical refund events: first succeeds, second is duplicate."""
         order = self._paid_order()
         from apps.orders.models import OrderItem
-        OrderItem.objects.create(order=order, product=self.product, quantity=1, unit_price=Decimal("25.00"))
+
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, unit_price=Decimal("25.00")
+        )
         self.product.refresh_from_db()
         initial_stock = self.product.stock
 
-        event = self._event("evt_dbl_ref", "charge.refunded", order.id, {"payment_intent": "pi_edge"})
+        event = self._event(
+            "evt_dbl_ref", "charge.refunded", order.id, {"payment_intent": "pi_edge"}
+        )
         r1 = self._post(event)
         r2 = self._post(event)
 
@@ -727,7 +762,9 @@ class StripeWebhookEdgeCaseTests(APITestCase):
         order.status = Order.Status.CANCELLED
         order.save(update_fields=["status"])
 
-        event = self._event("evt_ref_canc", "charge.refunded", order.id, {"payment_intent": "pi_canc"})
+        event = self._event(
+            "evt_ref_canc", "charge.refunded", order.id, {"payment_intent": "pi_canc"}
+        )
         r = self._post(event)
         self.assertEqual(r.status_code, 200)
         order.refresh_from_db()
@@ -744,7 +781,9 @@ class StripeWebhookEdgeCaseTests(APITestCase):
     def test_checkout_completed_max_int_amount(self):
         """A very large amount_total should still work."""
         order = self._pending_order(total=Decimal("999999.99"))
-        event = self._event("evt_max", "checkout.session.completed", order.id, {"amount_total": 99999999})
+        event = self._event(
+            "evt_max", "checkout.session.completed", order.id, {"amount_total": 99999999}
+        )
         self._post(event)
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.PAID)
@@ -753,6 +792,7 @@ class StripeWebhookEdgeCaseTests(APITestCase):
 class MultiWarehouseStockTests(APITestCase):
     def setUp(self):
         from apps.catalog.models import Product, Warehouse, Category
+
         self.category = Category.objects.create(name="Multi-Warehouse Category")
         self.product = Product.objects.create(
             category=self.category,
@@ -761,7 +801,7 @@ class MultiWarehouseStockTests(APITestCase):
             sku="MW-PROD-1",
             stock=0,
         )
-        
+
         # Create two warehouses
         self.wh_east = Warehouse.objects.create(
             name="East Coast Hub",
@@ -776,6 +816,7 @@ class MultiWarehouseStockTests(APITestCase):
 
     def test_stock_aggregation(self):
         from apps.catalog.models import WarehouseStock
+
         # Set stock in East Coast Hub
         WarehouseStock.objects.create(
             warehouse=self.wh_east,
@@ -797,6 +838,7 @@ class MultiWarehouseStockTests(APITestCase):
     def test_order_fulfillment_from_specific_warehouse(self):
         from apps.catalog.models import WarehouseStock
         from apps.orders.services import create_order_and_items
+
         # East has 5, West has 20
         WarehouseStock.objects.create(
             warehouse=self.wh_east,
@@ -818,14 +860,14 @@ class MultiWarehouseStockTests(APITestCase):
             "shipping_country": "US",
         }
         items = [{"product_id": self.product.id, "quantity": 15}]
-        
+
         order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
         self.assertEqual(order.warehouse, self.wh_west)
-        
+
         # West Coast stock should be decremented to 5, East Coast remains 5
         wh_stock_west = WarehouseStock.objects.get(warehouse=self.wh_west, product=self.product)
         self.assertEqual(wh_stock_west.stock, 5)
-        
+
         wh_stock_east = WarehouseStock.objects.get(warehouse=self.wh_east, product=self.product)
         self.assertEqual(wh_stock_east.stock, 5)
 
@@ -836,6 +878,7 @@ class MultiWarehouseStockTests(APITestCase):
     def test_order_restocking_to_correct_warehouse(self):
         from apps.catalog.models import WarehouseStock
         from apps.orders.services import create_order_and_items
+
         # East has 5, West has 20
         WarehouseStock.objects.create(
             warehouse=self.wh_east,
@@ -857,13 +900,13 @@ class MultiWarehouseStockTests(APITestCase):
         }
         items = [{"product_id": self.product.id, "quantity": 15}]
         order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
-        
+
         # Cancel order should restock to West Coast Hub
         order.restock()
-        
+
         wh_stock_west = WarehouseStock.objects.get(warehouse=self.wh_west, product=self.product)
         self.assertEqual(wh_stock_west.stock, 20)
-        
+
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 25)
 
@@ -871,7 +914,10 @@ class MultiWarehouseStockTests(APITestCase):
 class StaffRefundWorkflowTests(APITestCase):
     def setUp(self):
         from apps.catalog.models import Category, Product, Warehouse, WarehouseStock
-        self.staff_user = User.objects.create_user(username="staff", password="pass12345", email="staff@test.com", is_staff=True)
+
+        self.staff_user = User.objects.create_user(
+            username="staff", password="pass12345", email="staff@test.com", is_staff=True
+        )
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -894,8 +940,9 @@ class StaffRefundWorkflowTests(APITestCase):
 
     def test_staff_can_process_refund_manually(self):
         from apps.orders.services import create_order_and_items
+
         self.client.force_authenticate(self.staff_user)
-        
+
         order_kwargs = {
             "shipping_full_name": "Jane Doe",
             "shipping_address": "456 St",
@@ -905,12 +952,12 @@ class StaffRefundWorkflowTests(APITestCase):
         }
         items = [{"product_id": self.product.id, "quantity": 3}]
         order, _ = create_order_and_items(order_kwargs=order_kwargs, items=items)
-        
+
         # Mark order paid so it can be refunded
         order.status = Order.Status.PAID
         order.stripe_payment_intent = "pi_mock_refund_123"
         order.save()
-        
+
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 7)
 
@@ -922,11 +969,11 @@ class StaffRefundWorkflowTests(APITestCase):
 
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.REFUNDED)
-        
+
         # Verify items were restocked to the correct warehouse
         self.wh_stock.refresh_from_db()
         self.assertEqual(self.wh_stock.stock, 10)
-        
+
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 10)
 
@@ -958,15 +1005,14 @@ class StripeCheckoutFailureTests(APITestCase):
         }
 
     def test_guest_checkout_stripe_failure_releases_stock_and_returns_502(self):
-        with patch(
-            "apps.orders.views.send_order_confirmation_task.delay"
-        ) as mock_email, patch(
-            "apps.orders.views.stripe.checkout.Session.create",
-            side_effect=stripe.error.StripeError("timeout"),
+        with (
+            patch("apps.orders.views.send_order_confirmation_task.delay") as mock_email,
+            patch(
+                "apps.orders.views.stripe.checkout.Session.create",
+                side_effect=stripe.error.StripeError("timeout"),
+            ),
         ):
-            res = self.client.post(
-                self.GUEST_URL, self._guest_payload(2), format="json"
-            )
+            res = self.client.post(self.GUEST_URL, self._guest_payload(2), format="json")
 
         # Clean 502 rather than an unhandled 500.
         self.assertEqual(res.status_code, status.HTTP_502_BAD_GATEWAY)
@@ -985,15 +1031,14 @@ class StripeCheckoutFailureTests(APITestCase):
 
     def test_guest_checkout_success_queues_email_and_returns_url(self):
         fake_session = MagicMock(id="cs_test_123", url="https://stripe.test/checkout")
-        with patch(
-            "apps.orders.views.send_order_confirmation_task.delay"
-        ) as mock_email, patch(
-            "apps.orders.views.stripe.checkout.Session.create",
-            return_value=fake_session,
+        with (
+            patch("apps.orders.views.send_order_confirmation_task.delay") as mock_email,
+            patch(
+                "apps.orders.views.stripe.checkout.Session.create",
+                return_value=fake_session,
+            ),
         ):
-            res = self.client.post(
-                self.GUEST_URL, self._guest_payload(2), format="json"
-            )
+            res = self.client.post(self.GUEST_URL, self._guest_payload(2), format="json")
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(res.data["url"], "https://stripe.test/checkout")
@@ -1011,7 +1056,9 @@ class StripeCheckoutFailureTests(APITestCase):
 
     def test_pay_stripe_failure_returns_502_and_keeps_order_pending(self):
         user = User.objects.create_user(
-            username="paybuyer", password="pass12345", email="paybuyer@test.com",
+            username="paybuyer",
+            password="pass12345",
+            email="paybuyer@test.com",
         )
         user.email_verified = True
         user.stripe_customer_id = "cus_existing"
@@ -1042,7 +1089,9 @@ class StripeCheckoutFailureTests(APITestCase):
 
     def test_pay_stripe_customer_create_failure_returns_502(self):
         user = User.objects.create_user(
-            username="newpayer", password="pass12345", email="newpayer@test.com",
+            username="newpayer",
+            password="pass12345",
+            email="newpayer@test.com",
         )
         user.email_verified = True
         user.save(update_fields=["email_verified"])
@@ -1073,12 +1122,18 @@ class GuestCheckoutCouponTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Coupon Cat")
         self.product = Product.objects.create(
-            category=self.category, name="Coupon Item",
-            price=Decimal("50.00"), stock=20, sku="CPN-1",
+            category=self.category,
+            name="Coupon Item",
+            price=Decimal("50.00"),
+            stock=20,
+            sku="CPN-1",
         )
         self.coupon = Coupon.objects.create(
-            code="SAVE10", discount_type=Coupon.DiscountType.PERCENT,
-            value=Decimal("10"), max_uses=5, min_order_amount=Decimal("30"),
+            code="SAVE10",
+            discount_type=Coupon.DiscountType.PERCENT,
+            value=Decimal("10"),
+            max_uses=5,
+            min_order_amount=Decimal("30"),
         )
 
     def _payload(self, **overrides):
@@ -1108,6 +1163,7 @@ class GuestCheckoutCouponTests(APITestCase):
 
     def test_guest_checkout_with_expired_coupon(self):
         from django.utils import timezone
+
         self.coupon.valid_until = timezone.now() - timezone.timedelta(days=1)
         self.coupon.save(update_fields=["valid_until"])
         res = self._checkout(self._payload())
@@ -1125,8 +1181,11 @@ class GuestCheckoutCouponTests(APITestCase):
 
     def test_guest_checkout_below_min_order(self):
         coupon_high = Coupon.objects.create(
-            code="HIGHMIN", discount_type=Coupon.DiscountType.FLAT,
-            value=Decimal("5"), max_uses=5, min_order_amount=Decimal("200"),
+            code="HIGHMIN",
+            discount_type=Coupon.DiscountType.FLAT,
+            value=Decimal("5"),
+            max_uses=5,
+            min_order_amount=Decimal("200"),
         )
         res = self._checkout(self._payload(coupon_code="HIGHMIN"))
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1148,8 +1207,10 @@ class GuestCheckoutCouponTests(APITestCase):
 
     def test_guest_checkout_flat_coupon_exceeds_subtotal(self):
         flat_coupon = Coupon.objects.create(
-            code="BIGFLAT", discount_type=Coupon.DiscountType.FLAT,
-            value=Decimal("999"), max_uses=5,
+            code="BIGFLAT",
+            discount_type=Coupon.DiscountType.FLAT,
+            value=Decimal("999"),
+            max_uses=5,
         )
         res = self._checkout(self._payload(coupon_code="BIGFLAT"))
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -1159,8 +1220,10 @@ class GuestCheckoutCouponTests(APITestCase):
     def test_guest_checkout_percent_coupon_rounding(self):
         """Percent discount requiring rounding (e.g. 7% of $50 = $3.50)."""
         pct_coupon = Coupon.objects.create(
-            code="PCT7", discount_type=Coupon.DiscountType.PERCENT,
-            value=Decimal("7"), max_uses=5,
+            code="PCT7",
+            discount_type=Coupon.DiscountType.PERCENT,
+            value=Decimal("7"),
+            max_uses=5,
         )
         res = self._checkout(self._payload(coupon_code="PCT7"))
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -1179,8 +1242,11 @@ class RateLimitTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Rate Limit Cat")
         self.product = Product.objects.create(
-            category=self.category, name="Rate Item",
-            price=Decimal("10.00"), stock=100, sku="RATE-1",
+            category=self.category,
+            name="Rate Item",
+            price=Decimal("10.00"),
+            stock=100,
+            sku="RATE-1",
         )
 
     def test_order_write_throttle_blocks_after_limit(self):
@@ -1202,10 +1268,22 @@ class RateLimitTests(APITestCase):
             "order_velocity": "10/min",
             "order_lookup": "30/min",
         }
-        with override_settings(REST_FRAMEWORK={"DEFAULT_THROTTLE_RATES": rates, "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",), "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",)}), \
-             patch.object(OrderWriteThrottle, 'THROTTLE_RATES', rates), \
-             patch.object(OrderVelocityThrottle, 'THROTTLE_RATES', rates):
-            user = User.objects.create_user(username="throttleuser", password="pass12345", email="throttle@test.com")
+        with (
+            override_settings(
+                REST_FRAMEWORK={
+                    "DEFAULT_THROTTLE_RATES": rates,
+                    "DEFAULT_AUTHENTICATION_CLASSES": (
+                        "rest_framework.authentication.SessionAuthentication",
+                    ),
+                    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+                }
+            ),
+            patch.object(OrderWriteThrottle, "THROTTLE_RATES", rates),
+            patch.object(OrderVelocityThrottle, "THROTTLE_RATES", rates),
+        ):
+            user = User.objects.create_user(
+                username="throttleuser", password="pass12345", email="throttle@test.com"
+            )
             user.email_verified = True
             user.save(update_fields=["email_verified"])
             self.client.force_authenticate(user)
@@ -1241,8 +1319,18 @@ class RateLimitTests(APITestCase):
             "order_velocity": "10/min",
             "order_lookup": "30/min",
         }
-        with override_settings(REST_FRAMEWORK={"DEFAULT_THROTTLE_RATES": rates, "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",), "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",)}):
-            user = User.objects.create_user(username="readuser", password="pass12345", email="read@test.com")
+        with override_settings(
+            REST_FRAMEWORK={
+                "DEFAULT_THROTTLE_RATES": rates,
+                "DEFAULT_AUTHENTICATION_CLASSES": (
+                    "rest_framework.authentication.SessionAuthentication",
+                ),
+                "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+            }
+        ):
+            user = User.objects.create_user(
+                username="readuser", password="pass12345", email="read@test.com"
+            )
             self.client.force_authenticate(user)
 
             for _ in range(5):
@@ -1268,19 +1356,35 @@ class RateLimitTests(APITestCase):
             "order_velocity": "10/min",
             "order_lookup": "30/min",
         }
-        with override_settings(REST_FRAMEWORK={"DEFAULT_THROTTLE_RATES": rates, "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",), "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",)}), \
-             patch.object(CouponAnonThrottle, 'THROTTLE_RATES', rates):
+        with (
+            override_settings(
+                REST_FRAMEWORK={
+                    "DEFAULT_THROTTLE_RATES": rates,
+                    "DEFAULT_AUTHENTICATION_CLASSES": (
+                        "rest_framework.authentication.SessionAuthentication",
+                    ),
+                    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+                }
+            ),
+            patch.object(CouponAnonThrottle, "THROTTLE_RATES", rates),
+        ):
             self.client.force_authenticate(None)
 
             # Anonymous: consume the coupon bucket (1/min)
-            r1 = self.client.post("/api/v1/coupons/validate/", {"code": "NONEXIST", "subtotal": "50"}, format="json")
+            r1 = self.client.post(
+                "/api/v1/coupons/validate/", {"code": "NONEXIST", "subtotal": "50"}, format="json"
+            )
             # Even with 1/min, this should work — bucket is per-IP not global
             self.assertEqual(r1.status_code, status.HTTP_200_OK)
 
             # Authenticated user: separate bucket, should still be allowed
-            user = User.objects.create_user(username="sepuser", password="pass12345", email="sep@test.com")
+            user = User.objects.create_user(
+                username="sepuser", password="pass12345", email="sep@test.com"
+            )
             self.client.force_authenticate(user)
-            r2 = self.client.post("/api/v1/coupons/validate/", {"code": "NONEXIST", "subtotal": "50"}, format="json")
+            r2 = self.client.post(
+                "/api/v1/coupons/validate/", {"code": "NONEXIST", "subtotal": "50"}, format="json"
+            )
             self.assertEqual(r2.status_code, status.HTTP_200_OK)
 
 
@@ -1297,15 +1401,22 @@ class ConcurrentCheckoutTests(APITestCase):
 
         self.category = Category.objects.create(name="Concurrent")
         self.product = Product.objects.create(
-            category=self.category, name="Race Item",
-            price=Decimal("10.00"), sku="RACE-1", stock=0,
+            category=self.category,
+            name="Race Item",
+            price=Decimal("10.00"),
+            sku="RACE-1",
+            stock=0,
         )
         self.warehouse = Warehouse.objects.create(
-            name="Race WH", code="RACE", is_active=True,
+            name="Race WH",
+            code="RACE",
+            is_active=True,
         )
         # Stock on the last unit to test exhaustion boundary
         self.wh_stock = WarehouseStock.objects.create(
-            warehouse=self.warehouse, product=self.product, stock=1,
+            warehouse=self.warehouse,
+            product=self.product,
+            stock=1,
         )
         self.product.refresh_from_db()
 
@@ -1316,14 +1427,19 @@ class ConcurrentCheckoutTests(APITestCase):
         from apps.orders.services import CheckoutError, create_order_and_items
 
         coupon = Coupon.objects.create(
-            code="LASER", discount_type=Coupon.DiscountType.FLAT,
-            value=Decimal("1"), max_uses=1,
+            code="LASER",
+            discount_type=Coupon.DiscountType.FLAT,
+            value=Decimal("1"),
+            max_uses=1,
         )
         # Create two warehouse stock entries so two orders can both pass stock check
         from apps.catalog.models import Warehouse, WarehouseStock
+
         wh2 = Warehouse.objects.create(name="Race WH2", code="RACE2", is_active=True)
         WarehouseStock.objects.create(
-            warehouse=wh2, product=self.product, stock=1,
+            warehouse=wh2,
+            product=self.product,
+            stock=1,
         )
 
         order_kwargs_base = {
@@ -1360,8 +1476,10 @@ class ConcurrentCheckoutTests(APITestCase):
         self.product.save(update_fields=["is_active"])
 
         order_kwargs = {
-            "shipping_full_name": "Test", "shipping_address": "123 St",
-            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_full_name": "Test",
+            "shipping_address": "123 St",
+            "shipping_city": "City",
+            "shipping_postal_code": "12345",
             "shipping_country": "US",
         }
         with self.assertRaises(CheckoutError) as ctx:
@@ -1377,8 +1495,10 @@ class ConcurrentCheckoutTests(APITestCase):
         from apps.orders.services import CheckoutError, create_order_and_items
 
         order_kwargs = {
-            "shipping_full_name": "Test", "shipping_address": "123 St",
-            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_full_name": "Test",
+            "shipping_address": "123 St",
+            "shipping_city": "City",
+            "shipping_postal_code": "12345",
             "shipping_country": "US",
         }
         with self.assertRaises(CheckoutError) as ctx:
@@ -1394,8 +1514,10 @@ class ConcurrentCheckoutTests(APITestCase):
         from apps.orders.services import create_order_and_items
 
         order_kwargs = {
-            "shipping_full_name": "Boundary Test", "shipping_address": "1 Boundary St",
-            "shipping_city": "Bound", "shipping_postal_code": "00000",
+            "shipping_full_name": "Boundary Test",
+            "shipping_address": "1 Boundary St",
+            "shipping_city": "Bound",
+            "shipping_postal_code": "00000",
             "shipping_country": "US",
         }
         order, items = create_order_and_items(
@@ -1411,8 +1533,10 @@ class ConcurrentCheckoutTests(APITestCase):
         from apps.orders.services import CheckoutError, create_order_and_items
 
         order_kwargs = {
-            "shipping_full_name": "Over Test", "shipping_address": "2 Over St",
-            "shipping_city": "Over", "shipping_postal_code": "00001",
+            "shipping_full_name": "Over Test",
+            "shipping_address": "2 Over St",
+            "shipping_city": "Over",
+            "shipping_postal_code": "00001",
             "shipping_country": "US",
         }
         with self.assertRaises(CheckoutError):
@@ -1446,12 +1570,16 @@ class OversellStockGuardTests(APITestCase):
             stock=0,
         )
         self.warehouse = Warehouse.objects.create(
-            name="Solo Warehouse", code="SOLO", is_active=True,
+            name="Solo Warehouse",
+            code="SOLO",
+            is_active=True,
         )
         # Pre-create the stock row so the get_or_create calls in checkout fetch
         # it (no save), leaving only the explicit decrement save() to fail.
         self.wh_stock = WarehouseStock.objects.create(
-            warehouse=self.warehouse, product=self.product, stock=5,
+            warehouse=self.warehouse,
+            product=self.product,
+            stock=5,
         )
         self.product.refresh_from_db()
 
@@ -1491,9 +1619,7 @@ class OversellStockGuardTests(APITestCase):
             "save",
             side_effect=IntegrityError("warehouse_stock_non_negative"),
         ):
-            res = self.client.post(
-                "/api/v1/orders/guest-checkout/", payload, format="json"
-            )
+            res = self.client.post("/api/v1/orders/guest-checkout/", payload, format="json")
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Order.objects.count(), 0)
@@ -1504,7 +1630,10 @@ class OversellStockGuardTests(APITestCase):
 class ProductVariantOrderTests(APITestCase):
     def setUp(self):
         from apps.catalog.models import Category, Product, ProductVariant, Warehouse, WarehouseStock
-        self.user = User.objects.create_user(username="variantbuyer", password="pass12345", email="variantbuyer@test.com")
+
+        self.user = User.objects.create_user(
+            username="variantbuyer", password="pass12345", email="variantbuyer@test.com"
+        )
         self.category = Category.objects.create(name="Shirts")
         self.product = Product.objects.create(
             category=self.category,
@@ -1552,6 +1681,7 @@ class ProductVariantOrderTests(APITestCase):
 
     def test_checkout_multiple_variants_success(self):
         from apps.orders.services import create_order_and_items
+
         order_kwargs = {
             "user": self.user,
             "shipping_full_name": "Variant Test",
@@ -1564,17 +1694,17 @@ class ProductVariantOrderTests(APITestCase):
             {"product_id": self.product.id, "quantity": 2, "variant_id": self.variant_red.id},
             {"product_id": self.product.id, "quantity": 3, "variant_id": self.variant_blue.id},
         ]
-        
+
         # Verify no constraint error is thrown when placing an order with multiple variants
         order, order_items = create_order_and_items(order_kwargs=order_kwargs, items=items)
         self.assertEqual(order.items.count(), 2)
-        
+
         # Verify stock was decremented correctly
         self.stock_red.refresh_from_db()
         self.stock_blue.refresh_from_db()
         self.assertEqual(self.stock_red.stock, 8)
         self.assertEqual(self.stock_blue.stock, 7)
-        
+
         # Verify variant properties are assigned on order items
         red_item = order.items.get(variant=self.variant_red)
         blue_item = order.items.get(variant=self.variant_blue)
@@ -1602,11 +1732,11 @@ class ProductVariantOrderTests(APITestCase):
             "shipping_country": "US",
         }
         self.client.force_authenticate(None)
-        
+
         with patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session):
             res = self.client.post("/api/v1/orders/guest-checkout/", payload, format="json")
             self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-            
+
         order = Order.objects.get(guest_email="guestvar@test.com")
         self.assertEqual(order.items.first().variant, self.variant_red)
 
@@ -1617,8 +1747,11 @@ class TrackingTests(APITestCase):
         self.user = User.objects.create_user("user", "user@test.com", "pass")
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
-            category=self.category, name="Widget", price=Decimal("10.00"),
-            stock=5, sku="TRK-001",
+            category=self.category,
+            name="Widget",
+            price=Decimal("10.00"),
+            stock=5,
+            sku="TRK-001",
         )
         self.order = Order.objects.create(
             user=self.user,
@@ -1633,12 +1766,20 @@ class TrackingTests(APITestCase):
 
     def test_non_staff_cannot_update_tracking(self):
         self.client.force_authenticate(self.user)
-        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "1Z999AA10123456784"}, format="json")
+        res = self.client.patch(
+            f"/api/v1/orders/{self.order.id}/tracking/",
+            {"tracking_number": "1Z999AA10123456784"},
+            format="json",
+        )
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_staff_can_set_tracking(self):
         self.client.force_authenticate(self.staff)
-        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "1Z999AA10123456784", "carrier": "ups"}, format="json")
+        res = self.client.patch(
+            f"/api/v1/orders/{self.order.id}/tracking/",
+            {"tracking_number": "1Z999AA10123456784", "carrier": "ups"},
+            format="json",
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.order.refresh_from_db()
         self.assertEqual(self.order.tracking_number, "1Z999AA10123456784")
@@ -1646,12 +1787,18 @@ class TrackingTests(APITestCase):
 
     def test_tracking_requires_number(self):
         self.client.force_authenticate(self.staff)
-        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"carrier": "fedex"}, format="json")
+        res = self.client.patch(
+            f"/api/v1/orders/{self.order.id}/tracking/", {"carrier": "fedex"}, format="json"
+        )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_tracking_rejects_invalid_carrier(self):
         self.client.force_authenticate(self.staff)
-        res = self.client.patch(f"/api/v1/orders/{self.order.id}/tracking/", {"tracking_number": "ABC123", "carrier": "dhl"}, format="json")
+        res = self.client.patch(
+            f"/api/v1/orders/{self.order.id}/tracking/",
+            {"tracking_number": "ABC123", "carrier": "dhl"},
+            format="json",
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.order.refresh_from_db()
         self.assertEqual(self.order.carrier, "dhl")

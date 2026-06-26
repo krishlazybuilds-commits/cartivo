@@ -259,27 +259,32 @@ def update_cached_stock(product_id, variant_id=None):
 
     if variant_id:
         # Sum stock across all active warehouses for this variant
-        total_stock = WarehouseStock.objects.filter(
-            variant_id=variant_id,
-            warehouse__is_active=True
-        ).aggregate(total=Sum("stock"))["total"] or 0
-        
+        total_stock = (
+            WarehouseStock.objects.filter(
+                variant_id=variant_id, warehouse__is_active=True
+            ).aggregate(total=Sum("stock"))["total"]
+            or 0
+        )
+
         # Update variant's stock
         ProductVariant.objects.filter(id=variant_id).update(stock=total_stock)
-        
+
         # Also update the base product's stock (sum of all its active variants' stocks)
-        total_product_stock = ProductVariant.objects.filter(
-            product_id=product_id,
-            is_active=True
-        ).aggregate(total=Sum("stock"))["total"] or 0
+        total_product_stock = (
+            ProductVariant.objects.filter(product_id=product_id, is_active=True).aggregate(
+                total=Sum("stock")
+            )["total"]
+            or 0
+        )
         Product.objects.filter(id=product_id).update(stock=total_product_stock)
     else:
         # Sum stock across all active warehouses for this product
-        total_stock = WarehouseStock.objects.filter(
-            product_id=product_id,
-            variant__isnull=True,
-            warehouse__is_active=True
-        ).aggregate(total=Sum("stock"))["total"] or 0
+        total_stock = (
+            WarehouseStock.objects.filter(
+                product_id=product_id, variant__isnull=True, warehouse__is_active=True
+            ).aggregate(total=Sum("stock"))["total"]
+            or 0
+        )
         Product.objects.filter(id=product_id).update(stock=total_stock)
 
 
@@ -357,4 +362,3 @@ class WarehouseStock(models.Model):
     def __str__(self) -> str:
         item = self.variant if self.variant else self.product
         return f"{item} in {self.warehouse.name}: {self.stock}"
-

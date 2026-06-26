@@ -47,8 +47,11 @@ class CatalogReadTests(APITestCase):
 
     def test_search_products(self):
         Product.objects.create(
-            category=self.category, name="Boring Thing", price=Decimal("5.00"),
-            stock=1, sku="BOR-1",
+            category=self.category,
+            name="Boring Thing",
+            price=Decimal("5.00"),
+            stock=1,
+            sku="BOR-1",
         )
         res = self.client.get("/api/v1/products/?search=widget")
         results = res.data["results"] if "results" in res.data else res.data
@@ -80,8 +83,11 @@ class CatalogReadTests(APITestCase):
     def test_filter_by_category(self):
         other = Category.objects.create(name="Other")
         Product.objects.create(
-            category=other, name="Other Item", price=Decimal("5.00"),
-            stock=1, sku="OTH-1",
+            category=other,
+            name="Other Item",
+            price=Decimal("5.00"),
+            stock=1,
+            sku="OTH-1",
         )
         res = self.client.get(f"/api/v1/products/?category={self.category.id}")
         results = res.data["results"] if "results" in res.data else res.data
@@ -91,8 +97,12 @@ class CatalogReadTests(APITestCase):
 class CatalogWriteTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Gadgets")
-        self.user = User.objects.create_user(username="normal", password="pass12345", email="normal@test.com")
-        self.admin = User.objects.create_superuser(username="admin", password="pass12345", email="admin@test.com")
+        self.user = User.objects.create_user(
+            username="normal", password="pass12345", email="normal@test.com"
+        )
+        self.admin = User.objects.create_superuser(
+            username="admin", password="pass12345", email="admin@test.com"
+        )
         self.payload = {
             "category": self.category.id,
             "name": "New Widget",
@@ -151,9 +161,7 @@ class WishlistTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_add_returns_401(self):
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_delete_returns_401(self):
@@ -162,20 +170,14 @@ class WishlistTests(APITestCase):
 
     def test_add_item_to_wishlist(self):
         self.client.force_authenticate(user=self.user)
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(WishlistItem.objects.count(), 1)
-        self.assertEqual(
-            WishlistItem.objects.first().user, self.user
-        )
+        self.assertEqual(WishlistItem.objects.first().user, self.user)
 
     def test_add_item_returns_product_fields(self):
         self.client.force_authenticate(user=self.user)
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertIn("product_name", res.data)
         self.assertEqual(res.data["product_name"], "Widget")
@@ -185,16 +187,12 @@ class WishlistTests(APITestCase):
     def test_duplicate_item_returns_400(self):
         self.client.force_authenticate(user=self.user)
         self.client.post(self.list_url, {"product": self.prod.id}, format="json")
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_add_nonexistent_product_returns_400(self):
         self.client.force_authenticate(user=self.user)
-        res = self.client.post(
-            self.list_url, {"product": 99999}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": 99999}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_list_returns_users_items(self):
@@ -219,9 +217,7 @@ class WishlistTests(APITestCase):
 
     def test_remove_item_from_wishlist(self):
         self.client.force_authenticate(user=self.user)
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         item_id = res.data["id"]
         res = self.client.delete(f"{self.list_url}{item_id}/")
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -229,9 +225,7 @@ class WishlistTests(APITestCase):
 
     def test_remove_others_item_returns_404(self):
         self.client.force_authenticate(user=self.user)
-        res = self.client.post(
-            self.list_url, {"product": self.prod.id}, format="json"
-        )
+        res = self.client.post(self.list_url, {"product": self.prod.id}, format="json")
         item_id = res.data["id"]
         self.client.force_authenticate(user=self.other)
         res = self.client.delete(f"{self.list_url}{item_id}/")
@@ -252,6 +246,7 @@ class LowStockAlertTaskTests(APITestCase):
             sku="BASE-SKU",
         )
         from apps.catalog.models import ProductVariant
+
         self.variant = ProductVariant.objects.create(
             product=self.prod,
             name="Variant Product",
@@ -263,8 +258,9 @@ class LowStockAlertTaskTests(APITestCase):
     @patch("apps.catalog.tasks.send_html_email")
     def test_base_product_low_stock_email_sent(self, mock_send_mail):
         from apps.catalog.tasks import send_low_stock_alert_task
+
         send_low_stock_alert_task(self.prod.id)
-        
+
         mock_send_mail.assert_called_once()
         kwargs = mock_send_mail.call_args[1]
         self.assertIn("Base Product", kwargs["subject"])
@@ -274,8 +270,9 @@ class LowStockAlertTaskTests(APITestCase):
     @patch("apps.catalog.tasks.send_html_email")
     def test_variant_low_stock_email_sent(self, mock_send_mail):
         from apps.catalog.tasks import send_low_stock_alert_task
+
         send_low_stock_alert_task(self.prod.id, variant_id=self.variant.id)
-        
+
         mock_send_mail.assert_called_once()
         kwargs = mock_send_mail.call_args[1]
         self.assertIn("Base Product — Variant Product", kwargs["subject"])
@@ -293,27 +290,43 @@ class ReviewModerationTests(APITestCase):
         )
         self.cat = Category.objects.create(name="Review Cat")
         self.product = Product.objects.create(
-            category=self.cat, name="Reviewable", price=Decimal("15.00"),
-            stock=5, sku="REV-001",
+            category=self.cat,
+            name="Reviewable",
+            price=Decimal("15.00"),
+            stock=5,
+            sku="REV-001",
         )
 
     def test_new_review_defaults_to_pending(self):
         self.client.force_authenticate(self.user)
-        res = self.client.post("/api/v1/reviews/", {
-            "product": self.product.id, "rating": 5, "title": "Great", "body": "Love it",
-        }, format="json")
+        res = self.client.post(
+            "/api/v1/reviews/",
+            {
+                "product": self.product.id,
+                "rating": 5,
+                "title": "Great",
+                "body": "Love it",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(res.data["status"], "pending")
         self.assertEqual(Review.objects.count(), 1)
 
     def test_public_list_excludes_pending_reviews(self):
         Review.objects.create(
-            product=self.product, user=self.user, rating=4,
-            title="Approved", status=Review.Status.APPROVED,
+            product=self.product,
+            user=self.user,
+            rating=4,
+            title="Approved",
+            status=Review.Status.APPROVED,
         )
         Review.objects.create(
-            product=self.product, user=self.admin, rating=2,
-            title="Pending", status=Review.Status.PENDING,
+            product=self.product,
+            user=self.admin,
+            rating=2,
+            title="Pending",
+            status=Review.Status.PENDING,
         )
         res = self.client.get(f"/api/v1/reviews/?product={self.product.id}")
         results = res.data["results"] if "results" in res.data else res.data
@@ -323,12 +336,18 @@ class ReviewModerationTests(APITestCase):
 
     def test_staff_sees_all_reviews(self):
         Review.objects.create(
-            product=self.product, user=self.user, rating=4,
-            title="Approved", status=Review.Status.APPROVED,
+            product=self.product,
+            user=self.user,
+            rating=4,
+            title="Approved",
+            status=Review.Status.APPROVED,
         )
         Review.objects.create(
-            product=self.product, user=self.admin, rating=2,
-            title="Pending", status=Review.Status.PENDING,
+            product=self.product,
+            user=self.admin,
+            rating=2,
+            title="Pending",
+            status=Review.Status.PENDING,
         )
         self.client.force_authenticate(self.admin)
         res = self.client.get(f"/api/v1/reviews/?product={self.product.id}")
@@ -337,12 +356,18 @@ class ReviewModerationTests(APITestCase):
 
     def test_staff_can_filter_by_status(self):
         Review.objects.create(
-            product=self.product, user=self.user, rating=4,
-            title="Approved", status=Review.Status.APPROVED,
+            product=self.product,
+            user=self.user,
+            rating=4,
+            title="Approved",
+            status=Review.Status.APPROVED,
         )
         Review.objects.create(
-            product=self.product, user=self.admin, rating=2,
-            title="Pending", status=Review.Status.PENDING,
+            product=self.product,
+            user=self.admin,
+            rating=2,
+            title="Pending",
+            status=Review.Status.PENDING,
         )
         self.client.force_authenticate(self.admin)
         res = self.client.get(f"/api/v1/reviews/?status=pending")
@@ -352,7 +377,9 @@ class ReviewModerationTests(APITestCase):
 
     def test_approve_action_sets_approved(self):
         review = Review.objects.create(
-            product=self.product, user=self.user, rating=3,
+            product=self.product,
+            user=self.user,
+            rating=3,
             title="Needs Approval",
         )
         self.client.force_authenticate(self.admin)
@@ -363,7 +390,9 @@ class ReviewModerationTests(APITestCase):
 
     def test_reject_action_sets_rejected(self):
         review = Review.objects.create(
-            product=self.product, user=self.user, rating=3,
+            product=self.product,
+            user=self.user,
+            rating=3,
             title="Needs Rejection",
         )
         self.client.force_authenticate(self.admin)
@@ -374,7 +403,9 @@ class ReviewModerationTests(APITestCase):
 
     def test_non_staff_cannot_approve(self):
         review = Review.objects.create(
-            product=self.product, user=self.user, rating=3,
+            product=self.product,
+            user=self.user,
+            rating=3,
             title="Mine",
         )
         self.client.force_authenticate(self.user)
@@ -383,11 +414,15 @@ class ReviewModerationTests(APITestCase):
 
     def test_user_can_update_own_pending_review(self):
         review = Review.objects.create(
-            product=self.product, user=self.user, rating=2,
+            product=self.product,
+            user=self.user,
+            rating=2,
             title="Old Title",
         )
         self.client.force_authenticate(self.user)
-        res = self.client.patch(f"/api/v1/reviews/{review.id}/", {"title": "Updated"}, format="json")
+        res = self.client.patch(
+            f"/api/v1/reviews/{review.id}/", {"title": "Updated"}, format="json"
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         review.refresh_from_db()
         self.assertEqual(review.title, "Updated")
@@ -401,7 +436,11 @@ class WarehouseTests(APITestCase):
         self.user = User.objects.create_user("user", "user@test.com", "pass")
         self.category = Category.objects.create(name="Warehouse Test Cat")
         self.product = Product.objects.create(
-            category=self.category, name="Test Product", price=Decimal("10.00"), stock=10, sku="WH-TP",
+            category=self.category,
+            name="Test Product",
+            price=Decimal("10.00"),
+            stock=10,
+            sku="WH-TP",
         )
 
     def test_non_staff_cannot_create_warehouse(self):
@@ -484,21 +523,30 @@ class RelatedProductsTests(APITestCase):
         self.category = Category.objects.create(name="Tech")
         self.other_cat = Category.objects.create(name="Books")
         self.product = Product.objects.create(
-            category=self.category, name="Main Product",
-            price=Decimal("20.00"), stock=5, sku="MAIN-01",
+            category=self.category,
+            name="Main Product",
+            price=Decimal("20.00"),
+            stock=5,
+            sku="MAIN-01",
         )
         # 3 related products in same category
         self.related = []
         for i in range(3):
             p = Product.objects.create(
-                category=self.category, name=f"Related {i}",
-                price=Decimal(f"{10 + i}.00"), stock=3, sku=f"REL-{i:02d}",
+                category=self.category,
+                name=f"Related {i}",
+                price=Decimal(f"{10 + i}.00"),
+                stock=3,
+                sku=f"REL-{i:02d}",
             )
             self.related.append(p)
         # 1 product in different category (should NOT be related)
         self.unrelated = Product.objects.create(
-            category=self.other_cat, name="Unrelated",
-            price=Decimal("15.00"), stock=2, sku="UNREL-01",
+            category=self.other_cat,
+            name="Unrelated",
+            price=Decimal("15.00"),
+            stock=2,
+            sku="UNREL-01",
         )
 
     def test_related_returns_same_category_products(self):
@@ -518,12 +566,18 @@ class RelatedProductsTests(APITestCase):
     def test_related_returns_max_four(self):
         # Add a 4th product to same category
         Product.objects.create(
-            category=self.category, name="Related 4",
-            price=Decimal("14.00"), stock=3, sku="REL-04",
+            category=self.category,
+            name="Related 4",
+            price=Decimal("14.00"),
+            stock=3,
+            sku="REL-04",
         )
         Product.objects.create(
-            category=self.category, name="Related 5",
-            price=Decimal("15.00"), stock=3, sku="REL-05",
+            category=self.category,
+            name="Related 5",
+            price=Decimal("15.00"),
+            stock=3,
+            sku="REL-05",
         )
         res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
         self.assertLessEqual(len(res.data), 4)
@@ -531,8 +585,11 @@ class RelatedProductsTests(APITestCase):
     def test_related_empty_when_alone_in_category(self):
         empty_cat = Category.objects.create(name="Empty Cat")
         lone = Product.objects.create(
-            category=empty_cat, name="Lone Wolf",
-            price=Decimal("99.00"), stock=1, sku="LONE-01",
+            category=empty_cat,
+            name="Lone Wolf",
+            price=Decimal("99.00"),
+            stock=1,
+            sku="LONE-01",
         )
         res = self.client.get(f"/api/v1/products/{lone.slug}/related/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -546,10 +603,14 @@ class RelatedProductsTests(APITestCase):
         # Add a review to one of the related products
         user = get_user_model().objects.create_user("rater", "rater@test.com", "pass")
         from apps.catalog.models import Review
+
         rated = self.related[0]
         Review.objects.create(
-            product=rated, user=user, rating=5,
-            title="Great", status=Review.Status.APPROVED,
+            product=rated,
+            user=user,
+            rating=5,
+            title="Great",
+            status=Review.Status.APPROVED,
         )
         res = self.client.get(f"/api/v1/products/{self.product.slug}/related/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -565,8 +626,11 @@ class ProductFlagsTests(APITestCase):
         self.user = User.objects.create_user("user", "user@test.com", "pass")
         self.category = Category.objects.create(name="Flags Cat")
         self.product = Product.objects.create(
-            category=self.category, name="Base", price=Decimal("20.00"),
-            stock=5, sku="FLAG-01",
+            category=self.category,
+            name="Base",
+            price=Decimal("20.00"),
+            stock=5,
+            sku="FLAG-01",
         )
 
     def test_effective_price_returns_price_when_not_on_sale(self):
@@ -599,8 +663,22 @@ class ProductFlagsTests(APITestCase):
         self.assertEqual(self.product.display_badge, "Limited")
 
     def test_filter_by_is_featured(self):
-        Product.objects.create(category=self.category, name="Featured", price=10, stock=1, sku="FEAT-01", is_featured=True)
-        Product.objects.create(category=self.category, name="Normal", price=10, stock=1, sku="NORM-01", is_featured=False)
+        Product.objects.create(
+            category=self.category,
+            name="Featured",
+            price=10,
+            stock=1,
+            sku="FEAT-01",
+            is_featured=True,
+        )
+        Product.objects.create(
+            category=self.category,
+            name="Normal",
+            price=10,
+            stock=1,
+            sku="NORM-01",
+            is_featured=False,
+        )
         self.client.force_authenticate(self.staff)
         res = self.client.get("/api/v1/products/?is_featured=true")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -633,8 +711,11 @@ class WarehouseStockEdgeCaseTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="WH Edge")
         self.product = Product.objects.create(
-            category=self.category, name="WH Product",
-            price=Decimal("10.00"), sku="WH-EDGE-1", stock=5,
+            category=self.category,
+            name="WH Product",
+            price=Decimal("10.00"),
+            sku="WH-EDGE-1",
+            stock=5,
         )
 
     def test_no_active_warehouses_auto_creates_central(self):
@@ -644,8 +725,10 @@ class WarehouseStockEdgeCaseTests(APITestCase):
         Warehouse.objects.all().delete()
 
         order_kwargs = {
-            "shipping_full_name": "Test", "shipping_address": "123 St",
-            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_full_name": "Test",
+            "shipping_address": "123 St",
+            "shipping_city": "City",
+            "shipping_postal_code": "12345",
             "shipping_country": "US",
         }
         order, _ = create_order_and_items(
@@ -667,8 +750,10 @@ class WarehouseStockEdgeCaseTests(APITestCase):
         WarehouseStock.objects.create(warehouse=wh_active, product=self.product, stock=3)
 
         order_kwargs = {
-            "shipping_full_name": "Test", "shipping_address": "123 St",
-            "shipping_city": "City", "shipping_postal_code": "12345",
+            "shipping_full_name": "Test",
+            "shipping_address": "123 St",
+            "shipping_city": "City",
+            "shipping_postal_code": "12345",
             "shipping_country": "US",
         }
         items = [{"product_id": self.product.id, "quantity": 3}]
@@ -689,8 +774,10 @@ class WarehouseStockEdgeCaseTests(APITestCase):
         WarehouseStock.objects.create(warehouse=wh, product=self.product, stock=5)
 
         order_kwargs = {
-            "shipping_full_name": "Exact Test", "shipping_address": "5 Exact St",
-            "shipping_city": "Exact", "shipping_postal_code": "55555",
+            "shipping_full_name": "Exact Test",
+            "shipping_address": "5 Exact St",
+            "shipping_city": "Exact",
+            "shipping_postal_code": "55555",
             "shipping_country": "US",
         }
         order, _ = create_order_and_items(
@@ -710,8 +797,10 @@ class WarehouseStockEdgeCaseTests(APITestCase):
         WarehouseStock.objects.create(warehouse=wh, product=self.product, stock=3)
 
         order_kwargs = {
-            "shipping_full_name": "Over Test", "shipping_address": "99 Over St",
-            "shipping_city": "Over", "shipping_postal_code": "99999",
+            "shipping_full_name": "Over Test",
+            "shipping_address": "99 Over St",
+            "shipping_city": "Over",
+            "shipping_postal_code": "99999",
             "shipping_country": "US",
         }
         with self.assertRaises(CheckoutError):

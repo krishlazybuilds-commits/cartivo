@@ -7,37 +7,84 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0008_add_product_image'),
+        ("catalog", "0008_add_product_image"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Warehouse',
+            name="Warehouse",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('code', models.CharField(max_length=50, unique=True)),
-                ('address', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("code", models.CharField(max_length=50, unique=True)),
+                ("address", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='WarehouseStock',
+            name="WarehouseStock",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('stock', models.PositiveIntegerField(default=0)),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='warehouse_stocks', to='catalog.product')),
-                ('variant', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='warehouse_stocks', to='catalog.productvariant')),
-                ('warehouse', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='stocks', to='catalog.warehouse')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("stock", models.PositiveIntegerField(default=0)),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="warehouse_stocks",
+                        to="catalog.product",
+                    ),
+                ),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="warehouse_stocks",
+                        to="catalog.productvariant",
+                    ),
+                ),
+                (
+                    "warehouse",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="stocks",
+                        to="catalog.warehouse",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['warehouse', 'product', 'variant'],
-                'constraints': [models.UniqueConstraint(condition=models.Q(('variant__isnull', True)), fields=('warehouse', 'product'), name='unique_warehouse_product_stock'), models.UniqueConstraint(condition=models.Q(('variant__isnull', False)), fields=('warehouse', 'variant'), name='unique_warehouse_variant_stock'), models.CheckConstraint(condition=models.Q(('stock__gte', 0)), name='warehouse_stock_non_negative')],
+                "ordering": ["warehouse", "product", "variant"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(("variant__isnull", True)),
+                        fields=("warehouse", "product"),
+                        name="unique_warehouse_product_stock",
+                    ),
+                    models.UniqueConstraint(
+                        condition=models.Q(("variant__isnull", False)),
+                        fields=("warehouse", "variant"),
+                        name="unique_warehouse_variant_stock",
+                    ),
+                    models.CheckConstraint(
+                        condition=models.Q(("stock__gte", 0)), name="warehouse_stock_non_negative"
+                    ),
+                ],
             },
         ),
     ]

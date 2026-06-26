@@ -1024,6 +1024,7 @@ flake8
 | 2 | Create per-app `constants.py` files for scattered constants; update all imports | `a70d5c5` |
 | 3 | Add `pyproject.toml` with `black` + `flake8` config | `5326761` |
 | 4 | Add `black` and `flake8` to `requirements.txt` | `ba45835` |
+| 5 | Run `black .` to auto-format entire codebase | `c60ff97` |
 
 ---
 
@@ -1031,8 +1032,6 @@ flake8
 
 | # | Priority | Action | Effort | Files Affected |
 |---|----------|--------|--------|----------------|
-| 5 | **Medium** | Run `black .` to auto-format entire codebase | Low | All `.py` files |
-| 5 | **Medium** | Run `black .` to auto-format entire codebase | Low | All `.py` files |
 | 6 | **Medium** | Run `flake8` and fix any reported issues | Medium | Varies |
 | 7 | **Low** | Audit all views/serializers for missing docstrings | Medium | Multiple files |
 

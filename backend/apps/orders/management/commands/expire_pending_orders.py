@@ -45,9 +45,9 @@ class Command(BaseCommand):
         cutoff = timezone.now() - timezone.timedelta(minutes=minutes)
 
         stale_ids = list(
-            Order.objects.filter(
-                status=Order.Status.PENDING, created_at__lt=cutoff
-            ).values_list("id", flat=True)
+            Order.objects.filter(status=Order.Status.PENDING, created_at__lt=cutoff).values_list(
+                "id", flat=True
+            )
         )
 
         if not stale_ids:
@@ -66,9 +66,7 @@ class Command(BaseCommand):
             if self._expire_one(order_id):
                 expired += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Expired and restocked {expired} pending order(s).")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Expired and restocked {expired} pending order(s)."))
 
     def _expire_one(self, order_id) -> bool:
         """Cancel + restock a single order under a row lock. Returns True if changed."""

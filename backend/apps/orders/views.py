@@ -20,7 +20,14 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 from apps.cart.models import Cart
 from apps.catalog.models import Product
 from apps.accounts.authentication import enforce_csrf
-from config.throttling import OrderWriteThrottle, PaymentThrottle, CouponAnonThrottle, ShippingEstimateAnonThrottle, OrderVelocityThrottle, OrderLookupThrottle
+from config.throttling import (
+    OrderWriteThrottle,
+    PaymentThrottle,
+    CouponAnonThrottle,
+    ShippingEstimateAnonThrottle,
+    OrderVelocityThrottle,
+    OrderLookupThrottle,
+)
 
 from .models import Coupon, Order, OrderItem, StripeEvent
 from .stripe_ip import validate_stripe_ip
@@ -72,6 +79,7 @@ def _release_pending_order(order_id):
 
 class DashboardView(APIView):
     """Staff-only sales analytics summary."""
+
     permission_classes = [permissions.IsAdminUser]
 
     @extend_schema(summary="Admin dashboard stats", tags=["orders"])
@@ -97,39 +105,43 @@ class DashboardView(APIView):
         )
 
         status_counts = {
-            s: Order.objects.filter(status=s).count()
-            for s in [st.value for st in Order.Status]
+            s: Order.objects.filter(status=s).count() for s in [st.value for st in Order.Status]
         }
 
         top_products = (
-            OrderItem.objects
-            .filter(order__status__in=paid_statuses)
+            OrderItem.objects.filter(order__status__in=paid_statuses)
             .values("product__name", "variant__name")
-            .annotate(units=Sum("quantity"), revenue=Sum(
-                django_models.ExpressionWrapper(
-                    django_models.F("unit_price") * django_models.F("quantity"),
-                    output_field=django_models.DecimalField()
-                )
-            ))
+            .annotate(
+                units=Sum("quantity"),
+                revenue=Sum(
+                    django_models.ExpressionWrapper(
+                        django_models.F("unit_price") * django_models.F("quantity"),
+                        output_field=django_models.DecimalField(),
+                    )
+                ),
+            )
             .order_by("-units")[:5]
         )
 
-        return Response({
-            "all_time": {
-                "revenue": totals["revenue"] or 0,
-                "orders": totals["orders"] or 0,
-            },
-            "last_30_days": {
-                "revenue": monthly["revenue"] or 0,
-                "orders": monthly["orders"] or 0,
-            },
-            "by_status": status_counts,
-            "top_products": list(top_products),
-        })
+        return Response(
+            {
+                "all_time": {
+                    "revenue": totals["revenue"] or 0,
+                    "orders": totals["orders"] or 0,
+                },
+                "last_30_days": {
+                    "revenue": monthly["revenue"] or 0,
+                    "orders": monthly["orders"] or 0,
+                },
+                "by_status": status_counts,
+                "top_products": list(top_products),
+            }
+        )
 
 
 class CouponViewSet(viewsets.ModelViewSet):
     """Staff-only CRUD for coupons."""
+
     queryset = Coupon.objects.all().order_by("-created_at")
     serializer_class = CouponSerializer
     permission_classes = [permissions.IsAdminUser]
@@ -143,6 +155,7 @@ class ShippingEstimateView(APIView):
     Open to all (guests and authenticated users alike). Used to show an
     estimated total on the cart and product pages before checkout.
     """
+
     permission_classes = [AllowAny]
     throttle_classes = [ShippingEstimateAnonThrottle]
 
@@ -175,6 +188,7 @@ class ValidateCouponView(APIView):
     Open to all (guests and authenticated users). Used on the frontend to show
     the discount before the user submits the checkout form.
     """
+
     permission_classes = [AllowAny]
     throttle_classes = [CouponAnonThrottle]
 
@@ -194,35 +208,41 @@ class ValidateCouponView(APIView):
         try:
             coupon = Coupon.objects.get(code__iexact=code)
         except Coupon.DoesNotExist:
-            return Response({
-                "valid": False,
-                "code": code,
-                "discount_type": "",
-                "value": 0,
-                "discount_amount": 0,
-                "message": "Invalid coupon code.",
-            })
+            return Response(
+                {
+                    "valid": False,
+                    "code": code,
+                    "discount_type": "",
+                    "value": 0,
+                    "discount_amount": 0,
+                    "message": "Invalid coupon code.",
+                }
+            )
 
         valid, reason = coupon.is_valid(subtotal)
         if not valid:
-            return Response({
-                "valid": False,
-                "code": code,
-                "discount_type": coupon.discount_type,
-                "value": coupon.value,
-                "discount_amount": 0,
-                "message": reason,
-            })
+            return Response(
+                {
+                    "valid": False,
+                    "code": code,
+                    "discount_type": coupon.discount_type,
+                    "value": coupon.value,
+                    "discount_amount": 0,
+                    "message": reason,
+                }
+            )
 
         discount_amount = coupon.calculate_discount(subtotal)
-        return Response({
-            "valid": True,
-            "code": coupon.code,
-            "discount_type": coupon.discount_type,
-            "value": coupon.value,
-            "discount_amount": discount_amount,
-            "message": f"Coupon applied! You save ${discount_amount:.2f}.",
-        })
+        return Response(
+            {
+                "valid": True,
+                "code": coupon.code,
+                "discount_type": coupon.discount_type,
+                "value": coupon.value,
+                "discount_amount": discount_amount,
+                "message": f"Coupon applied! You save ${discount_amount:.2f}.",
+            }
+        )
 
 
 @extend_schema_view(
@@ -285,11 +305,12 @@ class OrderViewSet(
             if search_param:
                 search_param = search_param.strip()
                 from django.db.models import Q
+
                 qs = qs.filter(
-                    Q(order_number__icontains=search_param) |
-                    Q(shipping_full_name__icontains=search_param) |
-                    Q(guest_email__icontains=search_param) |
-                    Q(user__username__icontains=search_param)
+                    Q(order_number__icontains=search_param)
+                    | Q(shipping_full_name__icontains=search_param)
+                    | Q(guest_email__icontains=search_param)
+                    | Q(user__username__icontains=search_param)
                 )
             return qs
         return (
@@ -303,7 +324,9 @@ class OrderViewSet(
         # registered with someone else's email from immediately placing orders.
         if not request.user.email_verified:
             return Response(
-                {"detail": "Please verify your email address before placing an order. Check your inbox for the verification link."},
+                {
+                    "detail": "Please verify your email address before placing an order. Check your inbox for the verification link."
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -371,7 +394,11 @@ class OrderViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        frontend_base = (
+            settings.CORS_ALLOWED_ORIGINS[0]
+            if settings.CORS_ALLOWED_ORIGINS
+            else "http://localhost:3000"
+        )
 
         user = request.user
         line_items = build_stripe_line_items(
@@ -427,9 +454,7 @@ class OrderViewSet(
 
             session = stripe.checkout.Session.create(**session_kwargs)
         except stripe.error.StripeError:
-            logger.exception(
-                "Stripe checkout session creation failed for order %s", order.id
-            )
+            logger.exception("Stripe checkout session creation failed for order %s", order.id)
             return Response(
                 {"detail": "Unable to reach the payment provider. Please try again."},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -455,11 +480,7 @@ class OrderViewSet(
             # concurrent cancels (or a cancel racing the Stripe webhook that
             # marks the order PAID) can't double-restock or overwrite a paid
             # order with CANCELLED.
-            order = (
-                Order.objects.select_for_update()
-                .filter(pk=order.pk)
-                .first()
-            )
+            order = Order.objects.select_for_update().filter(pk=order.pk).first()
             if order is None:
                 return Response(
                     {"detail": "Order not found."},
@@ -479,7 +500,13 @@ class OrderViewSet(
     @extend_schema(
         summary="Request a refund",
         description="Customer submits a refund reason for a PAID or DELIVERED order. Notifies staff by email.",
-        request={"application/json": {"type": "object", "properties": {"reason": {"type": "string"}}, "required": ["reason"]}},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"reason": {"type": "string"}},
+                "required": ["reason"],
+            }
+        },
         responses={200: OrderSerializer},
         tags=["orders"],
     )
@@ -506,6 +533,7 @@ class OrderViewSet(
         # Email staff.
         from django.contrib.auth import get_user_model
         from .email_utils import send_html_email
+
         User = get_user_model()
         staff_emails = list(
             User.objects.filter(is_staff=True, is_active=True)
@@ -538,13 +566,29 @@ class OrderViewSet(
     @extend_schema(
         summary="Process a refund (staff only)",
         description="Allows staff to approve and process a refund directly through the Stripe API. Marks order REFUNDED and restocks items.",
-        request={"application/json": {"type": "object", "properties": {"amount": {"type": "number", "description": "Optional partial refund amount. If omitted, a full refund is issued."}}}},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "description": "Optional partial refund amount. If omitted, a full refund is issued.",
+                    }
+                },
+            }
+        },
         responses={200: OrderSerializer},
         tags=["orders"],
     )
-    @action(detail=True, methods=["post"], url_path="process-refund", permission_classes=[permissions.IsAdminUser])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="process-refund",
+        permission_classes=[permissions.IsAdminUser],
+    )
     def process_refund(self, request, pk=None):
         from decimal import Decimal, InvalidOperation
+
         order = self.get_object()
 
         # Parse and validate the optional partial-refund amount before acquiring
@@ -559,7 +603,9 @@ class OrderViewSet(
                 refund_kwargs["amount"] = int(amount_decimal * 100)
             except (ValueError, InvalidOperation):
                 return Response(
-                    {"detail": f"Invalid refund amount. Must be a positive number up to the order total (${order.total})."},
+                    {
+                        "detail": f"Invalid refund amount. Must be a positive number up to the order total (${order.total})."
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -583,8 +629,7 @@ class OrderViewSet(
             if order.stripe_payment_intent:
                 try:
                     stripe.Refund.create(
-                        payment_intent=order.stripe_payment_intent,
-                        **refund_kwargs
+                        payment_intent=order.stripe_payment_intent, **refund_kwargs
                     )
                 except stripe.error.StripeError as exc:
                     logger.exception("Stripe refund failed for order %s", order.id)
@@ -602,11 +647,22 @@ class OrderViewSet(
     @extend_schema(
         summary="Update order status (staff only)",
         description="Allows staff to advance an order through PAID → SHIPPED → DELIVERED, or cancel any non-refunded order.",
-        request={"application/json": {"type": "object", "properties": {"status": {"type": "string"}}, "required": ["status"]}},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"status": {"type": "string"}},
+                "required": ["status"],
+            }
+        },
         responses={200: OrderSerializer},
         tags=["orders"],
     )
-    @action(detail=True, methods=["patch"], url_path="status", permission_classes=[permissions.IsAdminUser])
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="status",
+        permission_classes=[permissions.IsAdminUser],
+    )
     def update_status(self, request, pk=None):
         order = self.get_object()
         new_status = request.data.get("status", "").lower()
@@ -645,11 +701,25 @@ class OrderViewSet(
     @extend_schema(
         summary="Update tracking info (staff only)",
         description="Set or update the tracking number and carrier for a shipped order.",
-        request={"application/json": {"type": "object", "properties": {"tracking_number": {"type": "string"}, "carrier": {"type": "string"}}, "required": ["tracking_number"]}},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "tracking_number": {"type": "string"},
+                    "carrier": {"type": "string"},
+                },
+                "required": ["tracking_number"],
+            }
+        },
         responses={200: OrderSerializer},
         tags=["orders"],
     )
-    @action(detail=True, methods=["patch"], url_path="tracking", permission_classes=[permissions.IsAdminUser])
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="tracking",
+        permission_classes=[permissions.IsAdminUser],
+    )
     def update_tracking(self, request, pk=None):
         order = self.get_object()
         tracking_number = request.data.get("tracking_number", "").strip()
@@ -661,7 +731,9 @@ class OrderViewSet(
         carrier = request.data.get("carrier", "").strip()
         if carrier and carrier not in dict(Order.CARRIER_CHOICES):
             return Response(
-                {"detail": f"Invalid carrier. Choose from: {', '.join(dict(Order.CARRIER_CHOICES).keys())}."},
+                {
+                    "detail": f"Invalid carrier. Choose from: {', '.join(dict(Order.CARRIER_CHOICES).keys())}."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -686,16 +758,31 @@ class OrderViewSet(
             )
         html = render_to_string("orders/invoice.html", {"order": order})
         import weasyprint
+
         pdf = weasyprint.HTML(string=html).write_pdf()
         response = HttpResponse(pdf, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="invoice-{order.order_number_short}.pdf"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="invoice-{order.order_number_short}.pdf"'
+        )
         return response
 
     EXPORT_FIELDS = [
-        "order_number", "status", "total", "discount", "shipping_cost",
-        "tax_amount", "coupon_code", "currency", "customer",
-        "shipping_full_name", "shipping_city", "shipping_country",
-        "created_at", "tracking_number", "carrier", "items_count",
+        "order_number",
+        "status",
+        "total",
+        "discount",
+        "shipping_cost",
+        "tax_amount",
+        "coupon_code",
+        "currency",
+        "customer",
+        "shipping_full_name",
+        "shipping_city",
+        "shipping_country",
+        "created_at",
+        "tracking_number",
+        "carrier",
+        "items_count",
     ]
 
     def _order_rows(self):
@@ -747,6 +834,7 @@ class OrderViewSet(
 
     def _export_xlsx(self):
         from openpyxl import Workbook
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Orders"
@@ -757,7 +845,10 @@ class OrderViewSet(
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)
-        response = HttpResponse(output.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response = HttpResponse(
+            output.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
         response["Content-Disposition"] = 'attachment; filename="orders.xlsx"'
         return response
 
@@ -765,7 +856,12 @@ class OrderViewSet(
         summary="Export orders (staff only)",
         description="Download all orders as CSV or XLSX. Staff only.",
         parameters=[
-            {"name": "format", "in": "query", "required": False, "schema": {"type": "string", "enum": ["csv", "xlsx"]}},
+            {
+                "name": "format",
+                "in": "query",
+                "required": False,
+                "schema": {"type": "string", "enum": ["csv", "xlsx"]},
+            },
         ],
         responses={200: {"type": "string", "format": "binary"}},
         tags=["orders"],
@@ -805,13 +901,13 @@ def _handle_checkout_completed(event):
     if actual_cents != expected_cents:
         logger.critical(
             "Payment amount mismatch for order %s: expected %s cents, got %s",
-            order_id, expected_cents, actual_cents
+            order_id,
+            expected_cents,
+            actual_cents,
         )
         return
 
-    updated = Order.objects.filter(
-        pk=order_id, status=Order.Status.PENDING
-    ).update(
+    updated = Order.objects.filter(pk=order_id, status=Order.Status.PENDING).update(
         status=Order.Status.PAID,
         # Capture the PaymentIntent so a later refund can be matched.
         stripe_payment_intent=session.get("payment_intent") or "",
@@ -841,9 +937,7 @@ def _handle_checkout_expired(event):
         return
 
     order = (
-        Order.objects.select_for_update()
-        .filter(pk=order_id, status=Order.Status.PENDING)
-        .first()
+        Order.objects.select_for_update().filter(pk=order_id, status=Order.Status.PENDING).first()
     )
     if order is None:
         return
@@ -898,6 +992,7 @@ _EVENT_HANDLERS = {
 
 class GuestOrderLookupView(APIView):
     """Look up a guest order by email + order number (first 8 chars of UUID)."""
+
     permission_classes = [AllowAny]
     throttle_classes = [OrderLookupThrottle]
 
@@ -910,13 +1005,16 @@ class GuestOrderLookupView(APIView):
         email = request.query_params.get("email", "").strip().lower()
         order_number = request.query_params.get("order_number", "").strip().upper()
         if not email or not order_number:
-            return Response({"detail": "email and order_number are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "email and order_number are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Search all guest orders for this email, not just the most recent one.
         # Match against the full UUID or the 8-char short form.
-        orders = Order.objects.filter(
-            guest_email__iexact=email, user=None
-        ).prefetch_related("items__product")
+        orders = Order.objects.filter(guest_email__iexact=email, user=None).prefetch_related(
+            "items__product"
+        )
 
         order = None
         for o in orders:
@@ -928,7 +1026,10 @@ class GuestOrderLookupView(APIView):
                 break
 
         if not order:
-            return Response({"detail": "No order found with that email and order number."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "No order found with that email and order number."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         return Response(OrderSerializer(order).data)
 
@@ -940,12 +1041,18 @@ class GuestCheckoutView(APIView):
     email and shipping details. Returns the Stripe Checkout URL so the frontend
     can redirect immediately without a second request.
     """
+
     permission_classes = [AllowAny]
     throttle_classes = [OrderWriteThrottle, OrderVelocityThrottle]
 
     @extend_schema(
         request=GuestCheckoutSerializer,
-        responses={201: {"type": "object", "properties": {"url": {"type": "string"}, "order_id": {"type": "integer"}}}},
+        responses={
+            201: {
+                "type": "object",
+                "properties": {"url": {"type": "string"}, "order_id": {"type": "integer"}},
+            }
+        },
         summary="Guest checkout",
         description="Place an order and get a Stripe Checkout URL without an account.",
         tags=["orders"],
@@ -979,7 +1086,11 @@ class GuestCheckoutView(APIView):
         except CheckoutError as e:
             return Response({"detail": e.detail}, status=e.status_code)
 
-        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        frontend_base = (
+            settings.CORS_ALLOWED_ORIGINS[0]
+            if settings.CORS_ALLOWED_ORIGINS
+            else "http://localhost:3000"
+        )
         line_items = build_stripe_line_items(order_items, order.shipping_cost, order.tax_amount)
         session_kwargs = {
             "payment_method_types": ["card"],
@@ -1007,9 +1118,7 @@ class GuestCheckoutView(APIView):
 
             session = stripe.checkout.Session.create(**session_kwargs)
         except stripe.error.StripeError:
-            logger.exception(
-                "Stripe checkout session creation failed for guest order %s", order.id
-            )
+            logger.exception("Stripe checkout session creation failed for guest order %s", order.id)
             _release_pending_order(order.id)
             return Response(
                 {"detail": "Unable to reach the payment provider. Please try again."},
@@ -1052,9 +1161,7 @@ def stripe_webhook(request):
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
         return HttpResponse(status=400)
 

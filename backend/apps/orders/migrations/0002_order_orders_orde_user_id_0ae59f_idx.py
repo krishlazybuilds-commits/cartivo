@@ -7,13 +7,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0001_initial'),
+        ("orders", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['user', '-created_at'], name='orders_orde_user_id_0ae59f_idx'),
+            model_name="order",
+            index=models.Index(
+                fields=["user", "-created_at"], name="orders_orde_user_id_0ae59f_idx"
+            ),
         ),
     ]

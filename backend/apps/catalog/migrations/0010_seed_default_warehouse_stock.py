@@ -1,5 +1,6 @@
 from django.db import migrations
 
+
 def seed_warehouse_and_stock(apps, schema_editor):
     Warehouse = apps.get_model("catalog", "Warehouse")
     WarehouseStock = apps.get_model("catalog", "WarehouseStock")
@@ -13,7 +14,7 @@ def seed_warehouse_and_stock(apps, schema_editor):
             "name": "Central Warehouse",
             "address": "100 Main St, Metropolis",
             "is_active": True,
-        }
+        },
     )
 
     # Seed stock for products without variants
@@ -21,10 +22,7 @@ def seed_warehouse_and_stock(apps, schema_editor):
         # Check if product has variants
         if not ProductVariant.objects.filter(product=product).exists():
             WarehouseStock.objects.get_or_create(
-                warehouse=central,
-                product=product,
-                variant=None,
-                defaults={"stock": product.stock}
+                warehouse=central, product=product, variant=None, defaults={"stock": product.stock}
             )
 
     # Seed stock for product variants
@@ -33,11 +31,13 @@ def seed_warehouse_and_stock(apps, schema_editor):
             warehouse=central,
             product=variant.product,
             variant=variant,
-            defaults={"stock": variant.stock}
+            defaults={"stock": variant.stock},
         )
+
 
 def rollback_warehouse_and_stock(apps, schema_editor):
     pass
+
 
 class Migration(migrations.Migration):
     dependencies = [

@@ -6,16 +6,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0002_alter_product_image'),
+        ("catalog", "0002_alter_product_image"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['category', '-created_at'], name='catalog_pro_categor_17efd9_idx'),
+            model_name="product",
+            index=models.Index(
+                fields=["category", "-created_at"], name="catalog_pro_categor_17efd9_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['is_active', '-created_at'], name='catalog_pro_is_acti_ed6a39_idx'),
+            model_name="product",
+            index=models.Index(
+                fields=["is_active", "-created_at"], name="catalog_pro_is_acti_ed6a39_idx"
+            ),
         ),
     ]

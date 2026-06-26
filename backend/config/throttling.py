@@ -78,4 +78,3 @@ class OrderLookupThrottle(UserOrAnonRateThrottle):
     """Rate-limit guest order lookups to prevent brute-force enumeration."""
 
     scope = "order_lookup"
-

@@ -12,7 +12,14 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
-from rest_framework import filters, generics, permissions, serializers as drf_serializers, status, viewsets
+from rest_framework import (
+    filters,
+    generics,
+    permissions,
+    serializers as drf_serializers,
+    status,
+    viewsets,
+)
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -50,16 +57,19 @@ logger = logging.getLogger(__name__)
 
 class LoginRateThrottle(AnonRateThrottle):
     """Throttle login attempts per client IP to slow brute-force attacks."""
+
     scope = "login"
 
 
 class RegisterRateThrottle(AnonRateThrottle):
     """Throttle account creation per client IP."""
+
     scope = "register"
 
 
 class PasswordResetRateThrottle(AnonRateThrottle):
     """Throttle password-reset request/confirm per client IP."""
+
     scope = "password_reset"
 
 
@@ -138,7 +148,11 @@ class RegisterView(generics.CreateAPIView):
     def _send_verification_email(self, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        frontend_base = (
+            settings.CORS_ALLOWED_ORIGINS[0]
+            if settings.CORS_ALLOWED_ORIGINS
+            else "http://localhost:3000"
+        )
         verify_url = f"{frontend_base}/verify-email?uid={uid}&token={token}"
         send_verification_email_task.delay(user.pk, verify_url)
 
@@ -170,7 +184,9 @@ class MeView(generics.RetrieveUpdateAPIView):
         user.save(update_fields=["is_active"])
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie(settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
-        response.delete_cookie(settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        response.delete_cookie(
+            settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/"
+        )
         return response
 
 
@@ -200,9 +216,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     def _assert_target_modifiable(self, target):
         # Only superusers may modify or delete other superusers.
         if target.is_superuser and not self.request.user.is_superuser:
-            raise PermissionDenied(
-                "Only a superuser can modify a superuser account."
-            )
+            raise PermissionDenied("Only a superuser can modify a superuser account.")
 
     def perform_update(self, serializer):
         target = serializer.instance
@@ -276,10 +290,17 @@ class GoogleLoginView(APIView):
     throttle_classes = [LoginRateThrottle]
 
     @extend_schema(
-        request=inline_serializer("GoogleLoginRequest", fields={
-            "credential": drf_serializers.CharField(),
-        }),
-        responses={200: inline_serializer("GoogleLoginResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "GoogleLoginRequest",
+            fields={
+                "credential": drf_serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                "GoogleLoginResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         try:
@@ -336,7 +357,8 @@ class GoogleLoginView(APIView):
             remaining = lockout_remaining_seconds(email.lower())
             logger.warning(
                 "Blocked Google login for locked-out account: %s (%ds remaining)",
-                email, remaining,
+                email,
+                remaining,
             )
             return Response(
                 {
@@ -431,11 +453,16 @@ class LoginView(APIView):
     throttle_classes = [LoginRateThrottle]
 
     @extend_schema(
-        request=inline_serializer("LoginRequest", fields={
-            "username": drf_serializers.CharField(),
-            "password": drf_serializers.CharField(),
-        }),
-        responses={200: inline_serializer("LoginResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "LoginRequest",
+            fields={
+                "username": drf_serializers.CharField(),
+                "password": drf_serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer("LoginResponse", fields={"detail": drf_serializers.CharField()})
+        },
     )
     def post(self, request):
         enforce_csrf(request)
@@ -446,7 +473,8 @@ class LoginView(APIView):
             remaining = lockout_remaining_seconds(raw_ident)
             logger.warning(
                 "Blocked login for locked-out account: %s (%ds remaining)",
-                raw_ident, remaining,
+                raw_ident,
+                remaining,
             )
             return Response(
                 {
@@ -511,9 +539,7 @@ class RefreshView(APIView):
         enforce_csrf(request)
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
         if not raw_refresh:
-            return Response(
-                {"detail": "No refresh token."}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"detail": "No refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             refresh = RefreshToken(raw_refresh)
         except TokenError:
@@ -566,9 +592,7 @@ class LogoutView(APIView):
             except (TokenError, AttributeError):
                 pass
         response = Response({"detail": "Logged out."})
-        response.delete_cookie(
-            settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/"
-        )
+        response.delete_cookie(settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
         response.delete_cookie(
             settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/"
         )
@@ -661,21 +685,26 @@ class CSRFView(APIView):
 )
 class PasswordResetRequestView(APIView):
     """Send a password reset link to the user's email."""
+
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = [PasswordResetRateThrottle]
 
     @extend_schema(
-        request=inline_serializer("PasswordResetRequestBody", fields={"email": drf_serializers.EmailField()}),
-        responses={200: inline_serializer("PasswordResetRequestResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "PasswordResetRequestBody", fields={"email": drf_serializers.EmailField()}
+        ),
+        responses={
+            200: inline_serializer(
+                "PasswordResetRequestResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         enforce_csrf(request)
         email = request.data.get("email", "").strip()
         # Always return the same 200 to avoid leaking whether an email exists.
-        generic_response = Response(
-            {"detail": "If that email exists, a reset link has been sent."}
-        )
+        generic_response = Response({"detail": "If that email exists, a reset link has been sent."})
 
         # Skip blank input: email is optional on the User model, so a blank
         # query would otherwise match every account with no email set.
@@ -686,7 +715,11 @@ class PasswordResetRequestView(APIView):
         except DjangoValidationError:
             return generic_response
 
-        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        frontend_base = (
+            settings.CORS_ALLOWED_ORIGINS[0]
+            if settings.CORS_ALLOWED_ORIGINS
+            else "http://localhost:3000"
+        )
 
         # Email isn't unique, so send a link to every matching account (each
         # tied to its own user/token) instead of an arbitrary first() match.
@@ -705,17 +738,25 @@ class PasswordResetRequestView(APIView):
 )
 class PasswordResetConfirmView(APIView):
     """Validate the reset token and set a new password."""
+
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = [PasswordResetRateThrottle]
 
     @extend_schema(
-        request=inline_serializer("PasswordResetConfirmBody", fields={
-            "uid": drf_serializers.CharField(),
-            "token": drf_serializers.CharField(),
-            "new_password": drf_serializers.CharField(),
-        }),
-        responses={200: inline_serializer("PasswordResetConfirmResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "PasswordResetConfirmBody",
+            fields={
+                "uid": drf_serializers.CharField(),
+                "token": drf_serializers.CharField(),
+                "new_password": drf_serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                "PasswordResetConfirmResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         enforce_csrf(request)
@@ -724,7 +765,10 @@ class PasswordResetConfirmView(APIView):
         new_password = request.data.get("new_password", "")
 
         if not all([uid, token, new_password]):
-            return Response({"detail": "uid, token and new_password are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "uid, token and new_password are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             pk = force_str(urlsafe_base64_decode(uid))
@@ -733,7 +777,10 @@ class PasswordResetConfirmView(APIView):
             return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not default_token_generator.check_token(user, token):
-            return Response({"detail": "Reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Reset link is invalid or has expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             validate_password(new_password, user=user)
@@ -763,13 +810,18 @@ class AddressViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # If this is the user's first address, make it default.
         is_first = not Address.objects.filter(user=self.request.user).exists()
-        serializer.save(user=self.request.user, is_default=is_first or serializer.validated_data.get("is_default", False))
+        serializer.save(
+            user=self.request.user,
+            is_default=is_first or serializer.validated_data.get("is_default", False),
+        )
 
     def perform_update(self, serializer):
         instance = serializer.save()
         # If marked as default, unset other defaults.
         if instance.is_default:
-            Address.objects.filter(user=self.request.user).exclude(pk=instance.pk).update(is_default=False)
+            Address.objects.filter(user=self.request.user).exclude(pk=instance.pk).update(
+                is_default=False
+            )
 
 
 @extend_schema(
@@ -782,27 +834,41 @@ class EmailVerifyView(APIView):
     authentication_classes = []
 
     @extend_schema(
-        request=inline_serializer("EmailVerifyBody", fields={
-            "uid": drf_serializers.CharField(),
-            "token": drf_serializers.CharField(),
-        }),
-        responses={200: inline_serializer("EmailVerifyResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "EmailVerifyBody",
+            fields={
+                "uid": drf_serializers.CharField(),
+                "token": drf_serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                "EmailVerifyResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         enforce_csrf(request)
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
         if not all([uid, token]):
-            return Response({"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             pk = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=pk)
         except (User.DoesNotExist, ValueError):
-            return Response({"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not default_token_generator.check_token(user, token):
-            return Response({"detail": "Verification link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Verification link is invalid or has expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user.email_verified = True
         user.save(update_fields=["email_verified"])
@@ -812,44 +878,70 @@ class EmailVerifyView(APIView):
 @extend_schema(tags=["auth"], summary="Request email change")
 class EmailChangeRequestView(APIView):
     """Send a confirmation link to the requested new email address."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
-        request=inline_serializer("EmailChangeRequest", fields={
-            "email": drf_serializers.EmailField(),
-            "current_password": drf_serializers.CharField(write_only=True),
-        }),
-        responses={200: inline_serializer("EmailChangeRequestResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "EmailChangeRequest",
+            fields={
+                "email": drf_serializers.EmailField(),
+                "current_password": drf_serializers.CharField(write_only=True),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                "EmailChangeRequestResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         current_password = request.data.get("current_password")
         if not current_password:
-            return Response({"detail": "Current password is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Current password is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
         if not request.user.check_password(current_password):
-            return Response({"detail": "Current password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Current password is incorrect."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         new_email = normalize_email(request.data.get("email", "").strip().lower())
         if not new_email:
             return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
         if is_disposable_email(new_email):
-            return Response({"detail": "Disposable email addresses are not allowed."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Disposable email addresses are not allowed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             validate_email(new_email)
         except DjangoValidationError:
-            return Response({"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if new_email == request.user.email.lower():
-            return Response({"detail": "That is already your current email."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "That is already your current email."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if User.objects.filter(email__iexact=new_email).exclude(pk=request.user.pk).exists():
-            return Response({"detail": "That email is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "That email is already in use."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         request.user.pending_email = new_email
         request.user.save(update_fields=["pending_email"])
 
         uid = urlsafe_base64_encode(force_bytes(request.user.pk))
         token = default_token_generator.make_token(request.user)
-        frontend_base = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else "http://localhost:3000"
+        frontend_base = (
+            settings.CORS_ALLOWED_ORIGINS[0]
+            if settings.CORS_ALLOWED_ORIGINS
+            else "http://localhost:3000"
+        )
         confirm_url = f"{frontend_base}/email-change?email_uid={uid}&email_token={token}"
         send_email_change_task.delay(request.user.pk, confirm_url)
         return Response({"detail": "Confirmation email sent. Check your new inbox."})
@@ -858,20 +950,30 @@ class EmailChangeRequestView(APIView):
 @extend_schema(tags=["auth"], summary="Confirm email change")
 class EmailChangeConfirmView(APIView):
     """Validate the token and apply the pending email change."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
-        request=inline_serializer("EmailChangeConfirmRequest", fields={
-            "uid": drf_serializers.CharField(),
-            "token": drf_serializers.CharField(),
-        }),
-        responses={200: inline_serializer("EmailChangeConfirmResponse", fields={"detail": drf_serializers.CharField()})},
+        request=inline_serializer(
+            "EmailChangeConfirmRequest",
+            fields={
+                "uid": drf_serializers.CharField(),
+                "token": drf_serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                "EmailChangeConfirmResponse", fields={"detail": drf_serializers.CharField()}
+            )
+        },
     )
     def post(self, request):
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
         if not all([uid, token]):
-            return Response({"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "uid and token are required."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             pk = force_str(urlsafe_base64_decode(uid))
@@ -884,15 +986,21 @@ class EmailChangeConfirmView(APIView):
             return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not default_token_generator.check_token(user, token):
-            return Response({"detail": "Link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not user.pending_email:
-            return Response({"detail": "No pending email change."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "No pending email change."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if User.objects.filter(email__iexact=user.pending_email).exclude(pk=user.pk).exists():
             user.pending_email = ""
             user.save(update_fields=["pending_email"])
-            return Response({"detail": "That email is already in use."}, status=status.HTTP_409_CONFLICT)
+            return Response(
+                {"detail": "That email is already in use."}, status=status.HTTP_409_CONFLICT
+            )
 
         user.email = user.pending_email
         user.pending_email = ""
@@ -904,7 +1012,7 @@ class EmailChangeConfirmView(APIView):
     tags=["auth"],
     summary="GDPR data export",
     description="Returns all personal data for the authenticated user in JSON format "
-                "(right of access / data portability under Art. 15 & 20 GDPR).",
+    "(right of access / data portability under Art. 15 & 20 GDPR).",
 )
 class GDPRExportView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -930,38 +1038,50 @@ class GDPRExportView(APIView):
                 "date_joined": user.date_joined.isoformat(),
                 "last_login": user.last_login.isoformat() if user.last_login else None,
             },
-            "addresses": list(Address.objects.filter(user=user).values(
-                "label", "full_name", "address", "city", "postal_code", "country", "is_default"
-            )),
+            "addresses": list(
+                Address.objects.filter(user=user).values(
+                    "label", "full_name", "address", "city", "postal_code", "country", "is_default"
+                )
+            ),
             "orders": [],
-            "reviews": list(Review.objects.filter(user=user).values(
-                "product_id", "rating", "title", "body", "created_at"
-            )),
-            "wishlist": list(WishlistItem.objects.filter(user=user).values(
-                "product_id", "added_at"
-            )),
+            "reviews": list(
+                Review.objects.filter(user=user).values(
+                    "product_id", "rating", "title", "body", "created_at"
+                )
+            ),
+            "wishlist": list(
+                WishlistItem.objects.filter(user=user).values("product_id", "added_at")
+            ),
         }
 
         for order in Order.objects.filter(user=user).prefetch_related("items"):
-            data["orders"].append({
-                "order_number": str(order.order_number),
-                "status": order.status,
-                "total": str(order.total),
-                "shipping_full_name": order.shipping_full_name,
-                "shipping_address": order.shipping_address,
-                "shipping_city": order.shipping_city,
-                "shipping_postal_code": order.shipping_postal_code,
-                "shipping_country": order.shipping_country,
-                "discount": str(order.discount),
-                "created_at": order.created_at.isoformat(),
-                "items": [
-                    {"product_id": item.product_id, "unit_price": str(item.unit_price), "quantity": item.quantity}
-                    for item in order.items.all()
-                ],
-            })
+            data["orders"].append(
+                {
+                    "order_number": str(order.order_number),
+                    "status": order.status,
+                    "total": str(order.total),
+                    "shipping_full_name": order.shipping_full_name,
+                    "shipping_address": order.shipping_address,
+                    "shipping_city": order.shipping_city,
+                    "shipping_postal_code": order.shipping_postal_code,
+                    "shipping_country": order.shipping_country,
+                    "discount": str(order.discount),
+                    "created_at": order.created_at.isoformat(),
+                    "items": [
+                        {
+                            "product_id": item.product_id,
+                            "unit_price": str(item.unit_price),
+                            "quantity": item.quantity,
+                        }
+                        for item in order.items.all()
+                    ],
+                }
+            )
 
         cart = Cart.objects.filter(user=user).first()
-        data["cart"] = list(cart.items.values("product_id", "variant_id", "quantity")) if cart else []
+        data["cart"] = (
+            list(cart.items.values("product_id", "variant_id", "quantity")) if cart else []
+        )
 
         sub = NewsletterSubscriber.objects.filter(email__iexact=user.email).first()
         data["newsletter_subscription"] = {
@@ -976,9 +1096,9 @@ class GDPRExportView(APIView):
     tags=["auth"],
     summary="GDPR account deletion",
     description="Anonymises or deletes all personal data for the authenticated user "
-                "(right to erasure under Art. 17 GDPR). Orders are retained for legal "
-                "obligations but stripped of personal data. The account is deactivated "
-                "and anonymised so it can never be used again.",
+    "(right to erasure under Art. 17 GDPR). Orders are retained for legal "
+    "obligations but stripped of personal data. The account is deactivated "
+    "and anonymised so it can never be used again.",
 )
 class GDPRDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -1004,10 +1124,17 @@ class GDPRDeleteView(APIView):
             order.shipping_city = "[anonymized]"
             order.shipping_postal_code = "[anonymized]"
             order.shipping_country = "[anonymized]"
-            order.save(update_fields=[
-                "user", "guest_email", "shipping_full_name", "shipping_address",
-                "shipping_city", "shipping_postal_code", "shipping_country",
-            ])
+            order.save(
+                update_fields=[
+                    "user",
+                    "guest_email",
+                    "shipping_full_name",
+                    "shipping_address",
+                    "shipping_city",
+                    "shipping_postal_code",
+                    "shipping_country",
+                ]
+            )
 
         # 2. Delete associated data that can't be anonymised.
         Address.objects.filter(user=user).delete()
@@ -1027,10 +1154,18 @@ class GDPRDeleteView(APIView):
         user.pending_email = ""
         user.set_unusable_password()
         user.is_active = False
-        user.save(update_fields=[
-            "username", "email", "first_name", "last_name", "phone",
-            "pending_email", "password", "is_active",
-        ])
+        user.save(
+            update_fields=[
+                "username",
+                "email",
+                "first_name",
+                "last_name",
+                "phone",
+                "pending_email",
+                "password",
+                "is_active",
+            ]
+        )
 
         # 5. Invalidate all sessions.
         raw_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE)
@@ -1042,5 +1177,7 @@ class GDPRDeleteView(APIView):
 
         response = Response({"detail": "Your personal data has been deleted or anonymised."})
         response.delete_cookie(settings.AUTH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
-        response.delete_cookie(settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/")
+        response.delete_cookie(
+            settings.AUTH_REFRESH_COOKIE, domain=settings.AUTH_COOKIE_DOMAIN, path="/"
+        )
         return response

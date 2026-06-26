@@ -62,9 +62,16 @@ def send_low_stock_alert_task(product_id, variant_id=None):
         html_template="emails/low_stock_alert.html",
         text_body=text_body,
         recipient_list=staff_emails,
-        context={"item_name": item_name, "sku": sku, "current_stock": current_stock, "threshold": threshold},
+        context={
+            "item_name": item_name,
+            "sku": sku,
+            "current_stock": current_stock,
+            "threshold": threshold,
+        },
     )
     logger.info(
         "Low-stock alert sent for %s (stock=%s) to %s",
-        item_name, current_stock, staff_emails,
+        item_name,
+        current_stock,
+        staff_emails,
     )

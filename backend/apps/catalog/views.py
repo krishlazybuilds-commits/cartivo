@@ -13,7 +13,16 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthentic
 from rest_framework.response import Response
 
 from .filters import PostgresSearchFilter
-from .models import Category, Product, ProductImage, ProductVariant, Review, Warehouse, WarehouseStock, WishlistItem
+from .models import (
+    Category,
+    Product,
+    ProductImage,
+    ProductVariant,
+    Review,
+    Warehouse,
+    WarehouseStock,
+    WishlistItem,
+)
 from .validators import validate_import_file
 from .serializers import (
     CategorySerializer,
@@ -50,9 +59,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("price", "created_at", "name")
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category").prefetch_related("variants", "images").annotate(
-            avg_rating=Avg("reviews__rating"),
-            review_count=Count("reviews"),
+        qs = (
+            Product.objects.select_related("category")
+            .prefetch_related("variants", "images")
+            .annotate(
+                avg_rating=Avg("reviews__rating"),
+                review_count=Count("reviews"),
+            )
         )
         # Only staff (who manage the catalog) may see inactive/draft products;
         # the public catalog is limited to active ones. Prevents leaking
@@ -86,8 +99,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         excluding the current product, ordered by highest-rated first."""
         product = self.get_object()
         related_qs = (
-            Product.objects
-            .filter(category=product.category)
+            Product.objects.filter(category=product.category)
             .exclude(pk=product.pk)
             .select_related("category")
             .prefetch_related("variants", "images")
@@ -101,9 +113,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     EXPORT_FIELDS = [
-        "id", "name", "slug", "sku", "category_name",
-        "price", "sale_price", "stock", "description",
-        "is_active", "is_featured", "is_new", "on_sale", "badge",
+        "id",
+        "name",
+        "slug",
+        "sku",
+        "category_name",
+        "price",
+        "sale_price",
+        "stock",
+        "description",
+        "is_active",
+        "is_featured",
+        "is_new",
+        "on_sale",
+        "badge",
     ]
 
     def _product_rows(self):
@@ -153,6 +176,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         output.seek(0)
 
         from django.http import HttpResponse
+
         response = HttpResponse(
             output.read(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -189,7 +213,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         ws = wb.active
         rows_iter = ws.iter_rows(values_only=True)
         header = [str(c).strip().lower() if c else "" for c in next(rows_iter, [])]
-        rows = [dict(zip(header, [str(c) if c is not None else "" for c in row])) for row in rows_iter]
+        rows = [
+            dict(zip(header, [str(c) if c is not None else "" for c in row])) for row in rows_iter
+        ]
         return self._process_rows(rows)
 
     def _process_rows(self, rows):
@@ -221,7 +247,8 @@ class ProductViewSet(viewsets.ModelViewSet):
                 "price": price,
                 "description": (row.get("description") or "").strip(),
                 "is_active": (row.get("is_active") or "").strip().lower() in ("1", "true", "yes"),
-                "is_featured": (row.get("is_featured") or "").strip().lower() in ("1", "true", "yes"),
+                "is_featured": (row.get("is_featured") or "").strip().lower()
+                in ("1", "true", "yes"),
                 "is_new": (row.get("is_new") or "").strip().lower() in ("1", "true", "yes"),
                 "on_sale": (row.get("on_sale") or "").strip().lower() in ("1", "true", "yes"),
                 "badge": (row.get("badge") or "").strip(),
@@ -251,12 +278,14 @@ class ProductViewSet(viewsets.ModelViewSet):
             else:
                 updated += 1
 
-        return Response({
-            "created": created,
-            "updated": updated,
-            "errors": errors,
-            "total": created + updated + len(errors),
-        })
+        return Response(
+            {
+                "created": created,
+                "updated": updated,
+                "errors": errors,
+                "total": created + updated + len(errors),
+            }
+        )
 
     @action(detail=False, methods=["post"], url_path="bulk-stock")
     def bulk_stock(self, request):
@@ -267,7 +296,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         variants = request.data.get("variants", [])
 
         if not products and not variants:
-            return Response({"detail": "Provide products or variants."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Provide products or variants."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         updated = 0
         errors = []
@@ -385,6 +416,7 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
 
 class ProductVariantViewSet(viewsets.ModelViewSet):
     """Variants for a product. Staff can create/update/delete; anyone can read."""
+
     serializer_class = ProductVariantSerializer
     filterset_fields = ("product", "is_active")
 
@@ -399,6 +431,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
 class ProductImageViewSet(viewsets.ModelViewSet):
     """Staff-only: manage additional product images. Anyone can read."""
+
     serializer_class = ProductImageSerializer
     filterset_fields = ("product",)
 
@@ -412,11 +445,13 @@ class ProductImageViewSet(viewsets.ModelViewSet):
 
     def get_parsers(self):
         from rest_framework.parsers import MultiPartParser, JSONParser
+
         return [MultiPartParser(), JSONParser()]
 
 
 class WarehouseViewSet(viewsets.ModelViewSet):
     """Staff-only: manage warehouses."""
+
     queryset = Warehouse.objects.all()
     serializer_class = WarehouseSerializer
     permission_classes = [IsAdminUser]
@@ -424,6 +459,7 @@ class WarehouseViewSet(viewsets.ModelViewSet):
 
 class WarehouseStockViewSet(viewsets.ModelViewSet):
     """Staff-only: manage stock levels per warehouse."""
+
     queryset = WarehouseStock.objects.select_related("product", "variant", "warehouse").all()
     serializer_class = WarehouseStockSerializer
     permission_classes = [IsAdminUser]

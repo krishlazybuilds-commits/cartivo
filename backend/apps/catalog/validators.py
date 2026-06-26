@@ -78,7 +78,8 @@ def validate_import_file(file):
         if content_type and content_type not in _ALLOWED_CSV_MIMETYPES:
             logger.warning(
                 "Import rejected: CSV file '%s' has unexpected Content-Type '%s'",
-                filename, content_type,
+                filename,
+                content_type,
             )
             raise ValidationError(
                 "Uploaded CSV file has an unexpected content type. "
@@ -99,7 +100,8 @@ def validate_import_file(file):
         if content_type and content_type not in _ALLOWED_XLSX_MIMETYPES:
             logger.warning(
                 "Import rejected: XLSX file '%s' has unexpected Content-Type '%s'",
-                filename, content_type,
+                filename,
+                content_type,
             )
             raise ValidationError(
                 "Uploaded XLSX file has an unexpected content type. "

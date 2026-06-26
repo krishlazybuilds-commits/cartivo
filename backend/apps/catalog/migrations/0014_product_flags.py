@@ -6,45 +6,45 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0013_auto_approve_existing_reviews'),
+        ("catalog", "0013_auto_approve_existing_reviews"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
-            name='badge',
+            model_name="product",
+            name="badge",
             field=models.CharField(blank=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='product',
-            name='is_featured',
+            model_name="product",
+            name="is_featured",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='product',
-            name='is_new',
+            model_name="product",
+            name="is_new",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='product',
-            name='on_sale',
+            model_name="product",
+            name="on_sale",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='product',
-            name='sale_price',
+            model_name="product",
+            name="sale_price",
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['is_featured'], name='catalog_pro_is_feat_94b8d5_idx'),
+            model_name="product",
+            index=models.Index(fields=["is_featured"], name="catalog_pro_is_feat_94b8d5_idx"),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['is_new'], name='catalog_pro_is_new_087fb1_idx'),
+            model_name="product",
+            index=models.Index(fields=["is_new"], name="catalog_pro_is_new_087fb1_idx"),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['on_sale'], name='catalog_pro_on_sale_70dede_idx'),
+            model_name="product",
+            index=models.Index(fields=["on_sale"], name="catalog_pro_on_sale_70dede_idx"),
         ),
     ]

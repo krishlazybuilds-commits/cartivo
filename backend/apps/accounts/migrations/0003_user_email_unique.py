@@ -19,9 +19,7 @@ def deduplicate_emails(apps, schema_editor):
     User = apps.get_model("accounts", "User")
 
     # ── 1. Handle blank emails ────────────────────────────────────────────────
-    blank_users = list(
-        User.objects.filter(email="").order_by("date_joined", "pk")
-    )
+    blank_users = list(User.objects.filter(email="").order_by("date_joined", "pk"))
     # Keep the first one with email=""; rename the rest.
     for user in blank_users[1:]:
         user.email = f"blank_{user.pk}@cartivo.invalid"
@@ -55,7 +53,6 @@ class Migration(migrations.Migration):
     operations = [
         # Step 1: clean up duplicates before adding the constraint
         migrations.RunPython(deduplicate_emails, reverse_code=noop),
-
         # Step 2: add the unique constraint + remove blank=True
         migrations.AlterField(
             model_name="user",

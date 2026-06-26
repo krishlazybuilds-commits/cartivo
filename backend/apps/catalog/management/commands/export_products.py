@@ -17,9 +17,20 @@ from django.core.management.base import BaseCommand
 from apps.catalog.models import Product
 
 FIELDS = [
-    "id", "name", "slug", "sku", "category_name",
-    "price", "sale_price", "stock", "description",
-    "is_active", "is_featured", "is_new", "on_sale", "badge",
+    "id",
+    "name",
+    "slug",
+    "sku",
+    "category_name",
+    "price",
+    "sale_price",
+    "stock",
+    "description",
+    "is_active",
+    "is_featured",
+    "is_new",
+    "on_sale",
+    "badge",
 ]
 
 
@@ -28,11 +39,16 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--format", "-f", default="csv", choices=["csv", "xlsx"],
+            "--format",
+            "-f",
+            default="csv",
+            choices=["csv", "xlsx"],
             help="Output format (default: csv).",
         )
         parser.add_argument(
-            "--output", "-o", default=None,
+            "--output",
+            "-o",
+            default=None,
             help="Write to file instead of stdout.",
         )
 

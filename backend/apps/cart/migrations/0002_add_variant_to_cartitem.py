@@ -7,22 +7,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cart', '0001_initial'),
-        ('catalog', '0007_add_product_variant'),
+        ("cart", "0001_initial"),
+        ("catalog", "0007_add_product_variant"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='cartitem',
+            name="cartitem",
             unique_together=set(),
         ),
         migrations.AddField(
-            model_name='cartitem',
-            name='variant',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='cart_items', to='catalog.productvariant'),
+            model_name="cartitem",
+            name="variant",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="cart_items",
+                to="catalog.productvariant",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='cartitem',
-            unique_together={('cart', 'product', 'variant')},
+            name="cartitem",
+            unique_together={("cart", "product", "variant")},
         ),
     ]

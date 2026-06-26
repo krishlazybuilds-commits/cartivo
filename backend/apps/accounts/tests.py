@@ -103,6 +103,7 @@ class AccountLockoutTests(APITestCase):
         # Clear any lockout state from previous tests so each method starts
         # with a clean slate (Django does not flush the cache between tests).
         from .lockout import clear_attempts
+
         clear_attempts("lockme")
 
     def test_locks_out_after_max_attempts(self):
@@ -117,12 +118,14 @@ class AccountLockoutTests(APITestCase):
             )
             if i == 0:
                 self.assertEqual(
-                    res.status_code, status.HTTP_401_UNAUTHORIZED,
+                    res.status_code,
+                    status.HTTP_401_UNAUTHORIZED,
                     msg="Attempt 1: expected 401",
                 )
             else:
                 self.assertEqual(
-                    res.status_code, status.HTTP_429_TOO_MANY_REQUESTS,
+                    res.status_code,
+                    status.HTTP_429_TOO_MANY_REQUESTS,
                     msg="Attempt 2: expected 429 lockout",
                 )
                 self.assertIn("retry_after_seconds", res.data)
@@ -151,6 +154,7 @@ class AccountLockoutTests(APITestCase):
 
         # Clear attempts directly (simulates successful auth elsewhere).
         from .lockout import clear_attempts
+
         clear_attempts("lockme")
 
         # Now login should succeed.
@@ -243,8 +247,7 @@ class AdminUserManagementTests(APITestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="strongpass123", is_staff=True,
-            email="admin@example.com"
+            username="admin", password="strongpass123", is_staff=True, email="admin@example.com"
         )
         self.member = User.objects.create_user(
             username="member", password="strongpass123", email="member@example.com"
@@ -271,36 +274,28 @@ class AdminUserManagementTests(APITestCase):
 
     def test_admin_can_deactivate_a_user(self):
         self.client.force_authenticate(self.admin)
-        res = self.client.patch(
-            self._detail(self.member), {"is_active": False}, format="json"
-        )
+        res = self.client.patch(self._detail(self.member), {"is_active": False}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.member.refresh_from_db()
         self.assertFalse(self.member.is_active)
 
     def test_admin_can_promote_a_user_to_staff(self):
         self.client.force_authenticate(self.admin)
-        res = self.client.patch(
-            self._detail(self.member), {"is_staff": True}, format="json"
-        )
+        res = self.client.patch(self._detail(self.member), {"is_staff": True}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.member.refresh_from_db()
         self.assertTrue(self.member.is_staff)
 
     def test_admin_cannot_deactivate_self(self):
         self.client.force_authenticate(self.admin)
-        res = self.client.patch(
-            self._detail(self.admin), {"is_active": False}, format="json"
-        )
+        res = self.client.patch(self._detail(self.admin), {"is_active": False}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_active)
 
     def test_admin_cannot_demote_self(self):
         self.client.force_authenticate(self.admin)
-        res = self.client.patch(
-            self._detail(self.admin), {"is_staff": False}, format="json"
-        )
+        res = self.client.patch(self._detail(self.admin), {"is_staff": False}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_staff)
@@ -322,9 +317,7 @@ class AdminUserManagementTests(APITestCase):
             username="root", password="strongpass123", email="root@example.com"
         )
         self.client.force_authenticate(self.admin)
-        res = self.client.patch(
-            self._detail(superuser), {"is_active": False}, format="json"
-        )
+        res = self.client.patch(self._detail(superuser), {"is_active": False}, format="json")
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
         superuser.refresh_from_db()
         self.assertTrue(superuser.is_active)
@@ -338,10 +331,10 @@ class AdminUserManagementTests(APITestCase):
         self.assertEqual(results[0]["username"], "member")
 
     def test_me_exposes_staff_flag(self):
-         self.client.force_authenticate(self.admin)
-         res = self.client.get("/api/v1/auth/me/")
-         self.assertEqual(res.status_code, status.HTTP_200_OK)
-         self.assertTrue(res.data["is_staff"])
+        self.client.force_authenticate(self.admin)
+        res = self.client.get("/api/v1/auth/me/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data["is_staff"])
 
 
 @override_settings(GOOGLE_OAUTH_CLIENT_ID="test-client-id.apps.googleusercontent.com")
@@ -351,6 +344,7 @@ class GoogleLoginTests(APITestCase):
     @patch("google.oauth2.id_token.verify_oauth2_token")
     def test_google_login_not_configured(self, mock_verify):
         from django.test import override_settings
+
         with override_settings(GOOGLE_OAUTH_CLIENT_ID=""):
             res = self.client.post(self.URL, {"credential": "some_token"}, format="json")
             self.assertEqual(res.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -421,7 +415,7 @@ class GoogleLoginTests(APITestCase):
             username="existinguser",
             email="existinggoogle@example.com",
             first_name="Jane",
-            last_name="Smith"
+            last_name="Smith",
         )
         mock_verify.return_value = {
             "email": "existinggoogle@example.com",
@@ -447,9 +441,7 @@ class GoogleLoginTests(APITestCase):
     @patch("google.oauth2.id_token.verify_oauth2_token")
     def test_google_login_disabled_user(self, mock_verify):
         User.objects.create_user(
-            username="disableduser",
-            email="disabled@example.com",
-            is_active=False
+            username="disableduser", email="disabled@example.com", is_active=False
         )
         mock_verify.return_value = {
             "email": "disabled@example.com",
@@ -556,24 +548,18 @@ class PasswordResetConfirmTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_requires_new_password(self):
-        res = self.client.post(
-            self.URL, {"uid": self.uid, "token": self.token}, format="json"
-        )
+        res = self.client.post(self.URL, {"uid": self.uid, "token": self.token}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_rejects_invalid_uid(self):
-        res = self.client.post(
-            self.URL, {**self._valid_payload(), "uid": "invalid"}, format="json"
-        )
+        res = self.client.post(self.URL, {**self._valid_payload(), "uid": "invalid"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data["detail"], "Invalid link.")
 
     def test_rejects_nonexistent_user_uid(self):
         # Encode a pk that doesn't exist.
         bad_uid = urlsafe_base64_encode(force_bytes(99999))
-        res = self.client.post(
-            self.URL, {**self._valid_payload(), "uid": bad_uid}, format="json"
-        )
+        res = self.client.post(self.URL, {**self._valid_payload(), "uid": bad_uid}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data["detail"], "Invalid link.")
 
@@ -735,7 +721,9 @@ class ChangePasswordTests(APITestCase):
         RefreshToken(new_refresh)
 
 
-class ProductionSettingsTests(SimpleTestCase := __import__("django.test", fromlist=["SimpleTestCase"]).SimpleTestCase):
+class ProductionSettingsTests(
+    SimpleTestCase := __import__("django.test", fromlist=["SimpleTestCase"]).SimpleTestCase
+):
     def test_production_settings_validation(self):
         import importlib
         import os
@@ -747,20 +735,21 @@ class ProductionSettingsTests(SimpleTestCase := __import__("django.test", fromli
         try:
             os.environ["DJANGO_DEBUG"] = "False"
             os.environ["DJANGO_SECRET_KEY"] = "test-secret-key-1234567890-very-long-and-secure"
-            
+
             # 1. Test wildcard in ALLOWED_HOSTS raises error
             os.environ["DJANGO_ALLOWED_HOSTS"] = "*"
             os.environ["CORS_ALLOWED_ORIGINS"] = "https://example.com"
             os.environ["CSRF_TRUSTED_ORIGINS"] = "https://example.com"
             if "test" in sys.argv:
                 sys.argv.remove("test")
-            
+
             # Use absolute import path relative to sys.path
             from config import settings as config_settings
+
             with self.assertRaises(ImproperlyConfigured) as ctx:
                 importlib.reload(config_settings)
             self.assertIn("DJANGO_ALLOWED_HOSTS cannot contain the wildcard", str(ctx.exception))
-            
+
             # 2. Test wildcard in CORS_ALLOWED_ORIGINS raises error
             os.environ["DJANGO_ALLOWED_HOSTS"] = "example.com"
             os.environ["CORS_ALLOWED_ORIGINS"] = "https://*"
@@ -794,5 +783,5 @@ class ProductionSettingsTests(SimpleTestCase := __import__("django.test", fromli
             sys.argv = original_argv
             # Reload settings one last time to restore original state
             from config import settings as config_settings
-            importlib.reload(config_settings)
 
+            importlib.reload(config_settings)

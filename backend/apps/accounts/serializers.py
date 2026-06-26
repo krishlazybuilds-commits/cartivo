@@ -114,6 +114,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         from .models import Address
+
         model = Address
         fields = (
             "id",

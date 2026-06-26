@@ -65,9 +65,7 @@ def record_failed_attempt(ident: str) -> int:
         # is not supported by all backends, e.g. LocMemCache).
         lockout_expires_at = time.time() + _lockout_seconds()
         cache.set(_locked_key(ident), lockout_expires_at, _lockout_seconds())
-        logger.warning(
-            "Account locked after %d failed attempts: %s", attempts, ident
-        )
+        logger.warning("Account locked after %d failed attempts: %s", attempts, ident)
 
     return attempts
 

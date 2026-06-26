@@ -9,8 +9,17 @@ class CouponSerializer(serializers.ModelSerializer):
     class Meta:
         model = Coupon
         fields = (
-            "id", "code", "discount_type", "value", "min_order_amount",
-            "max_uses", "times_used", "valid_from", "valid_until", "is_active", "created_at",
+            "id",
+            "code",
+            "discount_type",
+            "value",
+            "min_order_amount",
+            "max_uses",
+            "times_used",
+            "valid_from",
+            "valid_until",
+            "is_active",
+            "created_at",
         )
         read_only_fields = ("id", "times_used", "created_at")
 
@@ -18,9 +27,7 @@ class CouponSerializer(serializers.ModelSerializer):
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True, default=None)
-    subtotal = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
+    subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = OrderItem
@@ -67,7 +74,18 @@ class OrderSerializer(serializers.ModelSerializer):
             "carrier",
             "currency",
         )
-        read_only_fields = ("id", "order_number", "status", "total", "discount", "shipping_cost", "tax_amount", "coupon_code", "items", "created_at")
+        read_only_fields = (
+            "id",
+            "order_number",
+            "status",
+            "total",
+            "discount",
+            "shipping_cost",
+            "tax_amount",
+            "coupon_code",
+            "items",
+            "created_at",
+        )
 
 
 class CheckoutSerializer(serializers.Serializer):
@@ -90,6 +108,7 @@ class CheckoutSerializer(serializers.Serializer):
 
 class GuestCartItemSerializer(serializers.Serializer):
     """A single cart line submitted by a guest at checkout."""
+
     product_id = serializers.IntegerField(min_value=1)
     quantity = serializers.IntegerField(min_value=1, max_value=100)
     variant_id = serializers.IntegerField(required=False, allow_null=True, default=None)
@@ -101,6 +120,7 @@ class GuestCheckoutSerializer(serializers.Serializer):
     Guests submit their cart contents in the request body (no server-side cart).
     A valid email is required for the order confirmation.
     """
+
     guest_email = serializers.EmailField()
     items = GuestCartItemSerializer(many=True, min_length=1)
     shipping_full_name = serializers.CharField(max_length=200)
@@ -117,7 +137,7 @@ class GuestCheckoutSerializer(serializers.Serializer):
 # ---------------------------------------------------------------------------
 
 # Flat-rate shipping tiers (demonstration — swap for a real carrier API).
-_FREE_SHIPPING_THRESHOLD = 100   # USD
+_FREE_SHIPPING_THRESHOLD = 100  # USD
 _DOMESTIC_RATE = 5.99
 _INTERNATIONAL_RATE = 14.99
 _DOMESTIC_COUNTRIES = {"us", "usa", "united states"}
@@ -127,12 +147,14 @@ _TAX_RATE = 0.08
 
 class ShippingEstimateSerializer(serializers.Serializer):
     """Request body for the shipping/tax estimate endpoint."""
+
     country = serializers.CharField(max_length=120)
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
 
 
 class ShippingEstimateResponseSerializer(serializers.Serializer):
     """Response shape of the shipping/tax estimate endpoint."""
+
     shipping = serializers.DecimalField(max_digits=10, decimal_places=2)
     tax = serializers.DecimalField(max_digits=10, decimal_places=2)
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -143,8 +165,10 @@ class ShippingEstimateResponseSerializer(serializers.Serializer):
 def calculate_estimate(country: str, subtotal: float) -> dict:
     """Return a shipping + tax breakdown for the given country and subtotal."""
     is_domestic = country.strip().lower() in _DOMESTIC_COUNTRIES
-    shipping = 0.0 if subtotal >= _FREE_SHIPPING_THRESHOLD else (
-        _DOMESTIC_RATE if is_domestic else _INTERNATIONAL_RATE
+    shipping = (
+        0.0
+        if subtotal >= _FREE_SHIPPING_THRESHOLD
+        else (_DOMESTIC_RATE if is_domestic else _INTERNATIONAL_RATE)
     )
     tax = round(subtotal * _TAX_RATE, 2) if is_domestic else 0.0
     return {
@@ -167,12 +191,14 @@ def calculate_estimate(country: str, subtotal: float) -> dict:
 
 class ValidateCouponSerializer(serializers.Serializer):
     """Request body for the coupon-validation endpoint."""
+
     code = serializers.CharField(max_length=50)
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
 
 
 class CouponResponseSerializer(serializers.Serializer):
     """Response from the coupon-validation endpoint."""
+
     valid = serializers.BooleanField()
     code = serializers.CharField()
     discount_type = serializers.CharField()

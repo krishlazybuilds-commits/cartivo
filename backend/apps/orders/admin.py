@@ -22,18 +22,23 @@ class OrderAdmin(admin.ModelAdmin):
     def process_refund_action(self, request, queryset):
         import stripe
         from django.contrib import messages
+
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        
+
         success_count = 0
         for order in queryset:
-            if order.status not in (Order.Status.PAID, Order.Status.SHIPPED, Order.Status.DELIVERED):
+            if order.status not in (
+                Order.Status.PAID,
+                Order.Status.SHIPPED,
+                Order.Status.DELIVERED,
+            ):
                 self.message_user(
                     request,
                     f"Order {order.order_number_short} cannot be refunded because its status is {order.status}.",
-                    level=messages.ERROR
+                    level=messages.ERROR,
                 )
                 continue
-                
+
             if order.stripe_payment_intent:
                 try:
                     stripe.Refund.create(payment_intent=order.stripe_payment_intent)
@@ -41,20 +46,20 @@ class OrderAdmin(admin.ModelAdmin):
                     self.message_user(
                         request,
                         f"Stripe refund failed for Order {order.order_number_short}: {exc.user_message or str(exc)}",
-                        level=messages.ERROR
+                        level=messages.ERROR,
                     )
                     continue
-            
+
             order.restock()
             order.status = Order.Status.REFUNDED
             order.save(update_fields=["status"])
             success_count += 1
-            
+
         if success_count > 0:
             self.message_user(
                 request,
                 f"Successfully processed refunds and restocked items for {success_count} order(s).",
-                level=messages.SUCCESS
+                level=messages.SUCCESS,
             )
 
 
@@ -68,6 +73,14 @@ class StripeEventAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ("code", "discount_type", "value", "times_used", "max_uses", "is_active", "valid_until")
+    list_display = (
+        "code",
+        "discount_type",
+        "value",
+        "times_used",
+        "max_uses",
+        "is_active",
+        "valid_until",
+    )
     list_filter = ("discount_type", "is_active")
     search_fields = ("code",)

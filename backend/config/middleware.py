@@ -10,8 +10,8 @@ from .utils import get_client_ip
 from .constants import ADMIN_LOGIN_RATE_PREFIX
 
 _ADMIN_LOGIN_RE = re.compile(r"^/admin/login/")
-_RATE = 10       # max attempts
-_PERIOD = 300    # seconds (5 minutes)
+_RATE = 10  # max attempts
+_PERIOD = 300  # seconds (5 minutes)
 
 # Permissions-Policy matching the frontend's policy in next.config.mjs.
 _PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), interest-cohort=()"

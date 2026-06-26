@@ -12,7 +12,9 @@ User = get_user_model()
 
 class CartTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="shopper", password="pass12345", email="shopper@test.com")
+        self.user = User.objects.create_user(
+            username="shopper", password="pass12345", email="shopper@test.com"
+        )
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -69,9 +71,7 @@ class CartTests(APITestCase):
             "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         item = self._item()
-        res = self.client.patch(
-            f"/api/v1/cart-items/{item.id}/", {"quantity": 99}, format="json"
-        )
+        res = self.client.patch(f"/api/v1/cart-items/{item.id}/", {"quantity": 99}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", res.data)
         item.refresh_from_db()
@@ -82,9 +82,7 @@ class CartTests(APITestCase):
             "/api/v1/cart-items/", {"product": self.product.id, "quantity": 1}, format="json"
         )
         item = self._item()
-        res = self.client.patch(
-            f"/api/v1/cart-items/{item.id}/", {"quantity": 4}, format="json"
-        )
+        res = self.client.patch(f"/api/v1/cart-items/{item.id}/", {"quantity": 4}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         item.refresh_from_db()
         self.assertEqual(item.quantity, 4)
@@ -114,7 +112,9 @@ class CartTests(APITestCase):
 
 class AbandonedCartRecoveryTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="shopper2", password="pass12345", email="shopper2@test.com")
+        self.user = User.objects.create_user(
+            username="shopper2", password="pass12345", email="shopper2@test.com"
+        )
         self.category = Category.objects.create(name="Gadgets")
         self.product = Product.objects.create(
             category=self.category,
@@ -139,7 +139,7 @@ class AbandonedCartRecoveryTests(APITestCase):
             sent_count = send_abandoned_cart_emails_task()
             self.assertEqual(sent_count, 1)
             mock_send_email.assert_called_once()
-            
+
             # Verify subject and recipient
             args, kwargs = mock_send_email.call_args
             self.assertEqual(kwargs["recipient_list"], ["shopper2@test.com"])
@@ -158,4 +158,3 @@ class AbandonedCartRecoveryTests(APITestCase):
 
         self.cart.refresh_from_db()
         self.assertFalse(self.cart.abandoned_email_sent)
-

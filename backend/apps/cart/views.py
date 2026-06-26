@@ -44,11 +44,13 @@ class CartViewSet(viewsets.ViewSet):
 @extend_schema_view(
     create=extend_schema(summary="Add item to cart", tags=["cart"]),
     partial_update=extend_schema(
-        summary="Update cart item quantity", tags=["cart"],
+        summary="Update cart item quantity",
+        tags=["cart"],
         parameters=[OpenApiParameter("id", OpenApiTypes.INT, OpenApiParameter.PATH)],
     ),
     destroy=extend_schema(
-        summary="Remove item from cart", tags=["cart"],
+        summary="Remove item from cart",
+        tags=["cart"],
         parameters=[OpenApiParameter("id", OpenApiTypes.INT, OpenApiParameter.PATH)],
     ),
 )
@@ -65,9 +67,7 @@ class CartItemViewSet(
     throttle_classes = [CartWriteThrottle]
 
     def get_queryset(self):
-        return CartItem.objects.filter(cart__user=self.request.user).select_related(
-            "product"
-        )
+        return CartItem.objects.filter(cart__user=self.request.user).select_related("product")
 
     def perform_create(self, serializer):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
@@ -80,9 +80,7 @@ class CartItemViewSet(
             stock = variant.stock if variant else product.stock
             new_quantity = item.quantity + quantity
             if new_quantity > stock:
-                raise ValidationError(
-                    {"detail": f"Only {stock} unit(s) available."}
-                )
+                raise ValidationError({"detail": f"Only {stock} unit(s) available."})
             item.quantity = new_quantity
             item.save()
             serializer.instance = item

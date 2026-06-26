@@ -6,18 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0012_alter_orderitem_unique_together_orderitem_variant_and_more'),
+        ("orders", "0012_alter_orderitem_unique_together_orderitem_variant_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='carrier',
-            field=models.CharField(blank=True, choices=[('ups', 'UPS'), ('fedex', 'FedEx'), ('usps', 'USPS'), ('dhl', 'DHL'), ('other', 'Other')], default='', max_length=20),
+            model_name="order",
+            name="carrier",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("ups", "UPS"),
+                    ("fedex", "FedEx"),
+                    ("usps", "USPS"),
+                    ("dhl", "DHL"),
+                    ("other", "Other"),
+                ],
+                default="",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='tracking_number',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="order",
+            name="tracking_number",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
     ]
