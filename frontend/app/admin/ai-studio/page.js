@@ -317,11 +317,12 @@ export default function AdminAiStudioPage() {
                 ))}
               </div>
             )}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-    </main>
+            </div>{/* end ai-studio-library */}
+              </div>{/* end admin-panel */}
+            </Reveal>
+          </div>{/* end container */}
+        </section>
+      </main>
 
       {/* ─── Detail Modal ─── */}
       {detailItem && (
