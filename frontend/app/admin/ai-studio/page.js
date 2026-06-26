@@ -16,35 +16,75 @@ import {
   Check,
 } from "lucide-react";
 
-/** Reusable custom dropdown */
+/** Reusable custom dropdown — uses fixed positioning so it is never clipped */
 function CustomSelect({ label, options, value, onChange }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [rect, setRect] = useState(null);
+  const triggerRef = useRef(null);
+  const listRef = useRef(null);
   const selected = options.find((o) => o.value === value);
 
+  // Close on outside click
   useEffect(() => {
+    if (!open) return;
     function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        listRef.current  && !listRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [open]);
+
+  // Close on scroll / resize
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  function handleOpen() {
+    if (!open && triggerRef.current) {
+      setRect(triggerRef.current.getBoundingClientRect());
+    }
+    setOpen((v) => !v);
+  }
+
+  // Determine if list should open upward (not enough space below)
+  const listStyle = rect ? {
+    position: "fixed",
+    left: rect.left,
+    width: rect.width,
+    zIndex: 9999,
+    ...(window.innerHeight - rect.bottom > 220
+      ? { top: rect.bottom + 6 }
+      : { bottom: window.innerHeight - rect.top + 6 }),
+  } : {};
 
   return (
-    <div className="cs-wrap" ref={ref}>
+    <div className="cs-wrap">
       {label && <span className="ai-studio-label">{label}</span>}
       <button
+        ref={triggerRef}
         type="button"
         className={`cs-trigger${open ? " open" : ""}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleOpen}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{selected?.label ?? "Select…"}</span>
+        <span>{selected?.label ?? "Select\u2026"}</span>
         <ChevronDown size={15} className="cs-chevron" />
       </button>
-      {open && (
-        <ul className="cs-list" role="listbox">
+      {open && rect && (
+        <ul ref={listRef} className="cs-list" role="listbox" style={listStyle}>
           {options.map((opt) => (
             <li
               key={opt.value}
