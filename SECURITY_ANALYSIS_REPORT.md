@@ -1016,11 +1016,18 @@ flake8
 
 ---
 
+### ✅ Completed Actions
+
+| # | Action | Commit |
+|---|--------|--------|
+| 1 | Create `backend/config/constants.py` with shared `RETRY_KWARGS` + `RETRY_KWARGS_LIGHT`; update all 4 `tasks.py` files | `a3d5d11` |
+
+---
+
 ### 🎯 Recommended Actions
 
 | # | Priority | Action | Effort | Files Affected |
 |---|----------|--------|--------|----------------|
-| 1 | **High** | Create `backend/config/constants.py` with shared `RETRY_KWARGS` | Low | New file + 3 `tasks.py` |
 | 2 | **High** | Create per-app `constants.py` files for scattered constants | Medium | 5 new files + 6 existing files |
 | 3 | **High** | Add `pyproject.toml` with `black` + `flake8` config | Low | New file |
 | 4 | **Medium** | Add `black` and `flake8` to `requirements.txt` | Low | `requirements.txt` |

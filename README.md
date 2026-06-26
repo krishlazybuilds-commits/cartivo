@@ -219,7 +219,7 @@ Customers can add items to their cart and check out without creating an account:
 | `send_payment_confirmed_task` | On Stripe payment | Emails payment confirmation |
 | `expire_pending_orders_task` | Every 5 min (Beat) | Cancels + restocks orders unpaid for 30 min |
 
-All email tasks retry with exponential backoff (max 5 retries). Configuration:
+All email tasks retry with exponential backoff (max 5 retries). Retry policy is centralized in `backend/config/constants.py` (`RETRY_KWARGS` and `RETRY_KWARGS_LIGHT`). Configuration:
 
 ```env
 CELERY_BROKER_URL=redis://localhost:6379/0
