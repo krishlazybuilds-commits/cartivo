@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ImageIcon,
+  Film,
+  Sparkles,
+  XCircle,
+  X,
+  Download,
+  Trash2,
+  Loader2,
+  LayoutGrid,
+} from "lucide-react";
 
 import AdminTabs from "../../components/AdminTabs";
 import Reveal from "../../components/Reveal";
@@ -174,14 +185,14 @@ export default function AdminAiStudioPage() {
                 className={`ai-studio-type-btn${mediaType === "image" ? " active" : ""}`}
                 onClick={() => setMediaType("image")}
               >
-                🖼 Image
+                <ImageIcon size={16} /> Image
               </button>
               <button
                 type="button"
                 className={`ai-studio-type-btn${mediaType === "video" ? " active" : ""}`}
                 onClick={() => setMediaType("video")}
               >
-                🎬 Video
+                <Film size={16} /> Video
               </button>
             </div>
 
@@ -241,11 +252,13 @@ export default function AdminAiStudioPage() {
               className="btn btn-primary ai-studio-submit"
               disabled={!prompt.trim() || generating}
             >
-              {generating
-                ? "Generating…"
-                : mediaType === "image"
-                  ? "✨ Generate Image"
-                  : "🎬 Generate Video"}
+              {generating ? (
+                <><Loader2 size={16} className="ai-studio-spin" /> Generating…</>
+              ) : mediaType === "image" ? (
+                <><Sparkles size={16} /> Generate Image</>
+              ) : (
+                <><Film size={16} /> Generate Video</>
+              )}
             </button>
           </form>
 
@@ -261,7 +274,13 @@ export default function AdminAiStudioPage() {
                     className={`ai-studio-filter${filter === f ? " active" : ""}`}
                     onClick={() => setFilter(f)}
                   >
-                    {f === "all" ? "All" : f === "image" ? "🖼 Images" : "🎬 Videos"}
+                    {f === "all" ? (
+                      <><LayoutGrid size={14} /> All</>
+                    ) : f === "image" ? (
+                      <><ImageIcon size={14} /> Images</>
+                    ) : (
+                      <><Film size={14} /> Videos</>
+                    )}
                   </button>
                 ))}
               </div>
@@ -286,7 +305,7 @@ export default function AdminAiStudioPage() {
                         <video src={item.file_url} preload="metadata" />
                       ) : (
                         <div className="ai-studio-card-placeholder">
-                          {item.media_type === "image" ? "🖼" : "🎬"}
+                          {item.media_type === "image" ? <ImageIcon size={32} /> : <Film size={32} />}
                         </div>
                       )}
 
@@ -300,7 +319,8 @@ export default function AdminAiStudioPage() {
                       )}
                       {item.status === "failed" && (
                         <div className="ai-studio-status-overlay ai-studio-failed">
-                          <span>❌ Failed</span>
+                          <XCircle size={20} />
+                          <span>Failed</span>
                         </div>
                       )}
                     </div>
@@ -337,7 +357,7 @@ export default function AdminAiStudioPage() {
               className="ai-studio-modal-close"
               onClick={() => setDetailItem(null)}
             >
-              ✕
+              <X size={18} />
             </button>
 
             <div className="ai-studio-modal-preview">
@@ -380,14 +400,14 @@ export default function AdminAiStudioPage() {
                     className="btn btn-primary"
                     onClick={() => handleDownload(detailItem)}
                   >
-                    ⬇ Download
+                    <Download size={15} /> Download
                   </button>
                 )}
                 <button
                   className="btn btn-danger"
                   onClick={() => setPendingDelete(detailItem)}
                 >
-                  🗑 Delete
+                  <Trash2 size={15} /> Delete
                 </button>
               </div>
             </div>

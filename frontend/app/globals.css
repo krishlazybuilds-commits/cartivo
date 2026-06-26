@@ -3579,6 +3579,10 @@ body::after {
 }
 .ai-studio-type-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   padding: 0.7rem 1rem;
   border: 2px solid var(--border, #e5e7eb);
   border-radius: 8px;
@@ -3596,6 +3600,21 @@ body::after {
   background: var(--primary, #6366f1);
   color: #fff;
   border-color: var(--primary, #6366f1);
+}
+/* Icon alignment helpers */
+.ai-studio-submit,
+.ai-studio-filter,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+/* Spinner animation */
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+.ai-studio-spin {
+  animation: ai-spin 0.8s linear infinite;
 }
 .ai-studio-prompt {
   width: 100%;

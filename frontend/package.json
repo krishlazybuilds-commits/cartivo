@@ -15,6 +15,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "lucide-react": "^1.21.0",
     "marked": "^18.0.5",
     "next": "^15.5.16",
     "react": "18.3.1",
