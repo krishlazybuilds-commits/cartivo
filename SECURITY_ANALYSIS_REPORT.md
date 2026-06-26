@@ -804,27 +804,27 @@ self._get_cart(request).items.all().delete()
 
 ### Index Recommendations Summary
 
-| # | Table | Index | Priority | Reason |
-|---|---|---|---|---|
-| 1 | `Order` | `Index(fields=["status"])` | **CRITICAL** | Dashboard stats, webhook handlers, status transitions |
-| 2 | `Order` | `Index(fields=["status", "-created_at"])` | **CRITICAL** | Dashboard monthly stats query |
-| 3 | `Order` | `Index(fields=["guest_email"])` | **HIGH** | Guest order lookup by email |
-| 4 | `Order` | `Index(fields=["stripe_session_id"])` | **HIGH** | Webhook session matching |
-| 5 | `Order` | `Index(fields=["user", "status", "-created_at"])` | **MEDIUM** | User orders filtered by status |
-| 6 | `Review` | `Index(fields=["status", "-created_at"])` | **MEDIUM** | Public review listing |
-| 7 | `Review` | `Index(fields=["user"])` | **MEDIUM** | User's own reviews |
-| 8 | `Address` | `Index(fields=["user"])` | **MEDIUM** | User address listing |
-| 9 | `WarehouseStock` | `Index(fields=["product", "variant"])` | **LOW** | Stock existence check |
+| # | Table | Index | Priority | Reason | Status |
+|---|---|---|---|---|---|
+| 1 | `Order` | `Index(fields=["status"])` | **CRITICAL** | Dashboard stats, webhook handlers, status transitions | ✅ Resolved by #2 |
+| 2 | `Order` | `Index(fields=["status", "-created_at"])` | **CRITICAL** | Dashboard monthly stats query (covers #1) | ✅ `0016` |
+| 3 | `Order` | `Index(fields=["guest_email"])` | **HIGH** | Guest order lookup by email | ✅ `0017` |
+| 4 | `Order` | `Index(fields=["stripe_session_id"])` | **HIGH** | Webhook session matching | ✅ `0018` |
+| 5 | `Order` | `Index(fields=["user", "status", "-created_at"])` | **MEDIUM** | User orders filtered by status | ✅ `0019` |
+| 6 | `Review` | `Index(fields=["status", "-created_at"])` | **MEDIUM** | Public review listing | ✅ `0015` |
+| 7 | `Review` | `Index(fields=["user"])` | **MEDIUM** | User's own reviews | ✅ `0015` |
+| 8 | `Address` | `Index(fields=["user"])` | **MEDIUM** | User address listing | ✅ `0007` |
+| 9 | `WarehouseStock` | `Index(fields=["product", "variant"])` | **LOW** | Stock existence check | ✅ `0015` |
 
 ---
 
 ### Query Optimization Recommendations
 
-| # | Issue | Location | Effort | Impact |
-|---|---|---|---|---|
-| 1 | Bulk-fetch WarehouseStock instead of per-item loop | `orders/services.py:72-76` | Medium | High — eliminates O(W×I) queries |
-| 2 | Consolidate double WarehouseStock lock per item | `orders/services.py:127-202` | Medium | Medium — halves lock acquisitions |
-| 3 | Direct DELETE for cart clear | `cart/views.py:40` | Low | Low — avoids unnecessary fetch |
+| # | Issue | Location | Effort | Impact | Status |
+|---|---|---|---|---|---|
+| 1 | Bulk-fetch WarehouseStock instead of per-item loop | `orders/services.py` | Medium | High — eliminates O(W×I) queries | ✅ `8034d9d` |
+| 2 | Consolidate double WarehouseStock lock per item | `orders/services.py` | Medium | Medium — halves lock acquisitions | ✅ `8034d9d` |
+| 3 | Direct DELETE for cart clear | `cart/views.py` | Low | Low — avoids unnecessary fetch | ✅ `8034d9d` |
 
 ---
 
