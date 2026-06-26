@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-import { API_URL } from "./api";
+// Client-side: use relative /api/v1 so requests go through the Next.js proxy
+// (keeps cookies same-origin, fixing CSRF on LAN access).
+const API_URL = "/api/v1";
 
 const AuthContext = createContext(null);
 

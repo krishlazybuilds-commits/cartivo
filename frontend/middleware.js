@@ -93,7 +93,7 @@ export async function middleware(request) {
   const csp = [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' fonts.googleapis.com accounts.google.com",
     `img-src ${imgSrc.join(" ")}`,
     "font-src 'self' fonts.gstatic.com",
     `connect-src ${connectSrc.join(" ")}`,
