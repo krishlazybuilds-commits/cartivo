@@ -1149,7 +1149,9 @@ class GuestCheckoutCouponTests(APITestCase):
 
     def _checkout(self, payload):
         fake_session = MagicMock(id="cs_cpn", url="https://stripe.test/checkout")
-        with patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session):
+        fake_coupon = MagicMock(id="cpn_test")
+        with patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session), \
+             patch("apps.orders.views.stripe.Coupon.create", return_value=fake_coupon):
             return self.client.post(self.GUEST_URL, payload, format="json")
 
     def test_guest_checkout_with_valid_coupon(self):
