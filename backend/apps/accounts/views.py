@@ -456,8 +456,7 @@ class GoogleLoginView(APIView):
     tags=["auth"],
     summary="Obtain JWT cookies",
     description=(
-        "Validates credentials and sets httpOnly `access_token` and "
-        "`refresh_token` cookies."
+        "Validates credentials and sets httpOnly `access_token` and " "`refresh_token` cookies."
     ),
 )
 class LoginView(APIView):

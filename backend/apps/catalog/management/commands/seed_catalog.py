@@ -18,7 +18,6 @@ from django.db import transaction
 
 from apps.catalog.models import Category, Product
 
-
 # (slug, name, description)
 CATEGORIES = [
     ("laptops", "Laptops", "Portable computers for work, study, and play."),

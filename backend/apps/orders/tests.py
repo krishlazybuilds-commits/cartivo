@@ -679,8 +679,7 @@ class StripeWebhookEdgeCaseTests(APITestCase):
             return self.client.post(self.WEBHOOK_URL, data="{}", content_type="application/json")
 
     def test_concurrent_duplicate_events_both_delivered(self):
-        """Two identical events arriving in separate requests: first succeeds, second is duplicate.
-        """
+        """Two identical events arriving in separate requests: first succeeds, second is duplicate."""
         order = self._pending_order()
         from apps.orders.models import OrderItem
 
@@ -1150,8 +1149,10 @@ class GuestCheckoutCouponTests(APITestCase):
     def _checkout(self, payload):
         fake_session = MagicMock(id="cs_cpn", url="https://stripe.test/checkout")
         fake_coupon = MagicMock(id="cpn_test")
-        with patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session), \
-             patch("apps.orders.views.stripe.Coupon.create", return_value=fake_coupon):
+        with (
+            patch("apps.orders.views.stripe.checkout.Session.create", return_value=fake_session),
+            patch("apps.orders.views.stripe.Coupon.create", return_value=fake_coupon),
+        ):
             return self.client.post(self.GUEST_URL, payload, format="json")
 
     def test_guest_checkout_with_valid_coupon(self):

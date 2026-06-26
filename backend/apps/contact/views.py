@@ -44,8 +44,7 @@ class ContactRateThrottle(AnonRateThrottle):
     tags=["contact"],
     summary="Send a contact message",
     description=(
-        "Sends a contact message to the site administrators. "
-        "Rate-limited to 5/hour per IP."
+        "Sends a contact message to the site administrators. " "Rate-limited to 5/hour per IP."
     ),
     request=inline_serializer(
         name="ContactRequest",

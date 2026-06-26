@@ -76,8 +76,7 @@ def create_order_and_items(*, order_kwargs, items, coupon=None):
             )
             # Build lookup: {(warehouse_id, product_id, variant_id): WarehouseStock}
             stock_lookup = {
-                (ws.warehouse_id, ws.product_id, ws.variant_id): ws
-                for ws in all_stock_rows
+                (ws.warehouse_id, ws.product_id, ws.variant_id): ws for ws in all_stock_rows
             }
             # Also build a set of (product_id, variant_id) that have ANY stock row
             any_stock_exists = {(ws.product_id, ws.variant_id) for ws in all_stock_rows}
