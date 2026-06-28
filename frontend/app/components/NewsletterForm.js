@@ -2,22 +2,21 @@
 
 import { useState } from "react";
 import { API_URL } from "../lib/api";
+import { useToast } from "../lib/toast";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function NewsletterForm() {
   const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!EMAIL_RE.test(email.trim())) {
-      setError("Please enter a valid email address.");
+      toast("Please enter a valid email address.", "error");
       return;
     }
-    setError("");
     setSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/newsletter/subscribe/`, {
@@ -27,23 +26,16 @@ export default function NewsletterForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && res.status !== 201) {
-        setError(data.detail || "Subscription failed. Please try again.");
+        toast(data.detail || "Subscription failed. Please try again.", "error");
       } else {
-        setDone(true);
+        toast("You're on the list! We'll be in touch.", "success");
+        setEmail("");
       }
     } catch {
-      setError("Subscription failed. Please try again.");
+      toast("Subscription failed. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (done) {
-    return (
-      <p className="newsletter-done" role="status">
-        ✓ You&apos;re on the list. We&apos;ll be in touch.
-      </p>
-    );
   }
 
   return (
@@ -61,7 +53,6 @@ export default function NewsletterForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Your email address"
           aria-label="Email address"
-          aria-invalid={!!error}
           disabled={submitting}
         />
         <button type="submit" className="newsletter-btn" disabled={submitting}>
@@ -78,7 +69,6 @@ export default function NewsletterForm() {
           )}
         </button>
       </div>
-      {error && <span className="newsletter-error" role="alert">{error}</span>}
     </form>
   );
 }
