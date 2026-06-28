@@ -585,14 +585,15 @@ AUTH_VIDEO_PATH = os.getenv(
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # --- Email -------------------------------------------------------------------
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND",
-    (
-        "django.core.mail.backends.console.EmailBackend"
-        if DEBUG
-        else "django.core.mail.backends.smtp.EmailBackend"
-    ),
+# Defaults: file backend in dev (so emails are saved to disk), SMTP in production.
+# Override EMAIL_BACKEND in .env to use console, smtp, or a third-party provider.
+_email_backend_default = (
+    "django.core.mail.backends.filebased.EmailBackend"
+    if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend"
 )
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", _email_backend_default)
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
