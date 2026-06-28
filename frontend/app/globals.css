@@ -1365,15 +1365,30 @@ section {
   border-radius: 999px;
   cursor: pointer;
   border: none;
-  background: var(--accent);
   color: var(--ink);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    105deg,
+    var(--accent) 0%,
+    var(--accent) 40%,
+    #d4c08c 48%,
+    #e8d9a8 50%,
+    #d4c08c 52%,
+    var(--accent) 60%,
+    var(--accent) 100%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  transition: background-position 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s ease,
+              box-shadow 0.25s ease;
 }
 .newsletter-btn:hover {
-  background: #c4ab6c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(174, 153, 91, 0.35);
+  background-position: 0 0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(174, 153, 91, 0.45);
 }
 .newsletter-btn:active {
   transform: scale(0.97);
@@ -1382,6 +1397,13 @@ section {
   opacity: 0.6;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.newsletter-btn svg {
+  transition: transform 0.25s ease;
+}
+.newsletter-btn:hover svg {
+  transform: translateX(3px);
 }
 
 .newsletter-spinner {
