@@ -1,4 +1,6 @@
+import datetime
 import logging
+import os
 import re
 
 from django.core.validators import validate_email
@@ -147,4 +149,22 @@ def subscribe(request):
     _, created = NewsletterSubscriber.objects.get_or_create(email=email)
     if not created:
         return Response({"detail": "You're already subscribed."})
+
+    site_url = os.getenv("NEXT_PUBLIC_SITE_URL", "https://cartivo.com") or "https://cartivo.com"
+    try:
+        send_html_email(
+            subject="Welcome to Cartivo — you're subscribed!",
+            html_template="emails/newsletter_welcome.html",
+            text_body=(
+                "Welcome to Cartivo!\n\n"
+                "You'll receive early access to new arrivals, exclusive deals, and curated picks. "
+                "No spam, ever. Unsubscribe anytime.\n\n"
+                f"Browse the store: {site_url}"
+            ),
+            recipient_list=[email],
+            context={"site_url": site_url, "year": datetime.date.today().year},
+        )
+    except Exception:
+        logger.exception("Failed to send newsletter welcome email to %s", email)
+
     return Response({"detail": "Subscribed!"}, status=status.HTTP_201_CREATED)
