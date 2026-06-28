@@ -134,6 +134,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "config.middleware.PermissionsPolicyMiddleware",
+    "config.middleware.RequestLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -682,14 +683,29 @@ LOGGING = {
             "level": LOG_LEVEL,
             "propagate": False,
         },
+        "django.server": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
         "django.request": {
             "handlers": ["console", "file"],
-            "level": "ERROR",
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.security.csrf": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
             "propagate": False,
         },
         "apps": {
             "handlers": ["console", "file"],
             "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "apps.middleware": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
             "propagate": False,
         },
     },
