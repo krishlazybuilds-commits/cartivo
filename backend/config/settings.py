@@ -644,9 +644,11 @@ if not DEBUG and not _SKIP_NETWORK_VALIDATION.intersection(sys.argv):
 
 
 # --- Logging -----------------------------------------------------------------
-# Structured console logging. Level is env-driven (default INFO; use DEBUG
-# locally for more detail). Container/platform log collectors capture stdout.
+# Writes to both console (stdout) and a rotating log file so every request,
+# error, and CSRF failure is persisted to disk.
 LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 LOGGING = {
     "version": 1,
@@ -662,25 +664,31 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "django.log"),
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "file"],
         "level": LOG_LEVEL,
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        # Log unexpected 500s from request handling.
         "django.request": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "ERROR",
             "propagate": False,
         },
         "apps": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
