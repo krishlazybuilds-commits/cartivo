@@ -94,7 +94,15 @@ export default function Nav() {
         <div className="nav-links">
           {LINKS.map((l) => {
             const isActive = l.href.startsWith("/#") ? pathname === "/" && activeSection === l.href.slice(2) : pathname.startsWith(l.href);
-            return <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>{l.label}</Link>;
+            return (
+              <Link key={l.label} href={l.href} className={isActive ? "active" : ""}>
+                {l.label === "Shop" && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>}
+                {l.label === "Categories" && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>}
+                {l.label === "Features" && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+                {l.label === "Blog" && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
+                {l.label}
+              </Link>
+            );
           })}
         </div>
 
@@ -149,8 +157,14 @@ export default function Nav() {
             </>
           ) : (
             <>
-              <Link href="/login" className="nav-link-min">Sign in</Link>
-              <Link href="/register" className="btn btn-primary btn-sm">Get started</Link>
+              <Link href="/login" className="nav-link-min">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Sign in
+              </Link>
+              <Link href="/register" className="btn btn-primary btn-sm">
+                Get started
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </Link>
             </>
           )}
         </div>
@@ -170,32 +184,67 @@ export default function Nav() {
       {/* Mobile drawer */}
       <div className={`nav-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="nav-drawer-links">
-          <Link href="/products" onClick={closeMenu}>Shop</Link>
-          <a href="/#categories" onClick={closeMenu}>Categories</a>
-          <a href="/#features" onClick={closeMenu}>Features</a>
-          <a href="/#how" onClick={closeMenu}>How it works</a>
-          <a href="/#why" onClick={closeMenu}>Why Cartivo</a>
+          <Link href="/products" onClick={closeMenu}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Shop
+          </Link>
+          <a href="/#categories" onClick={closeMenu}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+            Categories
+          </a>
+          <a href="/#features" onClick={closeMenu}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Features
+          </a>
+          <a href="/#how" onClick={closeMenu}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            How it works
+          </a>
+          <a href="/#why" onClick={closeMenu}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z"/></svg>
+            Why Cartivo
+          </a>
         </div>
         <div className="nav-drawer-cta">
           {user || (authed && authLoading) ? (
             <>
               <Link href="/cart" className="btn btn-ghost" onClick={closeMenu}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                 Cart{itemCount > 0 ? ` (${itemCount})` : ""}
               </Link>
-              <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>Orders</Link>
-              <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>Wishlist</Link>
+              <Link href="/orders" className="btn btn-ghost" onClick={closeMenu}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+                Orders
+              </Link>
+              <Link href="/wishlist" className="btn btn-ghost" onClick={closeMenu}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Wishlist
+              </Link>
               {user?.is_staff && (
-                <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>Admin</Link>
+                <Link href="/admin" className="btn btn-ghost" onClick={closeMenu}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z"/></svg>
+                  Admin
+                </Link>
               )}
-              <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>Profile</Link>
+              <Link href="/profile" className="btn btn-ghost" onClick={closeMenu}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Profile
+              </Link>
               <button className="btn btn-ghost" onClick={() => { closeMenu(); setSignOutOpen(true); }} type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="btn btn-ghost" onClick={closeMenu}>Sign in</Link>
-              <Link href="/register" className="btn btn-primary" onClick={closeMenu}>Get started</Link>
+              <Link href="/login" className="btn btn-ghost" onClick={closeMenu}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Sign in
+              </Link>
+              <Link href="/register" className="btn btn-primary" onClick={closeMenu}>
+                Get started
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </Link>
             </>
           )}
         </div>
