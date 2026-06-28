@@ -1400,12 +1400,94 @@ section {
 }
 
 .newsletter-btn svg {
-  transition: transform 0.25s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 .newsletter-btn:hover svg {
   transform: translateX(3px);
 }
 
+.newsletter-btn-text {
+  transition: opacity 0.2s ease;
+}
+
+/* --- Three-dot loading --- */
+.newsletter-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 16px;
+}
+.newsletter-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  animation: dotBounce 1.2s ease-in-out infinite both;
+}
+.newsletter-dot:nth-child(1) { animation-delay: 0s; }
+.newsletter-dot:nth-child(2) { animation-delay: 0.2s; }
+.newsletter-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* --- Loading state --- */
+.newsletter-btn--loading {
+  pointer-events: none;
+  opacity: 1;
+}
+.newsletter-btn--loading .newsletter-btn-text {
+  opacity: 0.7;
+}
+
+/* --- Success state: green button --- */
+.newsletter-btn--success {
+  background-image: none;
+  background: #16a34a;
+  color: #fff;
+  opacity: 1;
+  transition: background 0.35s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+.newsletter-btn--success:hover {
+  background: #16a34a;
+  transform: none;
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.4);
+}
+
+/* Checkmark draw animation in button */
+.newsletter-btn-check {
+  overflow: visible;
+}
+.newsletter-btn-check-path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: checkDraw 0.4s 0.1s ease forwards;
+}
+@keyframes checkDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Checkmark in envelope icon slot */
+.newsletter-checkmark {
+  color: #16a34a;
+  transition: color 0.3s ease;
+}
+.newsletter-checkmark-path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: checkDraw 0.4s 0.05s ease forwards;
+}
+
+/* Input green glow on success */
+.newsletter-field--success {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2) !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* --- Clean up old spinner --- */
 .newsletter-spinner {
   width: 18px;
   height: 18px;
