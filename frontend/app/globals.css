@@ -1369,6 +1369,7 @@ section {
   white-space: nowrap;
   position: relative;
   overflow: hidden;
+  min-width: 112px;
   background-image: linear-gradient(
     105deg,
     var(--accent) 0%,
@@ -1406,10 +1407,6 @@ section {
   transform: translateX(3px);
 }
 
-.newsletter-btn-text {
-  transition: opacity 0.2s ease;
-}
-
 /* --- Three-dot loading --- */
 .newsletter-dots {
   display: inline-flex;
@@ -1437,9 +1434,6 @@ section {
 .newsletter-btn--loading {
   pointer-events: none;
   opacity: 1;
-}
-.newsletter-btn--loading .newsletter-btn-text {
-  opacity: 0.7;
 }
 
 /* --- Success state: green button --- */
