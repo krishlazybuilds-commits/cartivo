@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { API_URL } from "../lib/api";
 import { useToast } from "../lib/toast";
+import { ensureCsrfToken } from "../lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,9 +19,13 @@ export default function NewsletterForm() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/newsletter/subscribe/`, {
+      const csrf = await ensureCsrfToken();
+      const headers = { "Content-Type": "application/json" };
+      if (csrf) headers["X-CSRFToken"] = csrf;
+      const res = await fetch(`/api/v1/newsletter/subscribe/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const data = await res.json().catch(() => ({}));
