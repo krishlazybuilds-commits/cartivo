@@ -51,8 +51,11 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
   const valid = await isTokenValid(request);
 
-  // Protect auth-required pages
-  const isProtected = PROTECTED_ROUTES.some(
+  // Protect auth-required pages. /orders/lookup is guest-accessible (guests
+  // look up orders by email + order number) so it's exempted from the
+  // /orders protection.
+  const isOrdersLookup = pathname === "/orders/lookup" || pathname.startsWith("/orders/lookup/");
+  const isProtected = !isOrdersLookup && PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
   if (isProtected && !valid) {

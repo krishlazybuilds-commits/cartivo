@@ -12,11 +12,11 @@ test("products page has working search input", async ({ page }) => {
 
 test("products page has sort and category filters", async ({ page }) => {
   await page.goto("/products");
-  await expect(page.getByText("All")).toBeVisible();
+  await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
   await expect(page.getByText("Sort by")).toBeVisible();
 });
 
 test("product detail page for a known product", async ({ page }) => {
-  const response = await page.goto("/products/welcome-to-cartivo");
+  const response = await page.goto("/products/apple-macbook-air-13-m4");
   expect(response.status()).toBeLessThan(400);
 });

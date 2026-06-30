@@ -8,6 +8,6 @@ test.describe("Wishlist", () => {
 
   test("wishlist page shows empty state for guest", async ({ page }) => {
     await page.goto("/wishlist");
-    await expect(page.getByText(/empty|no items|sign in|log in/i)).toBeVisible();
+    await expect(page.getByText("Your wishlist is empty.")).toBeVisible();
   });
 });

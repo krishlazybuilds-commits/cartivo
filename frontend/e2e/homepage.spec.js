@@ -7,15 +7,15 @@ test("homepage loads with correct title", async ({ page }) => {
 
 test("homepage shows main sections", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /shop the future/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /why cartivo/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /shop now/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /sound, vision and everyday tech/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /tech shopping without the worry/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Shop now" })).toBeVisible();
 });
 
 test("homepage has working navigation", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: /shop/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /blog/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Shop", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Blog", exact: true }).first()).toBeVisible();
 });
 
 test("homepage renders footer", async ({ page }) => {

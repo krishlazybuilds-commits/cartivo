@@ -77,10 +77,8 @@ Route-level `error.js` files exist for the app root, `products/`, `products/[slu
 
 ---
 
-### Cross-cutting — E2E tests not run in CI
-The frontend has broad test coverage: ~34 Vitest unit/component test files (lib, components, pages, admin, auth, cart, checkout) plus 9 Playwright E2E specs in `frontend/e2e/` (auth, cart, checkout, products, search, wishlist, etc.). The Vitest suite runs in CI (`.github/workflows/ci.yml` frontend job), but the Playwright E2E suite is **not** wired into CI — specs exist locally only and can silently rot.
-
-**Fix:** Add a Playwright job to `ci.yml` (spin up the app + backend, run `npx playwright test`) so E2E regressions are caught on PRs.
+### Cross-cutting — E2E now wired into CI (resolved)
+~34 Vitest unit/component test files plus 9 Playwright E2E specs exist. Both suites now run in CI: Vitest in the `frontend` job, Playwright in a dedicated `e2e` job that boots Postgres + Django (migrations + `seed_catalog`) so specs run against real API data. Previously the E2E suite was local-only and had drifted into stale locators; those specs have since been corrected to match the current UI.
 
 ---
 

@@ -18,16 +18,18 @@ test.describe("Checkout", () => {
 
   test("guest order lookup page loads", async ({ page }) => {
     await page.goto("/orders/lookup");
-    await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/order/i)).toBeVisible();
+    const form = page.locator(".auth-form");
+    await expect(form.getByLabel(/email/i)).toBeVisible();
+    await expect(form.getByLabel(/order/i)).toBeVisible();
   });
 
   test("guest order lookup shows error for invalid input", async ({ page }) => {
     await page.goto("/orders/lookup");
-    await page.getByLabel(/email/i).fill("fake@example.com");
-    await page.getByLabel(/order/i).fill("XXXXXXXX");
-    await page.getByRole("button", { name: /look ?up|find|search|track/i }).click();
+    const form = page.locator(".auth-form");
+    await form.getByLabel(/email/i).fill("fake@example.com");
+    await form.getByLabel(/order/i).fill("XXXXXXXX");
+    await form.getByRole("button", { name: /look ?up|find|search|track/i }).click();
     // Should show a not-found or error message
-    await expect(page.getByText(/not found|no order|error/i)).toBeVisible({ timeout: 10000 });
+    await expect(form.getByText(/not found|no order|invalid|error/i)).toBeVisible({ timeout: 10000 });
   });
 });

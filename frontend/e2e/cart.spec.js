@@ -15,19 +15,12 @@ test.describe("Cart", () => {
   });
 
   test("add to cart button exists on product page", async ({ page }) => {
-    await page.goto("/products/welcome-to-cartivo");
-    // Product page should have an add-to-cart control
-    const addButton = page.getByRole("button", { name: /add to cart/i });
-    // If the product page exists, the button should be present
-    if (await page.getByRole("heading").count() > 0) {
-      await expect(addButton).toBeVisible();
-    }
+    await page.goto("/products/apple-macbook-air-13-m4");
+    await expect(page.getByRole("button", { name: /add to cart/i })).toBeVisible();
   });
 
   test("cart link in navigation shows cart icon", async ({ page }) => {
     await page.goto("/");
-    // Navigation should have a link to the cart
-    const cartLink = page.getByRole("link", { name: /cart/i });
-    await expect(cartLink).toBeVisible();
+    await expect(page.getByRole("link", { name: "Cart", exact: true })).toBeVisible();
   });
 });
