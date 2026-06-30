@@ -70,17 +70,17 @@ The coupon validation fetch does NOT use `ensureCsrfToken()`. Other authenticate
 
 ---
 
-### Cross-cutting — No React Error Boundaries
-No `error.js` or `error.tsx` files in route segments. If any component crashes (JSON parse error, malformed API response), the entire page whitescreens.
+### Cross-cutting — Error Boundaries coverage incomplete
+Route-level `error.js` files exist for the app root, `products/`, `products/[slug]/`, `categories/[slug]/`, `orders/`, and `orders/[id]/`. Other segments (cart, checkout, account/profile, wishlist, admin) have none. A crash in a form component on an uncovered route still whitescreens.
 
-**Fix:** Add `error.js` files to key route segments and a global error boundary.
+**Fix:** Add `error.js` to remaining route segments (checkout, cart, account, wishlist, admin).
 
 ---
 
-### Cross-cutting — Zero automated tests
-No `*.test.js`, `*.spec.js`, or `__tests__` directories found. Zero unit tests, integration tests, or E2E tests for a payments-handling e-commerce application.
+### Cross-cutting — Minimal test coverage
+A handful of Vitest unit tests exist (`app/lib/format.test.js`, `app/lib/__tests__/cart.test.js`, `app/lib/__tests__/wishlist.test.js`) covering a few lib helpers. No tests for components, pages, or critical user flows. No integration or E2E tests for a payments-handling e-commerce application.
 
-**Fix:** Add Vitest unit tests for lib/critical components + Playwright E2E for checkout flow.
+**Fix:** Add Vitest tests for critical components (AddToCart, WishlistButton, GalleryImages) + Playwright E2E for checkout/login/register flows.
 
 ---
 
@@ -146,7 +146,7 @@ HTTP 201 is considered "ok" (2xx range), so the second condition can never be tr
 | No "Resend" on forgot password | After reset email sent, no resend option if not received. |
 | Misleading success message | "Check your inbox" shown even if email doesn't exist (good for security, bad for UX accuracy). |
 | Raw backend error exposure | `setError(err.message)` passes raw error strings to UI without user-friendly mapping. |
-| Phone validation too loose | Regex `/^[0-9+()\-\s]{7,20}$/` accepts `++++++++++`. |
+| Phone regex character-class loose | Regex `/^[0-9+()\-\s]{7,20}$/` alone accepts `++++++++++`, but `register/page.js:38-40` additionally strips non-digits and rejects when `digits.length < 7 \|\| > 15`. So all-symbol strings fail in practice — still worth tightening the regex itself for clarity. |
 
 ### Wishlist
 | Issue | Detail |
@@ -221,7 +221,7 @@ HTTP 201 is considered "ok" (2xx range), so the second condition can never be tr
 14. Fix `NewsletterForm` dead-code error condition
 15. Add `Secure` flag to auth hint cookies
 16. Fix `isWishlisted` type comparison (use `==` or explicit `String()`/`Number()` conversion)
-17. Add `error.js` boundaries to key route segments
+17. Add `error.js` to remaining route segments (checkout, cart, account, wishlist, admin)
 18. Sync admin pagination/filter state to URL search params
 
 ---
@@ -250,9 +250,9 @@ HTTP 201 is considered "ok" (2xx range), so the second condition can never be tr
 - Add stock validation in guest cart (CART-02)
 
 ### Phase 2 — Stability (Week 2)
-- Add React Error Boundaries (CC-02)
+- Add `error.js` to remaining route segments (CC-02)
 - Begin TypeScript migration (CC-01)
-- Start test suite — critical paths (CC-03)
+- Expand test suite — components + checkout/login/register E2E (CC-03)
 - Fix `tryRefresh` on every 401 (AUTH-01)
 - Fix admin URL state persistence (ADM-01)
 
