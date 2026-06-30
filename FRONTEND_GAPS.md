@@ -77,10 +77,10 @@ Route-level `error.js` files exist for the app root, `products/`, `products/[slu
 
 ---
 
-### Cross-cutting — Minimal test coverage
-A handful of Vitest unit tests exist (`app/lib/format.test.js`, `app/lib/__tests__/cart.test.js`, `app/lib/__tests__/wishlist.test.js`) covering a few lib helpers. No tests for components, pages, or critical user flows. No integration or E2E tests for a payments-handling e-commerce application.
+### Cross-cutting — E2E tests not run in CI
+The frontend has broad test coverage: ~34 Vitest unit/component test files (lib, components, pages, admin, auth, cart, checkout) plus 9 Playwright E2E specs in `frontend/e2e/` (auth, cart, checkout, products, search, wishlist, etc.). The Vitest suite runs in CI (`.github/workflows/ci.yml` frontend job), but the Playwright E2E suite is **not** wired into CI — specs exist locally only and can silently rot.
 
-**Fix:** Add Vitest tests for critical components (AddToCart, WishlistButton, GalleryImages) + Playwright E2E for checkout/login/register flows.
+**Fix:** Add a Playwright job to `ci.yml` (spin up the app + backend, run `npx playwright test`) so E2E regressions are caught on PRs.
 
 ---
 
