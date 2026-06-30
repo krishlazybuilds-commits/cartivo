@@ -185,6 +185,7 @@ export default function CartPage() {
                         <strong>{item.product_name}</strong>
                         <span className="product-cat">
                           {formatPrice(item.unit_price)} each
+                          {item.price_is_estimate ? " (est.)" : ""}
                         </span>
                       </div>
                       <div className="cart-item-qty">

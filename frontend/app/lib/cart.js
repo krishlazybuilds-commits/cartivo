@@ -110,15 +110,39 @@ export function CartProvider({ children }) {
         });
         await refreshServer();
       } else {
-        // Guest: store in localStorage.
+        // Guest: store in localStorage. Price is fetched from the server so
+        // guests cannot set their own price via localStorage tampering. If the
+        // lookup fails we fall back to the client-provided price, which the
+        // cart display labels as an estimate (checkout re-validates it).
+        let serverPrice = null;
+        try {
+          const res = await fetch(`/api/v1/products/?ids=${productId}&page_size=1`);
+          if (res.ok) {
+            const data = await res.json();
+            const product = (data.results ?? data)[0];
+            if (product) {
+              if (productData.variantId && product.variants) {
+                const v = product.variants.find((x) => x.id === productData.variantId);
+                if (v) serverPrice = parseFloat(v.effective_price ?? v.price ?? product.price);
+              } else {
+                serverPrice = parseFloat(product.price);
+              }
+            }
+          }
+        } catch {
+          // Network/API error — fall back below.
+        }
+        const price = serverPrice ?? productData.price ?? 0;
+        const priceIsEstimate = serverPrice === null;
+
         const items = readGuestCart();
         const guestKey = productData.variantId ? `guest-${productId}-${productData.variantId}` : `guest-${productId}`;
         const existing = items.find((i) => i.id === guestKey);
         if (existing) {
           existing.quantity += quantity;
           existing.subtotal = existing.unit_price * existing.quantity;
+          existing.price_is_estimate = priceIsEstimate;
         } else {
-          const price = productData.price ?? 0;
           items.push({
             id: guestKey,
             product_id: productId,
@@ -129,6 +153,7 @@ export function CartProvider({ children }) {
             quantity,
             subtotal: price * quantity,
             variant_id: productData.variantId ?? null,
+            price_is_estimate: priceIsEstimate,
           });
         }
         writeGuestCart(items);
