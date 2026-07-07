@@ -7,6 +7,7 @@ class CartItemSerializer(serializers.ModelSerializer):
     """Validate and serialize a single cart line item."""
 
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_image = serializers.ImageField(source="product.image", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True, default=None)
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
@@ -17,6 +18,7 @@ class CartItemSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
+            "product_image",
             "variant",
             "variant_name",
             "unit_price",

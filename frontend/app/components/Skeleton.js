@@ -14,6 +14,7 @@ export function CartSkeleton() {
       <ul className="cart-items">
         {[1, 2, 3].map((i) => (
           <li className="cart-item" key={i}>
+            <Skeleton width="60px" height="60px" radius="6px" />
             <div className="cart-item-info">
               <Skeleton width="160px" height="1rem" style={{ marginBottom: "6px" }} />
               <Skeleton width="80px" height="0.75rem" />
