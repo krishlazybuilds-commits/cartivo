@@ -32,6 +32,9 @@ export default function CheckoutPage() {
   const [estimate, setEstimate] = useState(null);
   const [couponData, setCouponData] = useState(null);
   const [savedAddresses, setSavedAddresses] = useState([]);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("");
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
 
   // Load saved addresses for authenticated users.
   useEffect(() => {
@@ -95,10 +98,14 @@ export default function CheckoutPage() {
       shipping_postal_code: addr.postal_code,
       shipping_country: addr.country,
     }));
+    setSelectedAddressId(addr.id);
   }
 
   function update(field) {
-    return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+    return (e) => {
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+      setSelectedAddressId(null);
+    };
   }
 
   // Refresh estimate when country or cart total changes.
@@ -122,6 +129,25 @@ export default function CheckoutPage() {
 
     try {
       if (user) {
+        if (saveAddress) {
+          try {
+            await authFetch("/auth/addresses/", {
+              method: "POST",
+              body: JSON.stringify({
+                label: addressLabel.trim() || "Home",
+                full_name: form.shipping_full_name,
+                address: form.shipping_address,
+                city: form.shipping_city,
+                postal_code: form.shipping_postal_code,
+                country: form.shipping_country,
+                is_default: savedAddresses.length === 0,
+              }),
+            });
+          } catch (addrErr) {
+            console.error("Failed to save address:", addrErr);
+          }
+        }
+
         // Authenticated: create order from server-side cart, then get pay URL.
         const order = await authFetch("/orders/", {
           method: "POST",
@@ -231,7 +257,7 @@ export default function CheckoutPage() {
                           <button
                             key={addr.id}
                             type="button"
-                            className="btn btn-ghost"
+                            className={`btn ${selectedAddressId === addr.id ? "btn-primary" : "btn-ghost"}`}
                             style={{ fontSize: "0.82rem" }}
                             onClick={() => fillFromAddress(addr)}
                           >
@@ -272,6 +298,32 @@ export default function CheckoutPage() {
                       <option value="OTHER">Other</option>
                     </select>
                   </label>
+
+                  {user && (
+                    <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontWeight: "normal" }}>
+                        <input
+                          type="checkbox"
+                          checked={saveAddress}
+                          onChange={(e) => setSaveAddress(e.target.checked)}
+                          style={{ width: "auto", margin: 0 }}
+                        />
+                        Save this address to my profile
+                      </label>
+                      {saveAddress && (
+                        <label style={{ marginTop: "0.25rem" }}>
+                          Address Label (e.g. Home, Work)
+                          <input
+                            type="text"
+                            value={addressLabel}
+                            onChange={(e) => setAddressLabel(e.target.value)}
+                            placeholder="Home"
+                            style={{ marginTop: "0.25rem" }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  )}
 
                   <label style={{ marginTop: "1rem" }}>
                     Order notes <span style={{ opacity: 0.5, fontSize: "0.85em" }}>(optional)</span>

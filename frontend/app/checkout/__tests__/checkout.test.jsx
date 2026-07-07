@@ -108,7 +108,7 @@ describe("CheckoutPage — shipping form", () => {
   it("renders shipping address fields", () => {
     render(<CheckoutPage />);
     expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^address$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/postal code/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/country/i)).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe("CheckoutPage — order submission", () => {
     render(<CheckoutPage />);
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Jane Doe" } });
-    fireEvent.change(screen.getByLabelText(/address/i), { target: { value: "123 Main St" } });
+    fireEvent.change(screen.getByLabelText(/^address$/i), { target: { value: "123 Main St" } });
     fireEvent.change(screen.getByLabelText(/city/i), { target: { value: "Portland" } });
     fireEvent.change(screen.getByLabelText(/postal code/i), { target: { value: "97201" } });
 
@@ -250,7 +250,7 @@ describe("CheckoutPage — order submission", () => {
     render(<CheckoutPage />);
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Jane Doe" } });
-    fireEvent.change(screen.getByLabelText(/address/i), { target: { value: "123 Main St" } });
+    fireEvent.change(screen.getByLabelText(/^address$/i), { target: { value: "123 Main St" } });
     fireEvent.change(screen.getByLabelText(/city/i), { target: { value: "Portland" } });
     fireEvent.change(screen.getByLabelText(/postal code/i), { target: { value: "97201" } });
 
@@ -270,7 +270,7 @@ describe("CheckoutPage — order submission", () => {
     render(<CheckoutPage />);
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: "Jane Doe" } });
-    fireEvent.change(screen.getByLabelText(/address/i), { target: { value: "123 Main St" } });
+    fireEvent.change(screen.getByLabelText(/^address$/i), { target: { value: "123 Main St" } });
     fireEvent.change(screen.getByLabelText(/city/i), { target: { value: "Portland" } });
     fireEvent.change(screen.getByLabelText(/postal code/i), { target: { value: "97201" } });
 
