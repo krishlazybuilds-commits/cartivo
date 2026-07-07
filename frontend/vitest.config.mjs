@@ -1,18 +1,19 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  // App components and tests use JSX inside .js/.jsx files (Next.js convention).
-  // Tell esbuild to parse both as JSX with React's automatic runtime so no
-  // explicit `import React` is needed and Vite's import analysis doesn't choke.
+  plugins: [react()],
   esbuild: {
-    loader: "jsx",
-    include: /app\/.*\.jsx?$/,
+    loader: "tsx",
+    include: /app\/.*\.[jt]sx?$/,
     exclude: [],
-    jsx: "automatic",
   },
   optimizeDeps: {
     esbuildOptions: {
-      loader: { ".js": "jsx" },
+      loader: {
+        ".js": "jsx",
+        ".ts": "ts",
+      },
     },
   },
   test: {

@@ -1,24 +1,38 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState, ReactNode } from "react";
 
-const ToastContext = createContext(null);
+export type ToastType = "success" | "error" | "info" | "warning";
+
+export interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+}
+
+export type ToastFunction = (message: string, type?: ToastType, duration?: number) => number;
+
+const ToastContext = createContext<ToastFunction | null>(null);
 
 let _id = 0;
 const MAX = 3;          // max visible toasts in the stack
 const SCALE_STEP = 0.04; // each older toast shrinks by this
 const Y_STEP = 8;        // px each older toast peeks above the one in front
 
-export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
-  const timers = useRef({});
+interface ToastProviderProps {
+  children: ReactNode;
+}
 
-  const dismiss = useCallback((id) => {
+export function ToastProvider({ children }: ToastProviderProps) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timers = useRef<{ [key: number]: any }>({});
+
+  const dismiss = useCallback((id: number) => {
     clearTimeout(timers.current[id]);
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
-  const toast = useCallback(
+  const toast = useCallback<ToastFunction>(
     (message, type = "success", duration = 3000) => {
       const id = ++_id;
       setToasts((t) => {
@@ -40,7 +54,12 @@ export function ToastProvider({ children }) {
   );
 }
 
-function ToastContainer({ toasts, onDismiss }) {
+interface ToastContainerProps {
+  toasts: ToastItem[];
+  onDismiss: (id: number) => void;
+}
+
+function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
   if (!toasts.length) return null;
   const total = toasts.length;
 
@@ -84,9 +103,8 @@ function ToastContainer({ toasts, onDismiss }) {
   );
 }
 
-export function useToast() {
+export function useToast(): ToastFunction {
   const ctx = useContext(ToastContext);
-  if (!ctx) return () => {};
+  if (!ctx) return () => 0;
   return ctx;
 }
-
