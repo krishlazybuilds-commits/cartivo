@@ -3065,41 +3065,7 @@ body::after {
 }
 
 
-/* --- Breadcrumbs ----------------------------------------------------------- */
-.breadcrumbs {
-  margin-bottom: 1.5rem;
-}
-.breadcrumbs ol {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--muted, #6b7280);
-}
-.breadcrumbs li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.breadcrumbs a {
-  color: var(--slate, #475569);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.breadcrumbs a:hover {
-  color: var(--ink, #0f172a);
-}
-.breadcrumbs [aria-current="page"] {
-  color: var(--ink, #0f172a);
-  font-weight: 600;
-}
-.breadcrumb-sep {
-  color: var(--line, #cbd5e1);
-}
+
 
 
 /* --- Cookie consent -------------------------------------------------------- */

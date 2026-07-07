@@ -1,5 +1,6 @@
 import Link from "next/link";
 import JsonLd from "./JsonLd";
+import styles from "./Breadcrumbs.module.css";
 
 /**
  * Accessible breadcrumb trail with JSON-LD structured data for SEO.
@@ -28,7 +29,7 @@ export default function Breadcrumbs({ items = [] }) {
   return (
     <>
       <JsonLd data={jsonLd} />
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
       <ol>
         {items.map((item, i) => {
           const isLast = i === items.length - 1;
@@ -39,7 +40,7 @@ export default function Breadcrumbs({ items = [] }) {
               ) : (
                 <span aria-current={isLast ? "page" : undefined}>{item.label}</span>
               )}
-              {!isLast && <span className="breadcrumb-sep" aria-hidden="true">/</span>}
+              {!isLast && <span className={styles.sep} aria-hidden="true">/</span>}
             </li>
           );
         })}
