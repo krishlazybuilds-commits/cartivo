@@ -80,7 +80,7 @@ export function WishlistProvider({ children }) {
   }, [user, refresh]);
 
   const isWishlisted = useCallback(
-    (productId) => items.some((i) => i.product === productId),
+    (productId) => items.some((i) => String(i.product) === String(productId)),
     [items]
   );
 
@@ -93,7 +93,7 @@ export function WishlistProvider({ children }) {
       setItems((prev) => [created, ...prev]);
     } else {
       const guestItems = readGuestWishlist();
-      if (!guestItems.some((i) => i.product === productId)) {
+      if (!guestItems.some((i) => String(i.product) === String(productId))) {
         const newItem = {
           id: `guest-${productId}`,
           product: productId,
@@ -113,12 +113,12 @@ export function WishlistProvider({ children }) {
   const remove = useCallback(
     async (productId) => {
       if (user) {
-        const item = items.find((i) => i.product === productId);
+        const item = items.find((i) => String(i.product) === String(productId));
         if (!item) return;
         await authFetch(`/wishlist/${item.id}/`, { method: "DELETE" });
         setItems((prev) => prev.filter((i) => i.id !== item.id));
       } else {
-        const guestItems = readGuestWishlist().filter((i) => i.product !== productId);
+        const guestItems = readGuestWishlist().filter((i) => String(i.product) !== String(productId));
         writeGuestWishlist(guestItems);
         setItems(guestItems);
       }
