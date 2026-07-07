@@ -56,64 +56,16 @@ export default function CartPage() {
     }
   }, [cart?.total, country, loadEstimate]);
 
-  // Debug logging for footer flicker investigation
-  function logLayout(tag, extra) {
-    console.log(`[CART ${tag}]`, {
-      loading,
-      cartItems: cart?.items?.length,
-      cartTotal: cart?.total,
-      estimating,
-      hasEstimate: !!estimate,
-      docHeight: document.documentElement.scrollHeight,
-      bodyHeight: document.body.scrollHeight,
-      scrollY: window.scrollY,
-      innerHeight: window.innerHeight,
-      ...extra,
-    });
-  }
-
-  useEffect(() => {
-    logLayout("loading=" + loading);
-  }, [loading]);
-
-  useEffect(() => {
-    if (cart) logLayout("cart updated");
-  }, [cart]);
-
-  useEffect(() => {
-    logLayout("estimating=" + estimating, { estimateNote: estimate?.note });
-  }, [estimating]);
-
-  useEffect(() => {
-    if (estimate) logLayout("estimate received");
-  }, [estimate]);
-
-  // Log the rendering path
   const showSkeleton = loading && !cart;
   const showEmpty = !cart || cart.items.length === 0;
   const showCart = !showSkeleton && !showEmpty;
-  useEffect(() => {
-    logLayout("render path", { showSkeleton, showEmpty, showCart });
-  }, [showSkeleton, showEmpty, showCart]);
-
-  // Measure actual estimate container height
-  useEffect(() => {
-    const el = document.querySelector(".shipping-estimate");
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      console.log(`[CART estimate-height] ${rect.height}px`, { estimating, hasEstimate: !!estimate });
-    }
-  }, [estimating, estimate, cart?.total]);
 
   async function run(action) {
-    logLayout("before-update");
     setError(null);
     try {
       await action();
-      logLayout("after-update");
     } catch (err) {
       setError(err.message);
-      logLayout("error");
     }
   }
 
