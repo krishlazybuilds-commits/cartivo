@@ -148,19 +148,20 @@ describe("CheckoutPage — coupon", () => {
   });
 
   it("calls coupon validation on apply", async () => {
-    const couponFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ valid: true, code: "SAVE10", discount_amount: 6.99, message: "Coupon applied!" }),
+    mockAuthFetch.mockResolvedValue({
+      valid: true,
+      code: "SAVE10",
+      discount_amount: 6.99,
+      message: "Coupon applied!",
     });
-    window.fetch = couponFetch;
 
     render(<CheckoutPage />);
     fireEvent.change(screen.getByPlaceholderText(/enter code/i), { target: { value: "SAVE10" } });
     fireEvent.click(screen.getByRole("button", { name: /apply/i }));
 
     await waitFor(() => {
-      expect(couponFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/coupons/validate/"),
+      expect(mockAuthFetch).toHaveBeenCalledWith(
+        "/coupons/validate/",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ code: "SAVE10", subtotal: 69.97 }),
@@ -174,11 +175,10 @@ describe("CheckoutPage — coupon", () => {
   });
 
   it("shows error for invalid coupon", async () => {
-    const couponFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ valid: false, message: "Invalid coupon code." }),
+    mockAuthFetch.mockResolvedValue({
+      valid: false,
+      message: "Invalid coupon code.",
     });
-    window.fetch = couponFetch;
 
     render(<CheckoutPage />);
     fireEvent.change(screen.getByPlaceholderText(/enter code/i), { target: { value: "BADCODE" } });

@@ -119,12 +119,10 @@ export default function CheckoutPage() {
     setValidatingCoupon(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/coupons/validate/`, {
+      const data = await authFetch("/coupons/validate/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: couponCode, subtotal: cartTotal }),
       });
-      const data = await res.json();
       if (data.valid) {
         setCouponData(data);
       } else {

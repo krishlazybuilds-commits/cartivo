@@ -6,6 +6,7 @@ import Link from "next/link";
 import AuthPanel from "../components/AuthPanel";
 import AuthBackButton from "../components/AuthBackButton";
 import { API_URL } from "../lib/api";
+import { ensureCsrfToken } from "../lib/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -15,10 +16,15 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setStatus("sending");
     try {
+      const csrf = await ensureCsrfToken();
+      const headers = { "Content-Type": "application/json" };
+      if (csrf) headers["X-CSRFToken"] = csrf;
+
       const res = await fetch(`${API_URL}/auth/password-reset/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ email }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error();
       setStatus("done");

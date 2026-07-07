@@ -53,16 +53,63 @@ export function CartProvider({ children }) {
   }, []);
 
   // Reload guest cart from localStorage.
-  const refreshGuest = useCallback(() => {
+  const refreshGuest = useCallback(async () => {
     const items = readGuestCart();
     setCart(guestCartToState(items));
+
+    if (items.length === 0) return;
+
+    const productIds = Array.from(new Set(items.map((i) => i.product_id)));
+    try {
+      const res = await fetch(`/api/v1/products/?ids=${productIds.join(",")}&page_size=${productIds.length}`);
+      if (res.ok) {
+        const data = await res.json();
+        const products = data.results ?? data;
+        const priceMap = {};
+        for (const p of products) {
+          priceMap[p.id] = parseFloat(p.price);
+          if (p.variants) {
+            for (const v of p.variants) {
+              priceMap[`${p.id}-${v.id}`] = parseFloat(v.effective_price ?? v.price ?? p.price);
+            }
+          }
+        }
+
+        let changed = false;
+        const updatedItems = items.map((item) => {
+          const key = item.variant_id ? `${item.product_id}-${item.variant_id}` : item.product_id;
+          const serverPrice = priceMap[key];
+          if (serverPrice !== undefined && serverPrice !== item.unit_price) {
+            changed = true;
+            return {
+              ...item,
+              unit_price: serverPrice,
+              subtotal: serverPrice * item.quantity,
+              price_is_estimate: false,
+            };
+          }
+          if (serverPrice !== undefined && item.price_is_estimate) {
+            changed = true;
+            return { ...item, price_is_estimate: false };
+          }
+          return item;
+        });
+
+        if (changed) {
+          writeGuestCart(updatedItems);
+          setCart(guestCartToState(updatedItems));
+        }
+      }
+    } catch {
+      // Ignore: network/API offline, keep using the localStorage items as-is
+    }
   }, []);
 
   const refresh = useCallback(async () => {
     if (user) {
       await refreshServer();
     } else {
-      refreshGuest();
+      await refreshGuest();
     }
   }, [user, refreshServer, refreshGuest]);
 

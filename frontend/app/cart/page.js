@@ -11,6 +11,7 @@ import { CartSkeleton } from "../components/Skeleton";
 import { formatPrice } from "../lib/format";
 import { useToast } from "../lib/toast";
 import { API_URL, fetchShippingEstimate } from "../lib/api";
+import { authFetch } from "../lib/auth";
 
 export default function CartPage() {
   const { cart, loading, updateItem, removeItem, clear } = useCart();
@@ -130,12 +131,10 @@ export default function CartPage() {
     setValidatingCoupon(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/coupons/validate/`, {
+      const data = await authFetch("/coupons/validate/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: couponCode, subtotal: cart?.total ?? 0 }),
       });
-      const data = await res.json();
       if (data.valid) {
         setCouponData(data);
       } else {
