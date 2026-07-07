@@ -10,6 +10,7 @@ import { useCart } from "../lib/cart";
 import { authFetch } from "../lib/auth";
 import { API_URL, fetchShippingEstimate } from "../lib/api";
 import { formatPrice } from "../lib/format";
+import CouponInput from "../components/CouponInput";
 
 const EMPTY = {
   shipping_full_name: "",
@@ -29,9 +30,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
-  const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
 
   // Load saved addresses for authenticated users.
@@ -114,27 +113,7 @@ export default function CheckoutPage() {
     loadEstimate();
   }, [loadEstimate]);
 
-  async function handleApplyCoupon() {
-    if (!couponCode.trim()) return;
-    setValidatingCoupon(true);
-    setError(null);
-    try {
-      const data = await authFetch("/coupons/validate/", {
-        method: "POST",
-        body: JSON.stringify({ code: couponCode, subtotal: cartTotal }),
-      });
-      if (data.valid) {
-        setCouponData(data);
-      } else {
-        setError(data.message || "Invalid coupon code.");
-        setCouponData(null);
-      }
-    } catch {
-      setError("Failed to validate coupon.");
-    } finally {
-      setValidatingCoupon(false);
-    }
-  }
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -305,32 +284,12 @@ export default function CheckoutPage() {
                     />
                   </label>
 
-                  <div className="coupon-field" style={{ marginTop: "1rem" }}>
-                    <label style={{ marginBottom: "0.5rem" }}>Coupon code</label>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <input
-                        type="text"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        placeholder="Enter code"
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={handleApplyCoupon}
-                        disabled={validatingCoupon || !couponCode.trim()}
-                        style={{ padding: "0 1.5rem" }}
-                      >
-                        {validatingCoupon ? "…" : "Apply"}
-                      </button>
-                    </div>
-                    {couponData && (
-                      <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "var(--success, #16a34a)" }}>
-                        {couponData.message}
-                      </p>
-                    )}
-                  </div>
+                  <CouponInput
+                    subtotal={cartTotal}
+                    couponData={couponData}
+                    onApply={setCouponData}
+                    onError={setError}
+                  />
 
                   <button className="btn btn-primary" type="submit" disabled={submitting} style={{ marginTop: "1.5rem" }}>
                     {submitting ? "Redirecting to payment…" : `Pay · ${formatPrice(finalTotal)}`}
