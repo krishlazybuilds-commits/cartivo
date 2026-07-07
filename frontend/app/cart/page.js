@@ -24,6 +24,12 @@ export default function CartPage() {
   const [estimating, setEstimating] = useState(false);
   const [couponData, setCouponData] = useState(null);
   const debounceRef = useRef(null);
+  const lastValidatedSubtotalRef = useRef(null);
+
+  const handleApplyCoupon = (data) => {
+    setCouponData(data);
+    lastValidatedSubtotalRef.current = cart?.total ?? 0;
+  };
 
   useEffect(() => {
     return () => {
@@ -54,6 +60,46 @@ export default function CartPage() {
       setEstimate(null);
     }
   }, [cart?.total, country, loadEstimate]);
+
+  // Re-validate coupon when cart total changes
+  useEffect(() => {
+    if (!couponData) {
+      lastValidatedSubtotalRef.current = null;
+      return;
+    }
+
+    const subtotal = cart?.total ?? 0;
+    if (subtotal === 0) {
+      setCouponData(null);
+      lastValidatedSubtotalRef.current = null;
+      return;
+    }
+
+    if (lastValidatedSubtotalRef.current === subtotal) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const data = await authFetch("/coupons/validate/", {
+          method: "POST",
+          body: JSON.stringify({ code: couponData.code, subtotal }),
+        });
+        if (data.valid) {
+          setCouponData(data);
+          lastValidatedSubtotalRef.current = subtotal;
+        } else {
+          setError(`Coupon "${couponData.code}" was removed: ${data.message || "Invalid for new subtotal."}`);
+          setCouponData(null);
+          lastValidatedSubtotalRef.current = null;
+        }
+      } catch {
+        setError("Failed to re-validate coupon.");
+        setCouponData(null);
+        lastValidatedSubtotalRef.current = null;
+      }
+    })();
+  }, [cart?.total, couponData]);
 
   const showSkeleton = loading && !cart;
   const showEmpty = !cart || cart.items.length === 0;
@@ -231,7 +277,7 @@ export default function CartPage() {
                   <CouponInput
                     subtotal={cart?.total ?? 0}
                     couponData={couponData}
-                    onApply={setCouponData}
+                    onApply={handleApplyCoupon}
                     onError={setError}
                   />
 

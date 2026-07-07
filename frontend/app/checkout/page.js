@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -35,6 +35,12 @@ export default function CheckoutPage() {
   const [saveAddress, setSaveAddress] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const lastValidatedSubtotalRef = useRef(null);
+
+  const handleApplyCoupon = (data) => {
+    setCouponData(data);
+    lastValidatedSubtotalRef.current = cartTotal ?? 0;
+  };
 
   // Load saved addresses for authenticated users.
   useEffect(() => {
@@ -120,6 +126,46 @@ export default function CheckoutPage() {
     loadEstimate();
   }, [loadEstimate]);
 
+  // Re-validate coupon when cart total changes
+  useEffect(() => {
+    if (!couponData) {
+      lastValidatedSubtotalRef.current = null;
+      return;
+    }
+
+    const subtotal = cartTotal ?? 0;
+    if (subtotal === 0) {
+      setCouponData(null);
+      lastValidatedSubtotalRef.current = null;
+      return;
+    }
+
+    if (lastValidatedSubtotalRef.current === subtotal) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const data = await authFetch("/coupons/validate/", {
+          method: "POST",
+          body: JSON.stringify({ code: couponData.code, subtotal }),
+        });
+        if (data.valid) {
+          setCouponData(data);
+          lastValidatedSubtotalRef.current = subtotal;
+        } else {
+          setError(`Coupon "${couponData.code}" was removed: ${data.message || "Invalid for new subtotal."}`);
+          setCouponData(null);
+          lastValidatedSubtotalRef.current = null;
+        }
+      } catch {
+        setError("Failed to re-validate coupon.");
+        setCouponData(null);
+        lastValidatedSubtotalRef.current = null;
+      }
+    })();
+  }, [cartTotal, couponData]);
+
 
 
   async function handleSubmit(e) {
@@ -201,9 +247,10 @@ export default function CheckoutPage() {
   if (authLoading) return null;
 
   const isEmpty = !cart || cart.items.length === 0;
-  const finalTotal = estimate
-    ? estimate.total - (couponData?.discount_amount || 0)
-    : (cartTotal ?? 0);
+  const finalTotal = Math.max(
+    0,
+    (estimate ? estimate.total : (cartTotal ?? 0)) - (couponData?.discount_amount || 0)
+  );
 
   return (
     <>
@@ -339,7 +386,7 @@ export default function CheckoutPage() {
                   <CouponInput
                     subtotal={cartTotal}
                     couponData={couponData}
-                    onApply={setCouponData}
+                    onApply={handleApplyCoupon}
                     onError={setError}
                   />
 
